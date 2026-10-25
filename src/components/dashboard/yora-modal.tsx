@@ -189,7 +189,7 @@ export function YoraModal({
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
             placeholder={`Ask Yora anything about your roadmap…`}
-            className="flex-1 text-base sm:text-sm bg-slate-50 border border-slate-200 rounded-xl px-3.5 sm:px-4 py-2.5 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#FF496D]/20 focus:border-[#FF496D] transition-all disabled:opacity-60"
+            className="flex-1 text-base md:text-sm bg-slate-50 border border-slate-200 rounded-xl px-3.5 sm:px-4 py-2.5 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#FF496D]/20 focus:border-[#FF496D] transition-all disabled:opacity-60"
           />
           <button
             type="button"

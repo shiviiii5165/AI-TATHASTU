@@ -124,7 +124,7 @@ export function DashboardHeader({
               onFocus={() => setIsSearchFocused(true)}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search for people, projects, skills, opportunities..."
-              className="w-full h-10.5 pl-11 pr-4 rounded-full border border-[#E7EAF3] bg-[#F8FAFD] text-base sm:text-sm text-[#11182B] placeholder:text-[#8A9BB5] transition-all focus:bg-white focus:outline-none focus:border-[#FF496D] focus:ring-2 focus:ring-[#FF496D]/15"
+              className="w-full h-10.5 pl-11 pr-4 rounded-full border border-[#E7EAF3] bg-[#F8FAFD] text-base md:text-sm text-[#11182B] placeholder:text-[#8A9BB5] transition-all focus:bg-white focus:outline-none focus:border-[#FF496D] focus:ring-2 focus:ring-[#FF496D]/15"
             />
             {isSearching && (
               <div className="absolute right-3.5 top-1/2 -translate-y-1/2">
@@ -439,7 +439,7 @@ export function DashboardHeader({
               autoFocus
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search people, projects, skills…"
-              className="w-full h-10 pl-10 pr-4 rounded-xl border border-[#E7EAF3] bg-[#F8FAFD] text-base sm:text-xs text-[#11182B] placeholder:text-[#8A9BB5] focus:bg-white focus:outline-none focus:border-[#FF496D]"
+              className="w-full h-10 pl-10 pr-4 rounded-xl border border-[#E7EAF3] bg-[#F8FAFD] text-base md:text-xs text-[#11182B] placeholder:text-[#8A9BB5] focus:bg-white focus:outline-none focus:border-[#FF496D]"
             />
           </div>
           {activeSearchResults && (

@@ -296,7 +296,7 @@ function FactRow({
       </div>
 
       <div className="min-w-0">
-        {long ? <Textarea {...inputProps} rows={3} className="min-h-20" /> : <Input {...inputProps} className="h-10" />}
+        {long ? <Textarea {...inputProps} rows={3} className="min-h-20 text-base md:text-sm" /> : <Input {...inputProps} className="h-10 text-base md:text-sm" />}
         <Evidence id={evidenceId} evidence={fact.evidence} page={fact.page} />
       </div>
 
@@ -424,7 +424,7 @@ function NewEntry({
               <Label htmlFor={id} className="text-sm font-medium">
                 {t.label}
               </Label>
-              {long ? <Textarea {...props} rows={3} className="mt-2" /> : <Input {...props} className="mt-2 h-10" />}
+              {long ? <Textarea {...props} rows={3} className="mt-2 text-base md:text-sm" /> : <Input {...props} className="mt-2 h-10 text-base md:text-sm" />}
             </div>
           );
         })}

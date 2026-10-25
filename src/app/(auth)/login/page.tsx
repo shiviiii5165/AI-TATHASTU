@@ -207,7 +207,7 @@ function SignInOptions({ redirectTo, message }: { redirectTo: string; message?: 
                 required
                 autoComplete="email"
                 placeholder="you@university.edu"
-                className="h-11 rounded-xl border-slate-200 bg-white pl-10! text-base sm:text-sm text-[#0F172A] shadow-xs transition-colors placeholder:text-slate-400 focus-visible:border-[#FF2A85] focus-visible:ring-2 focus-visible:ring-[#FF2A85]/20"
+                className="h-11 rounded-xl border-slate-200 bg-white pl-10! text-base md:text-sm text-[#0F172A] shadow-xs transition-colors placeholder:text-slate-400 focus-visible:border-[#FF2A85] focus-visible:ring-2 focus-visible:ring-[#FF2A85]/20"
               />
             </div>
           </div>

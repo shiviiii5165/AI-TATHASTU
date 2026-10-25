@@ -4243,7 +4243,7 @@ input[type=range]::-moz-range-thumb {
 }
 
 @media (max-width: 640px) {
-  .ref-hero { padding: 16px 8px 36px; }
+  .ref-hero { padding: 88px 8px 36px; }
   .ref-nav-actions #refThemeToggleBtn,
   .ref-nav-actions #refNavSearchBtn { display: none !important; }
   .ref-nav-actions { gap: 6px; }
@@ -4304,6 +4304,7 @@ input[type=range]::-moz-range-thumb {
   .ref-nav-shell { padding: 4px 6px; }
   .ref-nav-bar { height: 56px; padding: 0 8px; }
   .ref-brand-mark { width: 28px; height: 28px; font-size: 11px; }
+  .ref-hero { padding-top: 76px; }
   .ref-hero-headline { font-size: 1.7rem; }
   .ref-source-column, .ref-dest-column { grid-template-columns: 1fr; }
   .ref-metrics-grid { grid-template-columns: 1fr; }

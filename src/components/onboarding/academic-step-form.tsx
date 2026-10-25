@@ -69,7 +69,7 @@ export function AcademicStepForm({
               placeholder="e.g. Anant Kumar"
               aria-invalid={state.errors?.fullName ? true : undefined}
               aria-describedby={state.errors?.fullName ? "fullName-error" : undefined}
-              className="mt-1.5 h-11 rounded-xl border-slate-200 text-base sm:text-sm shadow-xs transition-colors focus-visible:border-[#FF2A85] focus-visible:ring-2 focus-visible:ring-[#FF2A85]/20"
+              className="mt-1.5 h-11 rounded-xl border-slate-200 text-base md:text-sm shadow-xs transition-colors focus-visible:border-[#FF2A85] focus-visible:ring-2 focus-visible:ring-[#FF2A85]/20"
               onBlur={(e) => {
                 const v = e.target.value.trim();
                 if (saveName && v !== lastName.current) {

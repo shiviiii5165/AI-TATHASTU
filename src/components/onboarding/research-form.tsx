@@ -130,12 +130,12 @@ export function ResearchForm({
                     : "e.g. Multimodal learning, Federated learning (press Enter or comma)"
                 }
                 maxLength={200}
-                className="h-12 rounded-xl border border-slate-200 bg-slate-50/50 px-4 text-sm text-[#0F172A] shadow-xs placeholder:text-slate-400 focus-visible:bg-white focus-visible:border-[#FF2A85] focus-visible:ring-2 focus-visible:ring-[#FF2A85]/20"
+                className="h-12 rounded-xl border border-slate-200 bg-slate-50/50 px-4 text-base md:text-sm text-[#0F172A] shadow-xs placeholder:text-slate-400 focus-visible:bg-white focus-visible:border-[#FF2A85] focus-visible:ring-2 focus-visible:ring-[#FF2A85]/20"
               />
             </div>
             <Button
               type="button"
-              className="h-12 px-6 rounded-xl text-sm font-semibold bg-[#0F172A] hover:bg-slate-800 text-white shadow-xs transition-all flex items-center gap-1.5"
+              className="h-12 px-3 sm:px-6 rounded-xl text-sm font-semibold bg-[#0F172A] hover:bg-slate-800 text-white shadow-xs transition-all flex items-center gap-1.5 shrink-0"
               onClick={() => addDraft()}
               disabled={full || !draft.trim()}
             >

@@ -279,7 +279,7 @@ export function FieldControl({ field: f, value, error }: { field: FieldDef; valu
       </Label>
       {f.type === "select" ? (
         <Select name={f.name} value={selected || undefined} onValueChange={setSelected}>
-          <SelectTrigger {...common} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm text-[#0F172A] shadow-xs focus-visible:border-[#FF2A85] focus-visible:ring-2 focus-visible:ring-[#FF2A85]/20">
+          <SelectTrigger {...common} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-base md:text-sm text-[#0F172A] shadow-xs focus-visible:border-[#FF2A85] focus-visible:ring-2 focus-visible:ring-[#FF2A85]/20">
             <SelectValue placeholder={f.placeholder ?? "Select"} />
           </SelectTrigger>
           <SelectContent className="rounded-xl border border-slate-200 bg-white shadow-xl">
@@ -300,7 +300,7 @@ export function FieldControl({ field: f, value, error }: { field: FieldDef; valu
           placeholder={f.placeholder}
           autoComplete={f.autoComplete}
           required={f.required}
-          className="mt-1.5 h-11 rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-[#0F172A] shadow-xs placeholder:text-slate-400 focus-visible:border-[#FF2A85] focus-visible:ring-2 focus-visible:ring-[#FF2A85]/20"
+          className="mt-1.5 h-11 rounded-xl border border-slate-200 bg-white px-3.5 text-base md:text-sm text-[#0F172A] shadow-xs placeholder:text-slate-400 focus-visible:border-[#FF2A85] focus-visible:ring-2 focus-visible:ring-[#FF2A85]/20"
         />
       )}
       {f.hint && (

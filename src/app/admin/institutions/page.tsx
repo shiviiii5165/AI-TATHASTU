@@ -14,7 +14,7 @@ export default function AdminInstitutionsPage() {
   return (
     <div className="max-w-6xl">
       <p className="font-mono text-xs tracking-wider text-muted-foreground uppercase">Admin · Institutions</p>
-      <h1 className="mt-3 font-heading text-5xl leading-[1.05] tracking-tight">Pending institutions</h1>
+      <h1 className="mt-3 font-heading text-3xl sm:text-4xl md:text-5xl leading-[1.05] tracking-tight">Pending institutions</h1>
       <p className="mt-4 max-w-2xl text-muted-foreground">
         Entries users typed under &quot;Other / Not listed&quot;. Approve adds one to everyone&apos;s search. Merge moves its
         users to an existing institution. Reject unlinks them and keeps what they typed.

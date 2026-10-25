@@ -33,7 +33,7 @@ export function AuthorizeForm({
   return (
     <div className="mt-10">
       <p className="font-mono text-xs tracking-wider text-muted-foreground uppercase">{client.host}</p>
-      <h1 className="mt-2 font-heading text-4xl leading-tight">Sign in to {client.name}</h1>
+      <h1 className="mt-2 font-heading text-2xl sm:text-3xl md:text-4xl leading-tight">Sign in to {client.name}</h1>
       <p className="mt-2 text-muted-foreground">{client.description}</p>
 
       <div className="mt-8 rounded-lg border bg-card p-5">
@@ -60,7 +60,7 @@ export function AuthorizeForm({
         </p>
       </div>
 
-      <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
+      <div className="mt-6 flex flex-col-reverse sm:flex-row items-stretch sm:items-center sm:justify-end gap-3">
         <Button type="button" variant="ghost" className="h-10 px-4" disabled={pending} onClick={() => act("deny")}>
           {pending && choice === "deny" && <LoaderCircle data-icon="inline-start" aria-hidden className="animate-spin" />}
           Cancel

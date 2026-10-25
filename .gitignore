@@ -55,8 +55,8 @@ next-env.d.ts
 /.claude/
 /.agents/
 /.taste-skill/
-/landing page /
-/logo and app icon /
+landing page*
+logo and app icon*
 
 # python
 __pycache__/
