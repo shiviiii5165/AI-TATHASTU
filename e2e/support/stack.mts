@@ -30,7 +30,7 @@ function verifySignature(raw: Buffer, header: string | undefined) {
 async function startDatabase() {
   const db = await PGlite.create();
   const dir = path.resolve(import.meta.dirname, "../../src/db/migrations");
-  for (const file of readdirSync(dir).filter((f) => f.endsWith(".sql")).sort()) {
+  for (const file of readdirSync(dir).filter((f) => f.endsWith(".sql") && !f.startsWith("._")).sort()) {
     for (const stmt of readFileSync(path.join(dir, file), "utf8").split("--> statement-breakpoint")) {
       const trimmed = stmt.trim();
       if (!trimmed) continue;

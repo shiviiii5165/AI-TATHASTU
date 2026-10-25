@@ -1494,7 +1494,7 @@
       border: 1.5px solid #E2E8F0;
       background: #FFFFFF;
       font-family: inherit;
-      font-size: 0.95rem;
+      font-size: 1rem;
       color: #0F172A;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
       transition: border-color 0.2s, box-shadow 0.2s;
@@ -1802,7 +1802,7 @@
       border-radius: 12px;
       border: 1.5px solid var(--line);
       font-family: inherit;
-      font-size: 0.95rem;
+      font-size: 1rem;
       color: var(--ink);
       outline: none;
       transition: border-color 0.2s ease;
@@ -1858,15 +1858,24 @@
     }
 
     @media (max-width: 480px) {
+      .team-nav-shell {
+        padding: 8px 12px;
+      }
       .team-nav-signin {
+        display: none;
+      }
+      .team-nav-icon-btn {
         display: none;
       }
       .team-brand-sub {
         display: none;
       }
+      .team-nav-actions {
+        gap: 8px;
+      }
       .team-nav-cta {
-        padding: 8px 14px;
-        font-size: 0.8rem;
+        padding: 6px 12px;
+        font-size: 0.78rem;
       }
     }
 

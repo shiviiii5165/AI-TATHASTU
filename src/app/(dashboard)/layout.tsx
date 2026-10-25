@@ -53,7 +53,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
         {/* Main Content Area: pb-28 accounts for mobile bottom bar */}
         <main
           id="app-content"
-          className="min-w-0 px-4 pt-4 pb-28 sm:px-6 sm:pt-6 lg:px-8 lg:pb-16 bg-[#FAFAFC]"
+          className="min-w-0 px-3 pt-4 pb-28 sm:px-6 sm:pt-6 lg:px-8 lg:pb-16 pl-safe pr-safe bg-[#FAFAFC]"
         >
           {children}
         </main>

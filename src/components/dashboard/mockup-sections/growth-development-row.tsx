@@ -72,7 +72,7 @@ function SkillProficiencyCard({
   const hasSkills = skills.length > 0;
 
   return (
-    <div className="flex flex-col justify-between rounded-2xl border border-[#E7EAF3] bg-white p-5 shadow-2xs">
+    <div className="flex flex-col justify-between rounded-2xl border border-[#E7EAF3] bg-white p-3.5 sm:p-5 shadow-2xs">
       <div className="flex items-center justify-between border-b border-[#F0F2F7] pb-3">
         <div className="flex items-center gap-2">
           <div className="flex size-7 items-center justify-center rounded-lg bg-[#EDF5FF] text-[#2878F0]">
@@ -159,7 +159,7 @@ function SkillGapsCard({ gaps = [] }: { gaps?: SkillGapItem[] }) {
     : [];
 
   return (
-    <div className="flex flex-col justify-between rounded-2xl border border-[#E7EAF3] bg-white p-5 shadow-2xs">
+    <div className="flex flex-col justify-between rounded-2xl border border-[#E7EAF3] bg-white p-3.5 sm:p-5 shadow-2xs">
       <div className="flex items-center justify-between border-b border-[#F0F2F7] pb-3">
         <div className="flex items-center gap-2">
           <div className="flex size-7 items-center justify-center rounded-lg bg-[#F4F1FD] text-[#8554FF]">
@@ -244,7 +244,7 @@ function LearningPathsCard({ paths = [] }: { paths?: LearningPathItem[] }) {
     : [];
 
   return (
-    <div className="flex flex-col justify-between rounded-2xl border border-[#E7EAF3] bg-white p-5 shadow-2xs">
+    <div className="flex flex-col justify-between rounded-2xl border border-[#E7EAF3] bg-white p-3.5 sm:p-5 shadow-2xs">
       <div className="flex items-center justify-between border-b border-[#F0F2F7] pb-3">
         <div className="flex items-center gap-2">
           <div className="flex size-7 items-center justify-center rounded-lg bg-[#E8FAF4] text-[#19C58A]">
@@ -335,7 +335,7 @@ function CareerRoadmapCard({ roadmap }: { roadmap?: CareerRoadmapData }) {
     "Industry Impact";
 
   return (
-    <div className="flex flex-col justify-between rounded-2xl border border-[#E7EAF3] bg-white p-5 shadow-2xs">
+    <div className="flex flex-col justify-between rounded-2xl border border-[#E7EAF3] bg-white p-3.5 sm:p-5 shadow-2xs">
       <div className="flex items-center justify-between border-b border-[#F0F2F7] pb-3">
         <div className="flex items-center gap-2">
           <div className="flex size-7 items-center justify-center rounded-lg bg-[#EDF5FF] text-[#2878F0]">
@@ -355,8 +355,8 @@ function CareerRoadmapCard({ roadmap }: { roadmap?: CareerRoadmapData }) {
       {hasRoadmap ? (
         <div className="relative my-auto py-3">
           {/* Curved visual roadmap SVG matching mockup */}
-          <div className="relative h-24 w-full">
-            <svg className="h-full w-full overflow-visible" viewBox="0 0 260 70" fill="none">
+          <div className="relative h-24 w-full overflow-hidden">
+            <svg className="h-full w-full overflow-hidden" viewBox="0 0 260 70" preserveAspectRatio="xMidYMid meet" fill="none">
               <path
                 d="M 15 50 Q 80 48, 110 32 T 235 15"
                 stroke="#E2E8F0"

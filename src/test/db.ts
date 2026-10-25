@@ -11,7 +11,7 @@ import * as schema from "@/db/schema";
 export async function createTestDb() {
   const client = new PGlite();
   const dir = path.resolve(__dirname, "../db/migrations");
-  for (const file of readdirSync(dir).filter((f) => f.endsWith(".sql")).sort()) {
+  for (const file of readdirSync(dir).filter((f) => f.endsWith(".sql") && !f.startsWith("._")).sort()) {
     for (const stmt of readFileSync(path.join(dir, file), "utf8").split("--> statement-breakpoint")) {
       const trimmed = stmt.trim();
       if (!trimmed) continue;

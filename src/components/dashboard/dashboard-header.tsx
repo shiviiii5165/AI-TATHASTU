@@ -102,9 +102,9 @@ export function DashboardHeader({
 
   return (
     <>
-      <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between border-b border-[#E7EAF3] bg-white/95 px-4 sm:px-6 lg:px-8 backdrop-blur-md">
+      <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between border-b border-[#E7EAF3] bg-white/95 px-3 sm:px-6 lg:px-8 pl-safe pr-safe backdrop-blur-md">
         {/* Left: Brand area */}
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-3 sm:gap-6 min-w-0">
           <Link
             href="/dashboard"
             aria-label="AI Tathastu Dashboard"
@@ -124,7 +124,7 @@ export function DashboardHeader({
               onFocus={() => setIsSearchFocused(true)}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search for people, projects, skills, opportunities..."
-              className="w-full h-10.5 pl-11 pr-4 rounded-full border border-[#E7EAF3] bg-[#F8FAFD] text-sm text-[#11182B] placeholder:text-[#8A9BB5] transition-all focus:bg-white focus:outline-none focus:border-[#FF496D] focus:ring-2 focus:ring-[#FF496D]/15"
+              className="w-full h-10.5 pl-11 pr-4 rounded-full border border-[#E7EAF3] bg-[#F8FAFD] text-base sm:text-sm text-[#11182B] placeholder:text-[#8A9BB5] transition-all focus:bg-white focus:outline-none focus:border-[#FF496D] focus:ring-2 focus:ring-[#FF496D]/15"
             />
             {isSearching && (
               <div className="absolute right-3.5 top-1/2 -translate-y-1/2">
@@ -269,7 +269,7 @@ export function DashboardHeader({
         </div>
 
         {/* Right actions */}
-        <div className="flex items-center gap-2.5 sm:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
           {/* Mobile search trigger button */}
           <button
             type="button"
@@ -418,9 +418,11 @@ export function DashboardHeader({
           <button
             type="button"
             onClick={() => setYoraOpen(true)}
-            className="flex items-center gap-1.5 h-10 px-3 sm:px-4 rounded-full bg-gradient-to-r from-[#FF496D] to-[#FF713D] text-white text-xs font-bold shadow-sm hover:opacity-95 active:scale-95 transition-all cursor-pointer select-none shrink-0 touch-manipulation min-h-[40px]"
+            aria-label="Ask Yora AI companion"
+            className="flex items-center gap-1.5 h-10 px-2.5 sm:px-4 rounded-full bg-gradient-to-r from-[#FF496D] to-[#FF713D] text-white text-xs font-bold shadow-sm hover:opacity-95 active:scale-95 transition-all cursor-pointer select-none shrink-0 touch-manipulation min-h-[44px]"
           >
-            <span>Ask Yora</span>
+            <span className="hidden min-[380px]:inline">Ask Yora</span>
+            <span className="inline min-[380px]:hidden">Yora</span>
             <Sparkles className="size-3.5" />
           </button>
         </div>
@@ -437,7 +439,7 @@ export function DashboardHeader({
               autoFocus
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search people, projects, skills…"
-              className="w-full h-10 pl-10 pr-4 rounded-xl border border-[#E7EAF3] bg-[#F8FAFD] text-xs text-[#11182B] placeholder:text-[#8A9BB5] focus:bg-white focus:outline-none focus:border-[#FF496D]"
+              className="w-full h-10 pl-10 pr-4 rounded-xl border border-[#E7EAF3] bg-[#F8FAFD] text-base sm:text-xs text-[#11182B] placeholder:text-[#8A9BB5] focus:bg-white focus:outline-none focus:border-[#FF496D]"
             />
           </div>
           {activeSearchResults && (

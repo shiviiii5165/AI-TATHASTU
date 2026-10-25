@@ -61,7 +61,7 @@ function PeopleRecommendationsCard() {
   const hasPeople = people.length > 0;
 
   return (
-    <div className="flex flex-col justify-between rounded-2xl border border-[#E7EAF3] bg-white p-5 shadow-2xs">
+    <div className="flex flex-col justify-between rounded-2xl border border-[#E7EAF3] bg-white p-3.5 sm:p-5 shadow-2xs">
       <div className="flex items-center justify-between border-b border-[#F0F2F7] pb-3">
         <div className="flex items-center gap-2">
           <div className="flex size-7 items-center justify-center rounded-lg bg-[#E6F8FB] text-[#00AEC7]">
@@ -171,7 +171,7 @@ function MentorRecommendationsCard() {
   ];
 
   return (
-    <div className="flex flex-col justify-between rounded-2xl border border-[#E7EAF3] bg-white p-5 shadow-2xs">
+    <div className="flex flex-col justify-between rounded-2xl border border-[#E7EAF3] bg-white p-3.5 sm:p-5 shadow-2xs">
       <div className="flex items-center justify-between border-b border-[#F0F2F7] pb-3">
         <div className="flex items-center gap-2">
           <div className="flex size-7 items-center justify-center rounded-lg bg-[#F4F1FD] text-[#8554FF]">
@@ -225,7 +225,7 @@ function OpportunitiesCard({ opportunities = [] }: { opportunities?: Opportunity
   const hasOpps = opportunities.length > 0;
 
   return (
-    <div className="flex flex-col justify-between rounded-2xl border border-[#E7EAF3] bg-white p-5 shadow-2xs">
+    <div className="flex flex-col justify-between rounded-2xl border border-[#E7EAF3] bg-white p-3.5 sm:p-5 shadow-2xs">
       <div className="flex items-center justify-between border-b border-[#F0F2F7] pb-3">
         <div className="flex items-center gap-2">
           <div className="flex size-7 items-center justify-center rounded-lg bg-[#FFF0F4] text-[#FF496D]">
@@ -299,7 +299,7 @@ function NetworkInternshipsCard({ internships = [] }: { internships?: Opportunit
   const hasInternships = internships.length > 0;
 
   return (
-    <div className="flex flex-col justify-between rounded-2xl border border-[#E7EAF3] bg-white p-5 shadow-2xs">
+    <div className="flex flex-col justify-between rounded-2xl border border-[#E7EAF3] bg-white p-3.5 sm:p-5 shadow-2xs">
       <div className="flex items-center justify-between border-b border-[#F0F2F7] pb-3">
         <div className="flex items-center gap-2">
           <div className="flex size-7 items-center justify-center rounded-lg bg-[#EDF5FF] text-[#2878F0]">

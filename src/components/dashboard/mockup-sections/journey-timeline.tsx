@@ -21,7 +21,7 @@ export function JourneyTimeline({ milestones }: JourneyTimelineProps) {
     : [];
 
   return (
-    <div className="relative flex h-full flex-col justify-between overflow-hidden rounded-2xl border border-[#E7EAF3] bg-white p-5 shadow-2xs">
+    <div className="relative flex h-full flex-col justify-between overflow-hidden rounded-2xl border border-[#E7EAF3] bg-white p-3.5 sm:p-5 shadow-2xs">
       {/* Soft decorative sphere in bottom left matching mockup */}
       <div className="pointer-events-none absolute -bottom-6 -left-6 h-24 w-24 rounded-full bg-gradient-to-tr from-[#FF496D]/30 via-[#FF713D]/20 to-transparent blur-xl" />
 

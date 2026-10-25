@@ -39,7 +39,7 @@ test.describe("Responsive Viewports Comprehensive Audit", () => {
       }
 
       // Test onboarding flows with user
-      const user = await createUser(`User ${vp.name.replace(/\s+/g, "")}`, "role");
+      const user = await createUser(`User ${vp.name.replace(/\s+/g, "")}`, "review");
       await signIn(context, user);
 
       const routes = [

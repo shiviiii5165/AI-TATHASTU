@@ -94,7 +94,7 @@ export function YoraModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[calc(100vw-1.5rem)] sm:w-full max-w-xl rounded-2xl sm:rounded-3xl p-0 overflow-hidden border border-slate-200/90 shadow-2xl bg-white max-h-[92vh] sm:max-h-[90vh] flex flex-col">
+      <DialogContent className="w-[calc(100vw-1.5rem)] sm:w-full max-w-xl rounded-2xl sm:rounded-3xl p-0 overflow-hidden border border-slate-200/90 shadow-2xl bg-white max-h-[92dvh] sm:max-h-[90dvh] flex flex-col">
         {/* Header */}
         <div className="bg-gradient-to-r from-[#FFF0F3] via-[#F8EEFD] to-[#F1F5FF] px-4 sm:px-6 py-3.5 sm:py-4.5 border-b border-slate-100 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
@@ -189,7 +189,7 @@ export function YoraModal({
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
             placeholder={`Ask Yora anything about your roadmap…`}
-            className="flex-1 text-sm bg-slate-50 border border-slate-200 rounded-xl px-3.5 sm:px-4 py-2.5 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#FF496D]/20 focus:border-[#FF496D] transition-all disabled:opacity-60"
+            className="flex-1 text-base sm:text-sm bg-slate-50 border border-slate-200 rounded-xl px-3.5 sm:px-4 py-2.5 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#FF496D]/20 focus:border-[#FF496D] transition-all disabled:opacity-60"
           />
           <button
             type="button"

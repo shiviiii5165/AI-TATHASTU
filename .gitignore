@@ -18,6 +18,10 @@
 
 # next.js
 /.next/
+/.next_dev*/
+/.next_build*/
+/.next_dist/
+/.next_types/
 /out/
 
 # production
@@ -25,8 +29,10 @@
 
 # misc
 .DS_Store
+._*
 *.pem
 .idea/
+/test-screenshots/
 
 # debug
 npm-debug.log*

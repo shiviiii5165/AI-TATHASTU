@@ -101,6 +101,16 @@
   .pt-safe {
     padding-top: max(0.75rem, env(safe-area-inset-top, 0px));
   }
+  .pl-safe {
+    padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+  }
+  .pr-safe {
+    padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
+  }
+  .px-safe {
+    padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+    padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
+  }
   .touch-target {
     min-height: 44px;
     min-width: 44px;
@@ -170,6 +180,8 @@
   line-height: 1.15;
   letter-spacing: -0.025em;
   color: #11182B;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .section-title {

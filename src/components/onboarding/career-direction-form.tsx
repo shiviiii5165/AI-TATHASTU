@@ -113,7 +113,7 @@ export function CareerDirectionForm({ initialRoles, initialOther }: { initialRol
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Try “vision”, “research”, or “LLM”"
             aria-describedby="role-search-count"
-            className="h-11 rounded-xl border-slate-200 pr-10 pl-10 text-sm shadow-xs transition-colors focus-visible:border-[#FF2A85] focus-visible:ring-2 focus-visible:ring-[#FF2A85]/20 [&::-webkit-search-cancel-button]:hidden"
+            className="h-11 rounded-xl border-slate-200 pr-10 pl-10 text-base sm:text-sm shadow-xs transition-colors focus-visible:border-[#FF2A85] focus-visible:ring-2 focus-visible:ring-[#FF2A85]/20 [&::-webkit-search-cancel-button]:hidden"
             autoComplete="off"
           />
           {query && (
@@ -262,7 +262,7 @@ export function CareerDirectionForm({ initialRoles, initialOther }: { initialRol
             if (otherTimer.current) commit(selected);
           }}
           placeholder="e.g. AI for drug discovery, LLM alignment"
-          className="mt-2 h-11 rounded-xl border-slate-200 text-sm shadow-xs transition-colors focus-visible:border-[#FF2A85] focus-visible:ring-2 focus-visible:ring-[#FF2A85]/20"
+          className="mt-2 h-11 rounded-xl border-slate-200 text-base sm:text-sm shadow-xs transition-colors focus-visible:border-[#FF2A85] focus-visible:ring-2 focus-visible:ring-[#FF2A85]/20"
         />
       </div>
 

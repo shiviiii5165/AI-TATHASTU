@@ -74,7 +74,7 @@ export function QuickActionsPanel({ actions = [] }: QuickActionsPanelProps) {
         ];
 
   return (
-    <div className="flex h-full flex-col justify-between rounded-2xl border border-[#E7EAF3] bg-white p-5 shadow-2xs">
+    <div className="flex h-full flex-col justify-between rounded-2xl border border-[#E7EAF3] bg-white p-3.5 sm:p-5 shadow-2xs">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-[#F0F2F7] pb-3">
         <div className="flex items-center gap-2">

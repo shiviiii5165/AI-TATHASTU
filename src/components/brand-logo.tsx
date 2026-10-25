@@ -42,7 +42,7 @@ export function BrandLogo({
         {withTagline && (
           <span
             className={cn(
-              "font-sans font-medium text-slate-500",
+              "font-sans font-medium text-slate-500 hidden min-[400px]:block",
               size === "sm" ? "text-[0.625rem]" : "text-xs"
             )}
           >

@@ -58,7 +58,7 @@
   transition: width 0.06s linear;
 }
 
-.wrap { max-width: 1280px; margin-inline: auto; padding-inline: 28px; }
+.wrap { max-width: 1280px; margin-inline: auto; padding-inline: clamp(16px, 4vw, 28px); }
 @layer base {
   .serif { font-family: var(--serif); font-style: italic; font-weight: 400; letter-spacing: -.01em; }
 
@@ -2371,7 +2371,7 @@ input[type=range]::-moz-range-thumb {
   border-radius: 14px;
   border: 1.5px solid #E2E8F0;
   background: #FFFFFF;
-  font: 500 0.95rem/1 var(--ref-font-body, 'Figtree', sans-serif);
+  font: 500 1rem/1 var(--ref-font-body, 'Figtree', sans-serif);
   color: #0F172A;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
   transition: border-color 0.2s, box-shadow 0.2s;
@@ -4244,9 +4244,12 @@ input[type=range]::-moz-range-thumb {
 
 @media (max-width: 640px) {
   .ref-hero { padding: 16px 8px 36px; }
+  .ref-nav-actions #refThemeToggleBtn,
+  .ref-nav-actions #refNavSearchBtn { display: none !important; }
+  .ref-nav-actions { gap: 6px; }
   .ref-nav-actions .ref-circle-btn { width: 36px; height: 36px; }
   .ref-cta-3d { padding: 8px 12px; font-size: 12px; border-radius: 12px; }
-  .ref-signin-link { font-size: 13px; padding: 6px 8px; }
+  .ref-signin-link { font-size: 12px; padding: 6px 8px; }
   .ref-source-column, .ref-dest-column {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -4271,6 +4274,7 @@ input[type=range]::-moz-range-thumb {
 }
 
 @media (max-width: 480px) {
+  .ref-profile-aura { inset: -8px; }
   .ref-hero-headline { font-size: clamp(1.85rem, 8.5vw, 2.35rem); line-height: 1.12; }
   .ref-cta-row {
     flex-direction: column;

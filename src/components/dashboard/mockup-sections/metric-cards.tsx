@@ -85,18 +85,18 @@ export function MetricCards({
           <Link
             key={m.id}
             href={m.href}
-            className="group relative flex items-center gap-2.5 sm:gap-3 rounded-2xl border border-[#E7EAF3] bg-white p-3 sm:p-3.5 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:border-[#8554FF]/40 hover:shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8554FF]/40 touch-manipulation"
+            className="group relative flex items-center gap-2 sm:gap-3 rounded-2xl border border-[#E7EAF3] bg-white p-2.5 sm:p-3.5 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:border-[#8554FF]/40 hover:shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8554FF]/40 touch-manipulation"
           >
             <div
-              className={`flex size-9.5 sm:size-11 shrink-0 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-105 ${m.iconBg}`}
+              className={`flex size-8.5 sm:size-11 shrink-0 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-105 ${m.iconBg}`}
             >
-              <Icon className="size-4.5 sm:size-5 stroke-[2.2]" />
+              <Icon className="size-4 sm:size-5 stroke-[2.2]" />
             </div>
             <div className="min-w-0">
-              <div className="text-lg sm:text-2xl font-bold font-sans tabular-nums text-[#11182B] leading-none tracking-tight">
+              <div className="text-base sm:text-2xl font-bold font-sans tabular-nums text-[#11182B] leading-none tracking-tight">
                 {m.value}
               </div>
-              <div className="mt-1 truncate text-[11px] sm:text-xs font-semibold text-[#64748B]">
+              <div className="mt-1 line-clamp-2 text-[10.5px] sm:text-xs font-semibold text-[#64748B] leading-tight">
                 {m.label}
               </div>
               {m.sublabel && (

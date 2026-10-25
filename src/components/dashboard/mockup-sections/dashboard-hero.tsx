@@ -21,7 +21,7 @@ export function DashboardHero({ name, line, updated, onOpenYora }: DashboardHero
       <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 sm:gap-6">
         {/* Left greeting, direction, and primary action */}
         <div className="max-w-xl">
-          <h1 className="editorial-title text-2xl sm:text-3xl lg:text-[2.25rem] text-[#11182B] tracking-tight leading-[1.2]">
+          <h1 className="editorial-title text-2xl sm:text-3xl lg:text-[2.25rem] text-[#11182B] tracking-tight leading-[1.2] break-words">
             Good to see you,{" "}
             <span className="bg-gradient-to-r from-[#FF496D] to-[#FF713D] bg-clip-text text-transparent font-normal italic">
               {name}.
@@ -35,7 +35,7 @@ export function DashboardHero({ name, line, updated, onOpenYora }: DashboardHero
           {line && (
             <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-purple-200/60 bg-purple-50/70 px-3 py-1 text-xs font-semibold text-[#8554FF]">
               <span className="size-2 rounded-full bg-[#19C58A] animate-pulse" />
-              <span className="truncate max-w-[280px] sm:max-w-none">{line}</span>
+              <span className="truncate max-w-[calc(100vw-5rem)] sm:max-w-none">{line}</span>
             </div>
           )}
 

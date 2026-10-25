@@ -63,7 +63,7 @@ function RecentProjectsCard({ projects = [] }: { projects?: RecentProjectItem[] 
   const hasProjects = projects.length > 0;
 
   return (
-    <div className="flex flex-col justify-between rounded-2xl border border-[#E7EAF3] bg-white p-5 shadow-2xs">
+    <div className="flex flex-col justify-between rounded-2xl border border-[#E7EAF3] bg-white p-3.5 sm:p-5 shadow-2xs">
       <div className="flex items-center justify-between border-b border-[#F0F2F7] pb-3">
         <div className="flex items-center gap-2">
           <div className="flex size-7 items-center justify-center rounded-lg bg-[#EDF5FF] text-[#2878F0]">
@@ -189,7 +189,7 @@ function GitHubActivityCard({ activity }: { activity?: GitHubActivityData | null
   };
 
   return (
-    <div className="flex flex-col justify-between rounded-2xl border border-[#E7EAF3] bg-white p-5 shadow-2xs">
+    <div className="flex flex-col justify-between rounded-2xl border border-[#E7EAF3] bg-white p-3.5 sm:p-5 shadow-2xs">
       <div className="flex items-center justify-between border-b border-[#F0F2F7] pb-3">
         <div className="flex items-center gap-2">
           <div className="flex size-7 items-center justify-center rounded-lg bg-[#F3EFFF] text-[#8554FF]">
@@ -208,31 +208,33 @@ function GitHubActivityCard({ activity }: { activity?: GitHubActivityData | null
 
       {hasActivity ? (
         <>
-          <div className="my-auto py-2">
-            {/* Months header */}
-            <div className="flex justify-between pl-6 text-[9px] font-medium text-[#8C9AA8]">
-              {months.map((m, i) => (
-                <span key={i}>{m}</span>
-              ))}
-            </div>
-
-            {/* Heatmap grid */}
-            <div className="mt-1 flex gap-1.5 items-center">
-              <div className="flex flex-col justify-between text-[8px] text-[#A0AEC0] h-20 pr-1">
-                <span>Mon</span>
-                <span>Wed</span>
-                <span>Fri</span>
+          <div className="my-auto py-2 overflow-x-auto no-scrollbar">
+            <div className="min-w-[220px]">
+              {/* Months header */}
+              <div className="flex justify-between pl-6 text-[9px] font-medium text-[#8C9AA8]">
+                {months.map((m, i) => (
+                  <span key={i}>{m}</span>
+                ))}
               </div>
-              <div className="grid flex-1 grid-flow-col grid-rows-5 gap-1">
-                {intensityGrid.map((row, rIdx) =>
-                  row.map((cell, cIdx) => (
-                    <div
-                      key={`${rIdx}-${cIdx}`}
-                      className={`h-3 w-3 rounded-2xs ${getColor(cell)} transition-transform hover:scale-125`}
-                      title={`Level ${cell}`}
-                    />
-                  ))
-                )}
+
+              {/* Heatmap grid */}
+              <div className="mt-1 flex gap-1.5 items-center">
+                <div className="flex flex-col justify-between text-[8px] text-[#A0AEC0] h-20 pr-1">
+                  <span>Mon</span>
+                  <span>Wed</span>
+                  <span>Fri</span>
+                </div>
+                <div className="grid flex-1 grid-flow-col grid-rows-5 gap-1">
+                  {intensityGrid.map((row, rIdx) =>
+                    row.map((cell, cIdx) => (
+                      <div
+                        key={`${rIdx}-${cIdx}`}
+                        className={`h-3 w-3 rounded-2xs ${getColor(cell)} transition-transform hover:scale-125`}
+                        title={`Level ${cell}`}
+                      />
+                    ))
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -282,7 +284,7 @@ function RecentPublicationsCard({ publications = [] }: { publications?: Publicat
   const hasPubs = publications.length > 0;
 
   return (
-    <div className="flex flex-col justify-between rounded-2xl border border-[#E7EAF3] bg-white p-5 shadow-2xs">
+    <div className="flex flex-col justify-between rounded-2xl border border-[#E7EAF3] bg-white p-3.5 sm:p-5 shadow-2xs">
       <div className="flex items-center justify-between border-b border-[#F0F2F7] pb-3">
         <div className="flex items-center gap-2">
           <div className="flex size-7 items-center justify-center rounded-lg bg-[#F4F1FD] text-[#8554FF]">
@@ -352,7 +354,7 @@ function AchievementsCard({ achievements = [] }: { achievements?: AchievementIte
   const hasAchievements = achievements.length > 0;
 
   return (
-    <div className="flex flex-col justify-between rounded-2xl border border-[#E7EAF3] bg-white p-5 shadow-2xs">
+    <div className="flex flex-col justify-between rounded-2xl border border-[#E7EAF3] bg-white p-3.5 sm:p-5 shadow-2xs">
       <div className="flex items-center justify-between border-b border-[#F0F2F7] pb-3">
         <div className="flex items-center gap-2">
           <div className="flex size-7 items-center justify-center rounded-lg bg-[#FFF6E9] text-[#FFB547]">

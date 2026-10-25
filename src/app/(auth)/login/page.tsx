@@ -32,7 +32,7 @@ const ERRORS: Record<string, string> = {
 
 export default function LoginPage({ searchParams }: PageProps<"/login">) {
   return (
-    <main className="relative flex min-h-dvh flex-col bg-white text-[#0F172A] lg:grid lg:grid-cols-[1.1fr_1fr]">
+    <main className="relative flex min-h-dvh flex-col overflow-x-hidden bg-white text-[#0F172A] lg:grid lg:grid-cols-[1.1fr_1fr]">
       {/* Background ambient gradient accents */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
         <div className="absolute -top-32 -left-32 size-[480px] rounded-full bg-gradient-to-br from-[#FFE4E6]/50 via-[#FFF1F2]/40 to-transparent blur-3xl" />
@@ -90,7 +90,7 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
 
       {/* Right panel: Focused mobile-first authentication card */}
       <section className="relative z-10 flex items-center justify-center px-4 py-8 sm:px-8 sm:py-12 lg:p-14">
-        <div className="w-full max-w-md rounded-2xl sm:rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-10 shadow-lg sm:shadow-xl shadow-slate-200/50 motion-slide-up">
+        <div className="w-full max-w-md rounded-2xl sm:rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-10 shadow-lg sm:shadow-xl shadow-slate-200/50 motion-slide-up">
           <div className="mb-6 sm:mb-7">
             <h2 className="font-heading text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-[#0F172A]">
               Sign in or create account
@@ -207,7 +207,7 @@ function SignInOptions({ redirectTo, message }: { redirectTo: string; message?: 
                 required
                 autoComplete="email"
                 placeholder="you@university.edu"
-                className="h-11 rounded-xl border-slate-200 bg-white pl-10! text-sm text-[#0F172A] shadow-xs transition-colors placeholder:text-slate-400 focus-visible:border-[#FF2A85] focus-visible:ring-2 focus-visible:ring-[#FF2A85]/20"
+                className="h-11 rounded-xl border-slate-200 bg-white pl-10! text-base sm:text-sm text-[#0F172A] shadow-xs transition-colors placeholder:text-slate-400 focus-visible:border-[#FF2A85] focus-visible:ring-2 focus-visible:ring-[#FF2A85]/20"
               />
             </div>
           </div>

@@ -12,6 +12,7 @@ import { E2E_ENV, E2E_PORTS } from "./e2e/support/env";
  */
 export default defineConfig({
   testDir: "e2e",
+  testIgnore: ["**/._*"],
   fullyParallel: false,
   workers: 1,
   forbidOnly: Boolean(process.env.CI),
@@ -35,14 +36,14 @@ export default defineConfig({
     {
       command: "node e2e/support/stack.mts",
       url: `http://127.0.0.1:${E2E_PORTS.r2}/health`,
-      reuseExistingServer: false,
+      reuseExistingServer: true,
       stdout: "pipe",
     },
     {
       // Production build: what users get, and no dev-mode compile pauses.
       command: `npx next build && npx next start -p ${E2E_PORTS.app}`,
       url: `${E2E_ENV.AUTH_URL}/login`,
-      reuseExistingServer: false,
+      reuseExistingServer: true,
       timeout: 300_000,
       env: E2E_ENV,
     },

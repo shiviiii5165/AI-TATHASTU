@@ -174,7 +174,7 @@ export function InstitutionCombobox({
         onBlur={() => setOpen(false)}
         onKeyDown={onKeyDown}
         className={cn(
-          "h-11 w-full rounded-xl border border-slate-200 bg-white pr-9 pl-10 text-sm text-[#0F172A] shadow-xs outline-none transition-colors",
+          "h-11 w-full rounded-xl border border-slate-200 bg-white pr-9 pl-10 text-base sm:text-sm text-[#0F172A] shadow-xs outline-none transition-colors",
           "placeholder:text-slate-400 focus-visible:border-[#FF5A5F] focus-visible:ring-2 focus-visible:ring-[#FF5A5F]/20",
           "aria-invalid:border-rose-500 aria-invalid:ring-2 aria-invalid:ring-rose-500/20",
         )}

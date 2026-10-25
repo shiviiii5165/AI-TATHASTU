@@ -115,7 +115,7 @@ export function NextActionsRow({ actions: dynamicActions, onOpenYora }: NextActi
                 >
                   {act.num}
                 </div>
-                <p className="mt-2 text-xs font-bold text-[#11182B] leading-snug truncate" title={act.title}>
+                <p className="mt-2 text-xs font-bold text-[#11182B] leading-snug line-clamp-2" title={act.title}>
                   {act.title}
                 </p>
                 <p className="mt-1 line-clamp-2 text-[10px] text-[#617493]">{act.desc}</p>

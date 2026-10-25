@@ -48,19 +48,19 @@ export function PeopleListClient({ initialPeers }: { initialPeers: PeerCardItem[
         return (
           <div
             key={peer.id}
-            className="flex flex-col justify-between rounded-2xl border border-[#E7EAF3] bg-white p-5 shadow-2xs hover:shadow-md hover:border-slate-300 transition-all"
+            className="flex flex-col justify-between rounded-2xl border border-[#E7EAF3] bg-white p-4 sm:p-5 shadow-2xs hover:shadow-md hover:border-slate-300 transition-all"
           >
             <div>
               <div className="flex items-start justify-between gap-2">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
                   <div className="flex size-11 items-center justify-center rounded-full bg-gradient-to-tr from-[#EDF5FF] to-[#F4F1FD] border border-[#2878F0]/20 text-[#2878F0] font-bold text-xs shrink-0 shadow-2xs">
                     {peer.initials}
                   </div>
-                  <div>
-                    <h2 className="font-sans text-sm font-bold text-[#11182B] leading-tight">
+                  <div className="min-w-0 flex-1">
+                    <h2 className="font-sans text-sm font-bold text-[#11182B] leading-tight truncate" title={peer.name}>
                       {peer.name}
                     </h2>
-                    <p className="text-[11px] font-medium text-[#617493] mt-0.5">
+                    <p className="text-[11px] font-medium text-[#617493] mt-0.5 truncate">
                       {peer.role}
                     </p>
                   </div>
