@@ -25,17 +25,11 @@ export default function OnboardingLayout({ children }: LayoutProps<"/onboarding"
             <Link href="/#ecosystem" className="transition-colors hover:text-[#0F172A]">
               Ecosystem
             </Link>
-            <Link href="/#campus" className="transition-colors hover:text-[#0F172A]">
-              For Campuses
-            </Link>
             <Link href="/#how" className="transition-colors hover:text-[#0F172A]">
               Career Lab
             </Link>
             <Link href="/about" className="transition-colors hover:text-[#0F172A]">
               About
-            </Link>
-            <Link href="/#footer" className="transition-colors hover:text-[#0F172A]">
-              Pricing
             </Link>
           </nav>
         </div>

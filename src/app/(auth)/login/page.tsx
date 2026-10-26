@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
-import { ArrowRight, CheckCircle2, CircleAlert, Mail, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowLeft, CircleAlert, Mail, ShieldCheck, Users, Zap } from "lucide-react";
 import type { Metadata } from "next";
+import { Caveat } from "next/font/google";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
@@ -8,9 +9,8 @@ import { Suspense } from "react";
 
 import { signInWithProvider } from "@/app/(auth)/login/actions";
 import { auth } from "@/auth";
-import { GoogleIcon, LinkedInIcon } from "@/components/auth/provider-icons";
+import { EmailSignInButton, GoogleSignInButton, LinkedInSignInButton } from "@/components/auth/auth-buttons";
 import { BrandLogo } from "@/components/brand-logo";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { db } from "@/db";
@@ -18,9 +18,15 @@ import { users } from "@/db/schema";
 import { configuredProviders } from "@/lib/auth-providers";
 import { toLocalPath } from "@/lib/safe-redirect";
 
+const scriptFont = Caveat({
+  subsets: ["latin"],
+  weight: ["600", "700"],
+  display: "swap",
+});
+
 export const metadata: Metadata = {
-  title: "Sign in · AI Tathastu",
-  description: "Sign in or create your verified AI Tathastu profile.",
+  title: "Welcome to AI Tathastu · Sign in",
+  description: "Turn effort into opportunities. Sign in or create your verified AI Tathastu profile.",
 };
 
 const ERRORS: Record<string, string> = {
@@ -32,90 +38,168 @@ const ERRORS: Record<string, string> = {
 
 export default function LoginPage({ searchParams }: PageProps<"/login">) {
   return (
-    <main className="relative flex min-h-dvh flex-col overflow-x-hidden bg-white text-[#0F172A] lg:grid lg:grid-cols-[1.1fr_1fr]">
-      {/* Background ambient gradient accents */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-        <div className="absolute -top-32 -left-32 size-[480px] rounded-full bg-gradient-to-br from-[#FFE4E6]/50 via-[#FFF1F2]/40 to-transparent blur-3xl" />
-        <div className="absolute top-1/2 -right-32 size-[420px] rounded-full bg-gradient-to-bl from-[#F3E8FF]/40 via-[#FEF9C3]/30 to-transparent blur-3xl" />
-      </div>
+    <main className="relative flex min-h-dvh flex-col overflow-x-hidden bg-[#FAFAFD] text-[#0F172A] lg:grid lg:grid-cols-[56%_44%]">
+      {/* ============================================================
+          LEFT PANEL: RICH EDITORIAL WORKSPACE COMPOSITION (~56%)
+      ============================================================ */}
+      <section className="relative flex flex-col justify-start overflow-hidden px-5 py-6 sm:px-10 sm:py-8 lg:px-12 lg:py-10 xl:px-16 xl:py-12 min-h-auto lg:min-h-dvh">
+        {/* Workspace Photographic Background */}
+        <div
+          className="absolute inset-0 bg-cover bg-[center_top] sm:bg-[center_bottom] pointer-events-none select-none transition-transform duration-700 ease-out"
+          style={{
+            backgroundImage: "url('/brand/login-workspace-clean.jpg')",
+          }}
+          aria-hidden="true"
+        />
 
-      {/* Left panel: Brand storytelling & value proof (compact header on mobile, rich showcase on desktop) */}
-      <section className="relative z-10 flex flex-col justify-between border-b border-slate-100 bg-gradient-to-b from-white via-slate-50/50 to-white px-4 py-5 sm:px-8 sm:py-8 lg:border-r lg:border-b-0 lg:p-14">
-        <div>
+        {/* Mobile Readability Overlay */}
+        <div
+          className="absolute inset-0 bg-gradient-to-b from-[#FAFAFD]/95 via-[#FAFAFD]/85 to-[#FAFAFD]/40 lg:hidden pointer-events-none"
+          aria-hidden="true"
+        />
+
+        {/* Brand Logo in Upper-Left Corner */}
+        <div className="relative z-10 flex items-center justify-between">
           <BrandLogo href="/" withTagline size="md" />
-          <p className="mt-2 text-xs font-medium text-slate-500 lg:hidden">
-            Verified academic & career intelligence for AI creators
-          </p>
+          <Link
+            href="/"
+            className="lg:hidden inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 hover:text-[#0F172A] bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-slate-200/90 shadow-2xs transition-colors"
+          >
+            <ArrowLeft className="size-3.5" />
+            <span>Back</span>
+          </Link>
         </div>
 
-        {/* Extended value proof shown on desktop/laptop */}
-        <div className="hidden lg:block my-10 max-w-lg lg:my-0">
-          <div className="inline-flex items-center gap-2 rounded-full border border-rose-200/60 bg-rose-50/80 px-3 py-1 font-mono text-[0.6875rem] font-semibold tracking-wider text-rose-700 uppercase">
-            <Sparkles className="size-3 text-[#FF2A85]" />
-            Career intelligence for AI students
-          </div>
-
-          <h1 className="mt-5 font-heading text-4xl font-extrabold leading-[1.08] tracking-tight sm:text-5xl lg:text-6xl text-[#0F172A]">
-            Know exactly what to do{" "}
-            <span className="font-serif font-normal italic text-[#FF2A85]">
-              next.
+        {/* Storytelling Hero: Headline, Tathastu Signature & Subtitle */}
+        {/* Positioned in the upper right sunlit area, above the laptop */}
+        <div className="relative z-10 mt-3 sm:mt-6 lg:mt-8 xl:mt-10 ml-auto max-w-[420px] lg:mr-2 xl:mr-6 text-left">
+          <h1 className="font-sans text-xl sm:text-2xl lg:text-[40px] xl:text-[44px] font-extrabold leading-[1.15] lg:leading-[1.1] tracking-tight text-[#0F172A]">
+            Turn effort<br className="hidden sm:inline" />{" "}
+            into{" "}
+            <span className="bg-gradient-to-r from-[#FF2A85] via-[#FF4542] to-[#FF6B4A] bg-clip-text text-transparent">
+              opportunities.
             </span>
           </h1>
 
-          <p className="mt-5 text-base leading-relaxed text-slate-600 sm:text-lg">
-            Bring together your projects, research, GitHub commits, and digital footprint into one verified profile. We show you the shortest path to roles that fit you.
-          </p>
-
-          <div className="mt-8 space-y-3.5">
-            <div className="flex items-center gap-3 text-sm font-medium text-slate-700 motion-fade-in motion-stagger-1">
-              <CheckCircle2 className="size-4 shrink-0 text-[#10B981]" />
-              <span>Verifiable skill graph generated directly from your code & papers</span>
-            </div>
-            <div className="flex items-center gap-3 text-sm font-medium text-slate-700 motion-fade-in motion-stagger-2">
-              <CheckCircle2 className="size-4 shrink-0 text-[#10B981]" />
-              <span>Seamless connectors for GitHub, Kaggle, LeetCode & ORCID</span>
-            </div>
-            <div className="flex items-center gap-3 text-sm font-medium text-slate-700 motion-fade-in motion-stagger-3">
-              <CheckCircle2 className="size-4 shrink-0 text-[#10B981]" />
-              <span>Tailored opportunities for placements, research, and learning</span>
+          {/* Tathastu Brand Signature with light-yellow curved underline */}
+          <div className="mt-0.5 sm:mt-1 flex justify-start sm:justify-end pr-1 sm:pr-4">
+            <div className="relative inline-block -rotate-2 select-none">
+              <span
+                className={`${scriptFont.className} text-xl sm:text-2xl lg:text-[38px] xl:text-[42px] font-bold text-[#FF2A85] tracking-tight inline-block drop-shadow-[0_1px_2px_rgba(255,42,133,0.15)]`}
+              >
+                Tathastu.
+              </span>
+              <svg
+                className="absolute -bottom-1 left-0 w-full h-2.5 sm:h-3.5 overflow-visible pointer-events-none"
+                viewBox="0 0 140 16"
+                fill="none"
+                preserveAspectRatio="none"
+                aria-hidden="true"
+              >
+                <path
+                  d="M 4 11 C 45 3, 95 3, 136 8"
+                  stroke="#FDE047"
+                  strokeWidth="3.5"
+                  strokeLinecap="round"
+                />
+              </svg>
             </div>
           </div>
+
+          {/* Supporting Description */}
+          <p className="mt-2 sm:mt-3 lg:mt-4 text-[11px] sm:text-xs lg:text-[14.5px] font-medium leading-relaxed text-[#334155] max-w-[340px] sm:ml-auto">
+            Showcase your work, get discovered and grow with the right people.
+          </p>
         </div>
 
-        <div className="hidden lg:flex items-center gap-2 text-xs font-medium text-slate-500">
-          <ShieldCheck className="size-4 text-emerald-600" />
-          <span>Takes about 3 minutes · Privacy-first · You control your data</span>
+        {/* Illustrative Demo Badge for Laptop Preview */}
+        <div className="relative z-10 hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/75 backdrop-blur-md border border-slate-200/70 text-[11px] font-medium text-slate-500 shadow-2xs mt-auto self-start select-none">
+          <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          <span>Illustrative demo profile · Sample dashboard preview</span>
         </div>
       </section>
 
-      {/* Right panel: Focused mobile-first authentication card */}
-      <section className="relative z-10 flex items-center justify-center px-4 py-8 sm:px-8 sm:py-12 lg:p-14">
-        <div className="w-full max-w-md rounded-2xl sm:rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-10 shadow-lg sm:shadow-xl shadow-slate-200/50 motion-slide-up">
-          <div className="mb-6 sm:mb-7">
-            <h2 className="font-heading text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-[#0F172A]">
-              Sign in or create account
-            </h2>
-            <p className="mt-1.5 text-xs sm:text-sm text-slate-500">
-              New here? Signing in will automatically create your profile.
+      {/* ============================================================
+          RIGHT PANEL: CLEAN FOCUSED AUTHENTICATION CARD (~44%)
+      ============================================================ */}
+      <section className="relative z-10 flex flex-col justify-between p-4 sm:p-8 lg:p-12 xl:p-16 bg-[#FAFAFD] border-t border-slate-100 lg:border-t-0 lg:border-l lg:border-slate-200/60 min-h-[480px] lg:min-h-dvh">
+        {/* Ambient flowing pastel wave decoration in bottom-right corner */}
+        <div className="pointer-events-none absolute bottom-0 right-0 size-[440px] overflow-hidden" aria-hidden="true">
+          <div className="absolute -bottom-24 -right-24 size-[400px] rounded-full bg-gradient-to-tl from-[#FF2A85]/14 via-[#8B5CF6]/10 to-transparent blur-3xl" />
+          <svg className="absolute bottom-0 right-0 w-80 h-80 opacity-30" viewBox="0 0 320 320" fill="none">
+            <path
+              d="M 30 320 C 130 230, 220 280, 320 170 L 320 320 Z"
+              fill="url(#loginCornerGrad)"
+            />
+            <defs>
+              <linearGradient id="loginCornerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#FF2A85" stopOpacity="0.45" />
+                <stop offset="60%" stopColor="#8B5CF6" stopOpacity="0.2" />
+                <stop offset="100%" stopColor="#38BDF8" stopOpacity="0.1" />
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+
+        {/* Top-Right "Back to website" Link */}
+        <div className="hidden lg:flex items-center justify-end w-full">
+          <Link
+            href="/"
+            className="group inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-slate-500 hover:text-[#0F172A] transition-colors py-1.5 px-3 rounded-lg hover:bg-slate-100/70"
+          >
+            <ArrowLeft className="size-4 transition-transform group-hover:-translate-x-1" />
+            <span>Back to website</span>
+          </Link>
+        </div>
+
+        {/* Center Authentication Card */}
+        <div className="my-auto w-full max-w-[430px] mx-auto py-2 sm:py-6">
+          <div className="rounded-3xl border border-slate-200/85 bg-white p-5 sm:p-9 shadow-xl shadow-slate-200/50">
+            <div className="mb-5 sm:mb-7">
+              <h2 className="font-sans text-xl sm:text-[27px] font-bold tracking-tight text-[#0F172A] leading-tight">
+                Welcome to AI Tathastu
+              </h2>
+              <p className="mt-1 text-xs sm:text-sm text-slate-500">
+                Sign in or create your profile to continue.
+              </p>
+            </div>
+
+            <Suspense fallback={<SignInOptions redirectTo="/onboarding" />}>
+              <SignInWithParams searchParams={searchParams} />
+            </Suspense>
+
+            <p className="mt-6 text-center text-[11px] sm:text-xs leading-relaxed text-slate-400">
+              By continuing, you agree to AI Tathastu&apos;s{" "}
+              <Link href="/terms" className="font-medium text-slate-600 underline underline-offset-2 hover:text-[#0F172A] transition-colors">
+                Terms
+              </Link>{" "}
+              and{" "}
+              <Link href="/privacy" className="font-medium text-slate-600 underline underline-offset-2 hover:text-[#0F172A] transition-colors">
+                Privacy Policy
+              </Link>
+              .
             </p>
           </div>
 
-          <Suspense fallback={<SignInOptions redirectTo="/onboarding" />}>
-            <SignInWithParams searchParams={searchParams} />
-          </Suspense>
-
-          <p className="mt-6 text-center text-[11px] sm:text-xs leading-relaxed text-slate-400">
-            By continuing, you agree to AI Tathastu&apos;s{" "}
-            <Link href="/about" className="font-medium text-slate-600 underline underline-offset-2 hover:text-[#0F172A]">
-              Terms
-            </Link>{" "}
-            and{" "}
-            <Link href="/contact" className="font-medium text-slate-600 underline underline-offset-2 hover:text-[#0F172A]">
-              Privacy Policy
-            </Link>
-            .
-          </p>
+          {/* Compact Reassurance Row */}
+          <div className="mt-6 sm:mt-7 flex flex-wrap sm:flex-nowrap items-center justify-center sm:justify-between gap-x-4 gap-y-2 text-[11px] sm:text-xs font-medium text-slate-600 px-1">
+            <div className="flex items-center gap-1.5 whitespace-nowrap">
+              <ShieldCheck className="size-3.5 sm:size-4 text-[#10B981] shrink-0" />
+              <span>Your data stays private.</span>
+            </div>
+            <div className="flex items-center gap-1.5 whitespace-nowrap">
+              <Users className="size-3.5 sm:size-4 text-[#3B82F6] shrink-0" />
+              <span>A trusted student community.</span>
+            </div>
+            <div className="flex items-center gap-1.5 whitespace-nowrap">
+              <Zap className="size-3.5 sm:size-4 text-[#F59E0B] shrink-0" />
+              <span>Real opportunities.</span>
+            </div>
+          </div>
         </div>
+
+        {/* Bottom space balance */}
+        <div className="hidden lg:block h-6 pointer-events-none" aria-hidden="true" />
       </section>
     </main>
   );
@@ -147,12 +231,6 @@ async function SignInWithParams({ searchParams }: Pick<PageProps<"/login">, "sea
 
 function SignInOptions({ redirectTo, message }: { redirectTo: string; message?: string | null }) {
   const enabled = configuredProviders();
-  const oauth = (
-    [
-      ["google", "Continue with Google", GoogleIcon],
-      ["linkedin", "Continue with LinkedIn", LinkedInIcon],
-    ] as const
-  ).filter(([provider]) => enabled[provider]);
 
   return (
     <>
@@ -163,40 +241,45 @@ function SignInOptions({ redirectTo, message }: { redirectTo: string; message?: 
         </div>
       )}
 
-      {oauth.length > 0 && (
-        <div className="grid gap-3">
-          {oauth.map(([provider, label, Icon]) => (
-            <form key={provider} action={signInWithProvider}>
-              <input type="hidden" name="provider" value={provider} />
-              <input type="hidden" name="redirectTo" value={redirectTo} />
-              <Button
-                type="submit"
-                variant="outline"
-                className="h-11 w-full gap-3 rounded-xl border-slate-200 text-sm font-semibold text-slate-700 shadow-sm transition-all duration-150 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 active:scale-[0.99]"
-              >
-                <Icon className="size-4 shrink-0" />
-                {label}
-              </Button>
-            </form>
-          ))}
+      {/* Google OAuth Button */}
+      {enabled.google && (
+        <div>
+          <form action={signInWithProvider}>
+            <input type="hidden" name="provider" value="google" />
+            <input type="hidden" name="redirectTo" value={redirectTo} />
+            <GoogleSignInButton />
+          </form>
         </div>
       )}
 
-      {oauth.length > 0 && enabled.email && (
-        <div className="my-6 flex items-center gap-3 text-xs font-semibold text-slate-400 uppercase tracking-wider" aria-hidden="true">
-          <span className="h-px flex-1 bg-slate-200" />
-          or
-          <span className="h-px flex-1 bg-slate-200" />
+      {/* LinkedIn OAuth fallback if configured in environment */}
+      {enabled.linkedin && (
+        <div className="mt-2.5">
+          <form action={signInWithProvider}>
+            <input type="hidden" name="provider" value="linkedin" />
+            <input type="hidden" name="redirectTo" value={redirectTo} />
+            <LinkedInSignInButton />
+          </form>
         </div>
       )}
 
+      {/* OR Divider */}
+      {enabled.google && enabled.email && (
+        <div className="my-5 flex items-center gap-3 text-xs font-bold text-slate-400 uppercase tracking-wider" aria-hidden="true">
+          <span className="h-px flex-1 bg-slate-200/90" />
+          OR
+          <span className="h-px flex-1 bg-slate-200/90" />
+        </div>
+      )}
+
+      {/* Email Magic Link Form */}
       {enabled.email && (
-        <form action={signInWithProvider} className={oauth.length ? undefined : "mt-2"}>
+        <form action={signInWithProvider} className={enabled.google ? undefined : "mt-2"}>
           <input type="hidden" name="provider" value="email" />
           <input type="hidden" name="redirectTo" value={redirectTo} />
           <div>
-            <Label htmlFor="email" className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-              Email address
+            <Label htmlFor="email" className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              EMAIL ADDRESS
             </Label>
             <div className="relative mt-1.5">
               <Mail className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-slate-400" />
@@ -207,30 +290,21 @@ function SignInOptions({ redirectTo, message }: { redirectTo: string; message?: 
                 required
                 autoComplete="email"
                 placeholder="you@university.edu"
-                className="h-11 rounded-xl border-slate-200 bg-white pl-10! text-base md:text-sm text-[#0F172A] shadow-xs transition-colors placeholder:text-slate-400 focus-visible:border-[#FF2A85] focus-visible:ring-2 focus-visible:ring-[#FF2A85]/20"
+                className="h-12 rounded-2xl border-slate-200 bg-white pl-10! text-base md:text-sm text-[#0F172A] shadow-2xs transition-colors placeholder:text-slate-400 focus-visible:border-[#FF2A85] focus-visible:ring-2 focus-visible:ring-[#FF2A85]/20"
               />
             </div>
           </div>
-          <button
-            type="submit"
-            className="btn-brand-gradient mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-xl text-sm font-bold text-white shadow-md shadow-rose-500/25 transition-all duration-150 hover:opacity-95 hover:shadow-lg hover:shadow-rose-500/35 active:scale-[0.99] select-none cursor-pointer"
-          >
-            Email me a sign-in link
-            <ArrowRight className="size-4" />
-          </button>
+          <EmailSignInButton />
+          <p className="mt-2.5 text-center text-xs text-slate-400 font-normal">
+            We&apos;ll send you a secure sign-in link.
+          </p>
         </form>
       )}
 
-      {!enabled.email && oauth.length === 0 && (
+      {!enabled.email && !enabled.google && (
         <div role="alert" className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
           No sign-in method is currently configured. Please configure OAuth or SMTP in your environment.
         </div>
-      )}
-
-      {enabled.linkedin && (
-        <p className="mt-4 text-center text-xs leading-relaxed text-slate-500">
-          LinkedIn sign-in securely shares only your name, email and avatar.
-        </p>
       )}
     </>
   );
