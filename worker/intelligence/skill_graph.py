@@ -349,11 +349,13 @@ class SkillGraph:
 
 GAP_RECOMMENDATIONS_SCHEMA = {
     "type": "object",
+    "additionalProperties": False,
     "properties": {
         "gaps": {
             "type": "array",
             "items": {
                 "type": "object",
+                "additionalProperties": False,
                 "properties": {
                     "skill": {"type": "string"},
                     "description": {"type": "string"},
@@ -367,6 +369,7 @@ GAP_RECOMMENDATIONS_SCHEMA = {
             "type": "array",
             "items": {
                 "type": "object",
+                "additionalProperties": False,
                 "properties": {
                     "title": {"type": "string"},
                     "description": {"type": "string"},

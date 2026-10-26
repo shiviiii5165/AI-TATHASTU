@@ -18,6 +18,7 @@ log = logging.getLogger("worker.repo_scorer")
 
 REPO_SCORE_SCHEMA = {
     "type": "object",
+    "additionalProperties": False,
     "properties": {
         "impact_score": {"type": "integer", "minimum": 0, "maximum": 100},
         "rationale": {"type": "string"},

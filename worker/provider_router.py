@@ -27,6 +27,8 @@ from collections import deque
 from dataclasses import dataclass, field
 from typing import Any, Callable, Deque, Dict, List, Optional, Sequence, Tuple
 
+from jobs import NeedsReview
+
 log = logging.getLogger("worker.llm")
 
 
@@ -34,7 +36,7 @@ class ConsentRequired(Exception):
     pass
 
 
-class NeedsReviewError(Exception):
+class NeedsReviewError(NeedsReview):
     """Every provider failed or was unavailable."""
 
 
@@ -112,12 +114,12 @@ class KeyPool:
 
 @dataclass
 class Breaker:
-    """Pauses a provider for 5 min if >20% of its calls in the last 10 min failed."""
+    """Pauses a provider temporarily (30s) if >=50% of its calls in the last 5 min failed."""
 
-    window_s: float = 600
-    pause_s: float = 300
-    threshold: float = 0.2
-    min_calls: int = 5
+    window_s: float = 300
+    pause_s: float = 30
+    threshold: float = 0.5
+    min_calls: int = 4
     calls: Deque[Tuple[float, bool]] = field(default_factory=deque)
     open_until: float = 0.0
 
@@ -130,7 +132,7 @@ class Breaker:
         while self.calls and self.calls[0][0] < now - self.window_s:
             self.calls.popleft()
         failures = sum(1 for _, good in self.calls if not good)
-        if len(self.calls) >= self.min_calls and failures / len(self.calls) > self.threshold:
+        if len(self.calls) >= self.min_calls and failures / len(self.calls) >= self.threshold:
             self.open_until = now + self.pause_s
             log.warning("circuit open for %.0fs after %d/%d failed calls", self.pause_s, failures, len(self.calls))
             self.calls.clear()
@@ -162,6 +164,22 @@ def parse_models(spec: str, vision: bool = False) -> List[Model]:
     return out
 
 
+def _sanitize_strict_schema(s: Any) -> Any:
+    """Recursively ensures additionalProperties=False on all objects and all properties are required for strict JSON schema."""
+    if isinstance(s, dict):
+        new_dict = {k: _sanitize_strict_schema(v) for k, v in s.items()}
+        if new_dict.get("type") == "object" or "properties" in new_dict:
+            new_dict["type"] = "object"
+            new_dict["additionalProperties"] = False
+            if "properties" in new_dict and isinstance(new_dict["properties"], dict):
+                current_req = set(new_dict.get("required") or [])
+                new_dict["required"] = list(current_req.union(new_dict["properties"].keys()))
+        return new_dict
+    elif isinstance(s, list):
+        return [_sanitize_strict_schema(item) for item in s]
+    return s
+
+
 # Groq (and others) sit behind Cloudflare, which rejects urllib's default
 # "Python-urllib" agent with 403 / error 1010 before auth is even checked.
 USER_AGENT = "ai-tathastu-worker/1.0 (+https://aitathastu.com)"
@@ -180,6 +198,9 @@ def _post(url: str, headers: Dict[str, str], body: Dict[str, Any], timeout: floa
     except urllib.error.HTTPError as exc:
         if exc.code == 429:
             raise RateLimited(float(exc.headers.get("retry-after") or 30)) from exc
+        if exc.code == 503:
+            # Temporary high demand (common on Gemini standard tier spikes)
+            raise RateLimited(float(exc.headers.get("retry-after") or 15)) from exc
         if exc.code in (401, 403):
             raise AuthFailed(str(exc.code)) from exc
         # Keep the provider's reason (e.g. Groq "json_validate_failed") in the log.
@@ -227,14 +248,34 @@ class OpenAICompatiblePool(Provider):
                 {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{img}"}} for img in images
             ]
         messages = [{"role": "system", "content": system}, {"role": "user", "content": content}]
-        body: Dict[str, Any] = {"model": model.name, "temperature": 0, "messages": messages}
+        body: Dict[str, Any] = {
+            "model": model.name,
+            "temperature": 0,
+            "messages": messages,
+            "max_tokens": 4096,
+        }
         if model.mode == "strict":
-            body["response_format"] = {"type": "json_schema", "json_schema": {"name": "extraction", "strict": True, "schema": schema}}
+            strict_schema = _sanitize_strict_schema(schema)
+            body["response_format"] = {"type": "json_schema", "json_schema": {"name": "extraction", "strict": True, "schema": strict_schema}}
         else:
             body["response_format"] = {"type": "json_object"}
             messages[0]["content"] += "\n\nRespond with JSON matching this JSON Schema:\n" + json.dumps(schema)
         started = time.monotonic()
-        payload = _post(self.url, {"Authorization": f"Bearer {key.secret}", **self.extra_headers}, body, timeout)
+        try:
+            payload = _post(self.url, {"Authorization": f"Bearer {key.secret}", **self.extra_headers}, body, timeout)
+        except ValueError as exc:
+            err_str = str(exc)
+            if model.mode == "strict" and any(e in err_str.lower() for e in ("json_validate_failed", "invalid json schema", "response_format", "additionalproperties")):
+                log.warning("%s/%s strict structured output failed (%s); retrying in json_object mode", self.name, model.name, err_str[:120])
+                fallback_body = dict(body)
+                fallback_body["response_format"] = {"type": "json_object"}
+                fallback_body["messages"] = [
+                    {"role": "system", "content": system + "\n\nRespond with strictly valid JSON matching this schema:\n" + json.dumps(schema)},
+                    {"role": "user", "content": content},
+                ]
+                payload = _post(self.url, {"Authorization": f"Bearer {key.secret}", **self.extra_headers}, fallback_body, timeout)
+            else:
+                raise
         usage = payload.get("usage") or {}
         _record(self.name, model.name, usage.get("prompt_tokens"), usage.get("completion_tokens"), started, len(images))
         log.info("provider_call provider=%s key=%s model=%s images=%d tokens_in=%s tokens_out=%s",
@@ -263,7 +304,7 @@ class GeminiPool(Provider):
         generation: Dict[str, Any] = {"temperature": 0, "responseMimeType": "application/json"}
         system_text = system
         if model.mode == "strict":
-            generation["responseJsonSchema"] = schema
+            generation["responseJsonSchema"] = _sanitize_strict_schema(schema)
         else:
             system_text += "\n\nRespond with JSON matching this JSON Schema:\n" + json.dumps(schema)
         body = {
@@ -294,9 +335,9 @@ def chain() -> List[Provider]:
         env = os.environ.get
         _chain = [
             GroqPool(KeyPool("groq", "GROQ_KEYS"),
-                     parse_models(env("GROQ_MODELS", "openai/gpt-oss-120b:strict,openai/gpt-oss-20b:strict"))),
+                     parse_models(env("GROQ_MODELS", "llama-3.3-70b-versatile:strict,llama-3.1-8b-instant:strict,openai/gpt-oss-120b:strict,openai/gpt-oss-20b:strict"))),
             GeminiPool(KeyPool("gemini", "GEMINI_KEYS"),
-                       parse_models(env("GEMINI_MODELS", "gemini-3.5-flash:strict,gemini-3.5-flash-lite:strict"), vision=True)),
+                       parse_models(env("GEMINI_MODELS", "gemini-2.5-flash:strict,gemini-2.0-flash:strict,gemini-1.5-flash:strict,gemini-3.5-flash:strict,gemini-3.5-flash-lite:strict"), vision=True)),
             OpenRouterPool(KeyPool("openrouter", "OPENROUTER_KEYS"),
                            parse_models(env("OPENROUTER_MODELS", "nvidia/nemotron-3.5-super-vl:free:strict,xingchen-agi/xing4.0-29b-a4b:free:strict"))
                            + parse_models(env("OPENROUTER_VISION_MODELS", "nvidia/nemotron-3.5-super-vl:free:strict"), vision=True)),
@@ -321,7 +362,7 @@ def route_llm(
     purpose: str,
     images: Sequence[str] = (),
     accept: Callable[[Dict[str, Any]], bool] = lambda _r: True,
-    timeout: float = 60.0,
+    timeout: float = 25.0,
 ) -> LLMResult:
     """
     Returns the first result `accept` approves, trying providers in chain
@@ -360,7 +401,8 @@ def route_llm(
                     break
                 except AuthFailed as exc:
                     provider.pool.report(key, int(str(exc) or 401))
-                    provider.breaker.record(False)
+                    if not any(not k.disabled for k in provider.pool.keys):
+                        provider.breaker.record(False)
                     continue
                 except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, KeyError, ValueError, IndexError) as exc:
                     log.warning("provider %s model %s failed: %s", provider.name, model.name, exc)

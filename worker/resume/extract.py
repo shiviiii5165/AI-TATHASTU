@@ -158,7 +158,7 @@ def _section_recovery(doc: Document, candidates: List[Candidate], sections) -> L
     for group, start, end in plan:
         try:
             recovered.extend(llm.recover(doc, group, start, end, True))
-        except provider_router.NeedsReviewError as exc:
+        except (provider_router.NeedsReviewError, Exception) as exc:
             failures += 1
             log.warning("LLM recovery for %s failed: %s", group, exc)
     facts = llm.merge(candidates, recovered)
@@ -181,7 +181,7 @@ def _retry_missing(doc: Document, sections, facts: List[Candidate], images: List
     for group in groups:
         try:
             got = llm.targeted(doc, sections, group, True, images)
-        except provider_router.NeedsReviewError as exc:
+        except (provider_router.NeedsReviewError, Exception) as exc:
             log.warning("targeted retry for %s failed: %s", group, exc)
             continue
         diag["retried"].append(f"{group}:{len(got)}")

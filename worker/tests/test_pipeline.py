@@ -208,6 +208,32 @@ class RouterTests(unittest.TestCase):
         ms = provider_router.parse_models("nvidia/x:free:strict,gemini-2.5-flash,llama:json_object")
         self.assertEqual([(m.name, m.mode) for m in ms], [("nvidia/x:free", "strict"), ("gemini-2.5-flash", "json"), ("llama", "json")])
 
+    def test_sanitize_strict_schema_ensures_additional_properties_false(self) -> None:
+        raw_schema = {
+            "type": "object",
+            "properties": {
+                "gaps": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {"skill": {"type": "string"}},
+                    },
+                },
+            },
+        }
+        sanitized = provider_router._sanitize_strict_schema(raw_schema)
+        self.assertFalse(sanitized["additionalProperties"])
+        self.assertIn("gaps", sanitized["required"])
+        items = sanitized["properties"]["gaps"]["items"]
+        self.assertFalse(items["additionalProperties"])
+        self.assertIn("skill", items["required"])
+
+    def test_needs_review_error_is_subclass_of_jobs_needs_review(self) -> None:
+        from jobs import NeedsReview
+        err = provider_router.NeedsReviewError("test")
+        self.assertIsInstance(err, NeedsReview)
+        self.assertIsInstance(err, provider_router.NeedsReviewError)
+
 
 class LlmRecoveryTests(unittest.TestCase):
     def tearDown(self) -> None:

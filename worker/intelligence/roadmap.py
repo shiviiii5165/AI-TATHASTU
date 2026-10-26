@@ -15,10 +15,12 @@ log = logging.getLogger("worker.roadmap")
 
 ROADMAP_SCHEMA = {
     "type": "object",
+    "additionalProperties": False,
     "properties": {
         "current_stage": {"type": "string"},
         "short_term": {
             "type": "object",
+            "additionalProperties": False,
             "properties": {
                 "title": {"type": "string"},
                 "timeline": {"type": "string"},
@@ -29,6 +31,7 @@ ROADMAP_SCHEMA = {
         },
         "mid_term": {
             "type": "object",
+            "additionalProperties": False,
             "properties": {
                 "title": {"type": "string"},
                 "timeline": {"type": "string"},
@@ -39,6 +42,7 @@ ROADMAP_SCHEMA = {
         },
         "long_term": {
             "type": "object",
+            "additionalProperties": False,
             "properties": {
                 "title": {"type": "string"},
                 "timeline": {"type": "string"},
