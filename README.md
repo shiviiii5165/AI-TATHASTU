@@ -1,4 +1,4 @@
-# AI Tathastu
+# AI Tathastuu
 
 > **Next-generation AI-powered career acceleration and intelligence platform.**<br>
 > Next.js 16 (App Router, Partial Prerendering, Turbopack, React 19) · Auth.js v5 · Drizzle ORM + PostgreSQL / Neon · Tailwind CSS v4 + shadcn/ui · Python 3.12 Intelligence Worker.
