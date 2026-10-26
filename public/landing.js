@@ -73,6 +73,11 @@ function initReferenceEcoConnections() {
     const stageRect = stage.getBoundingClientRect();
     if (!stageRect.width || !stageRect.height) return;
 
+    if (window.innerWidth <= 1080 || stageRect.width < 780) {
+      svgGroup.innerHTML = "";
+      return;
+    }
+
     const cardRect = centralCard.getBoundingClientRect();
     const cardLeftX = cardRect.left - stageRect.left;
     const cardRightX = cardRect.right - stageRect.left;
@@ -663,6 +668,12 @@ class SkillConstellationGraph {
     this.loop();
   }
 
+  updateScale() {
+    const baseW = 720;
+    this.scale = Math.min(1.0, Math.max(0.52, (this.W || 720) / baseW));
+    this.isMobile = (this.W || 720) < 540;
+  }
+
   resize() {
     const r = this.canvas.getBoundingClientRect();
     if (!r.width || !r.height) return;
@@ -673,25 +684,63 @@ class SkillConstellationGraph {
     this.canvas.height = Math.round(this.H * this.dpr);
     this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
 
-    if (this.nodes && this.nodes.length && prevW && prevH) {
-      const sx = this.W / prevW, sy = this.H / prevH;
+    this.updateScale();
+
+    if (this.nodes && this.nodes.length) {
       this.nodes.forEach(n => {
-        n.x *= sx; n.y *= sy;
-        n.originX *= sx; n.originY *= sy;
+        n.r = Math.round((n.baseR || 33) * this.scale);
       });
+      if (prevW && prevH) {
+        const sx = this.W / prevW, sy = this.H / prevH;
+        this.nodes.forEach(n => {
+          n.x *= sx; n.y *= sy;
+          n.originX *= sx; n.originY *= sy;
+        });
+      }
     }
   }
 
   initConstellation() {
     const W = this.W || 720, H = this.H || 480;
+    this.updateScale();
 
-    // Exact 11 nodes from reference screenshot
+    // Responsive node layout: On mobile (<540px), distribute outer nodes symmetrically around center to eliminate overlap
+    const coords = this.isMobile ? [
+      { id: 'ml', nx: 0.50, ny: 0.50 },
+      { id: 'python', nx: 0.38, ny: 0.16 },
+      { id: 'research', nx: 0.62, ny: 0.16 },
+      { id: 'deep_learning', nx: 0.83, ny: 0.28 },
+      { id: 'nlp', nx: 0.88, ny: 0.50 },
+      { id: 'evidence', nx: 0.83, ny: 0.72 },
+      { id: 'mlops', nx: 0.63, ny: 0.84 },
+      { id: 'ds', nx: 0.44, ny: 0.85 },
+      { id: 'math', nx: 0.24, ny: 0.75 },
+      { id: 'comm', nx: 0.15, ny: 0.50 },
+      { id: 'ds_science', nx: 0.21, ny: 0.28 }
+    ] : [
+      { id: 'ml', nx: 0.50, ny: 0.50 },
+      { id: 'python', nx: 0.40, ny: 0.22 },
+      { id: 'research', nx: 0.61, ny: 0.17 },
+      { id: 'deep_learning', nx: 0.81, ny: 0.24 },
+      { id: 'nlp', nx: 0.90, ny: 0.44 },
+      { id: 'evidence', nx: 0.88, ny: 0.66 },
+      { id: 'mlops', nx: 0.76, ny: 0.80 },
+      { id: 'ds', nx: 0.57, ny: 0.83 },
+      { id: 'math', nx: 0.40, ny: 0.73 },
+      { id: 'comm', nx: 0.25, ny: 0.59 },
+      { id: 'ds_science', nx: 0.26, ny: 0.37 }
+    ];
+
+    const getCoord = (id) => coords.find(c => c.id === id) || { nx: 0.5, ny: 0.5 };
+
+    // Exact 11 nodes with scalable base radii and calibrated non-colliding positions
     this.nodes = [
       {
         id: 'ml',
         label: ['Machine', 'Learning'],
-        nx: 0.50, ny: 0.50,
-        r: 49,
+        nx: getCoord('ml').nx, ny: getCoord('ml').ny,
+        baseR: 48,
+        r: Math.round(48 * this.scale),
         isCenter: true,
         gradient: ['#6B21A8', '#EC4899'],
         glow: 'rgba(236, 72, 153, 0.70)',
@@ -700,8 +749,9 @@ class SkillConstellationGraph {
       {
         id: 'python',
         label: ['Python'],
-        nx: 0.40, ny: 0.22,
-        r: 32,
+        nx: getCoord('python').nx, ny: getCoord('python').ny,
+        baseR: 32,
+        r: Math.round(32 * this.scale),
         gradient: ['#F59E0B', '#F97316'],
         glow: 'rgba(245, 158, 11, 0.58)',
         icon: 'python'
@@ -709,8 +759,9 @@ class SkillConstellationGraph {
       {
         id: 'research',
         label: ['Research'],
-        nx: 0.61, ny: 0.17,
-        r: 32,
+        nx: getCoord('research').nx, ny: getCoord('research').ny,
+        baseR: 32,
+        r: Math.round(32 * this.scale),
         gradient: ['#EC4899', '#F43F5E'],
         glow: 'rgba(236, 72, 153, 0.58)',
         icon: 'document'
@@ -718,8 +769,9 @@ class SkillConstellationGraph {
       {
         id: 'deep_learning',
         label: ['Deep', 'Learning'],
-        nx: 0.81, ny: 0.24,
-        r: 34,
+        nx: getCoord('deep_learning').nx, ny: getCoord('deep_learning').ny,
+        baseR: 34,
+        r: Math.round(34 * this.scale),
         gradient: ['#7C3AED', '#8B5CF6'],
         glow: 'rgba(124, 58, 237, 0.58)',
         icon: 'neural'
@@ -727,8 +779,9 @@ class SkillConstellationGraph {
       {
         id: 'nlp',
         label: ['NLP'],
-        nx: 0.90, ny: 0.44,
-        r: 33,
+        nx: getCoord('nlp').nx, ny: getCoord('nlp').ny,
+        baseR: 33,
+        r: Math.round(33 * this.scale),
         gradient: ['#10B981', '#059669'],
         glow: 'rgba(16, 185, 129, 0.65)',
         icon: 'chat_doc'
@@ -736,8 +789,9 @@ class SkillConstellationGraph {
       {
         id: 'evidence',
         label: ['Project', 'Evidence'],
-        nx: 0.88, ny: 0.66,
-        r: 34,
+        nx: getCoord('evidence').nx, ny: getCoord('evidence').ny,
+        baseR: 34,
+        r: Math.round(34 * this.scale),
         gradient: ['#0284C7', '#0EA5E9'],
         glow: 'rgba(14, 165, 233, 0.65)',
         icon: 'certificate'
@@ -745,8 +799,9 @@ class SkillConstellationGraph {
       {
         id: 'mlops',
         label: ['MLOps'],
-        nx: 0.76, ny: 0.80,
-        r: 33,
+        nx: getCoord('mlops').nx, ny: getCoord('mlops').ny,
+        baseR: 33,
+        r: Math.round(33 * this.scale),
         gradient: ['#7C3AED', '#6366F1'],
         glow: 'rgba(124, 58, 237, 0.58)',
         icon: 'gear'
@@ -754,8 +809,9 @@ class SkillConstellationGraph {
       {
         id: 'ds',
         label: ['Data', 'Structures'],
-        nx: 0.57, ny: 0.83,
-        r: 33,
+        nx: getCoord('ds').nx, ny: getCoord('ds').ny,
+        baseR: 33,
+        r: Math.round(33 * this.scale),
         gradient: ['#EA580C', '#F97316'],
         glow: 'rgba(234, 88, 12, 0.58)',
         icon: 'stack'
@@ -763,8 +819,9 @@ class SkillConstellationGraph {
       {
         id: 'math',
         label: ['Mathematics'],
-        nx: 0.40, ny: 0.73,
-        r: 33,
+        nx: getCoord('math').nx, ny: getCoord('math').ny,
+        baseR: 33,
+        r: Math.round(33 * this.scale),
         gradient: ['#0284C7', '#38BDF8'],
         glow: 'rgba(14, 165, 233, 0.58)',
         icon: 'pi'
@@ -772,8 +829,9 @@ class SkillConstellationGraph {
       {
         id: 'comm',
         label: ['Communication'],
-        nx: 0.25, ny: 0.59,
-        r: 33,
+        nx: getCoord('comm').nx, ny: getCoord('comm').ny,
+        baseR: 33,
+        r: Math.round(33 * this.scale),
         gradient: ['#6366F1', '#8B5CF6'],
         glow: 'rgba(99, 102, 241, 0.58)',
         icon: 'speech'
@@ -781,8 +839,9 @@ class SkillConstellationGraph {
       {
         id: 'ds_science',
         label: ['Data', 'Science'],
-        nx: 0.26, ny: 0.37,
-        r: 34,
+        nx: getCoord('ds_science').nx, ny: getCoord('ds_science').ny,
+        baseR: 34,
+        r: Math.round(34 * this.scale),
         gradient: ['#F43F5E', '#FB7185'],
         glow: 'rgba(244, 63, 94, 0.58)',
         icon: 'scatter'
@@ -889,12 +948,16 @@ class SkillConstellationGraph {
     const preset = this.extraSkills[this.plantIdx % this.extraSkills.length];
     this.plantIdx++;
 
+    const baseR = 30;
+    const r = Math.round(baseR * (this.scale || 1.0));
+
     const newNode = {
       id: `planted_${Date.now()}`,
       label: preset.label,
       nx: x / (this.W || 720),
       ny: y / (this.H || 480),
-      r: 32,
+      baseR,
+      r,
       gradient: preset.gradient,
       glow: preset.glow,
       icon: preset.icon,
@@ -941,7 +1004,7 @@ class SkillConstellationGraph {
       n.appear += (1 - n.appear) * 0.14;
       if (n === this.dragNode) return;
 
-      const floatAmp = n.isCenter ? 0.6 : 1.2;
+      const floatAmp = n.isCenter ? 0.4 : (this.isMobile ? 0.6 : 1.2);
       const targetX = n.originX + Math.sin(this.time * 0.02 + n.floatPhase) * floatAmp;
       const targetY = n.originY + Math.cos(this.time * 0.025 + n.floatPhase) * floatAmp;
 
@@ -953,6 +1016,36 @@ class SkillConstellationGraph {
       n.x += n.vx;
       n.y += n.vy;
     });
+
+    // Collision separation & bounds protection to guarantee zero bubble overlap
+    const pad = 4;
+    for (let i = 0; i < this.nodes.length; i++) {
+      const n1 = this.nodes[i];
+      for (let j = i + 1; j < this.nodes.length; j++) {
+        const n2 = this.nodes[j];
+        const dx = n2.x - n1.x;
+        const dy = n2.y - n1.y;
+        const dist = Math.hypot(dx, dy) || 0.001;
+        const minDist = n1.r + n2.r + (this.isMobile ? 6 : 8);
+        if (dist < minDist) {
+          const overlap = (minDist - dist) * 0.5;
+          const ux = dx / dist;
+          const uy = dy / dist;
+          if (n1 !== this.dragNode && !n1.isCenter) {
+            n1.x -= ux * overlap;
+            n1.y -= uy * overlap;
+          }
+          if (n2 !== this.dragNode && !n2.isCenter) {
+            n2.x += ux * overlap;
+            n2.y += uy * overlap;
+          }
+        }
+      }
+      if (n1 !== this.dragNode) {
+        n1.x = Math.max(n1.r + pad, Math.min(this.W - n1.r - pad, n1.x));
+        n1.y = Math.max(n1.r + pad, Math.min(this.H - n1.r - pad, n1.y));
+      }
+    }
 
     this.ripples.forEach(r => {
       r.r += 3.2;
@@ -1081,9 +1174,10 @@ class SkillConstellationGraph {
 
     const isCenter = n.isCenter;
     const isSingleLine = n.label.length === 1;
+    const s = this.scale || 1.0;
 
-    const iconSize = isCenter ? 26 : 20;
-    const iconY = isCenter ? n.y - 14 : (isSingleLine ? n.y - 9 : n.y - 13);
+    const iconSize = Math.max(12, Math.round((isCenter ? 24 : 18) * s));
+    const iconY = isCenter ? n.y - (12 * s) : (isSingleLine ? n.y - (7 * s) : n.y - (10 * s));
     this.drawIcon(ctx, n.icon, n.x, iconY, iconSize);
 
     ctx.textAlign = 'center';
@@ -1091,16 +1185,19 @@ class SkillConstellationGraph {
     ctx.fillStyle = '#FFFFFF';
 
     if (isCenter) {
-      ctx.font = '800 12.5px "Plus Jakarta Sans", sans-serif';
-      ctx.fillText(n.label[0], n.x, n.y + 11);
-      ctx.fillText(n.label[1], n.x, n.y + 24);
+      const fs = Math.max(9, Math.round(12.5 * s));
+      ctx.font = `800 ${fs}px "Plus Jakarta Sans", sans-serif`;
+      ctx.fillText(n.label[0], n.x, n.y + (9 * s));
+      ctx.fillText(n.label[1], n.x, n.y + (21 * s));
     } else if (isSingleLine) {
-      ctx.font = '700 11px "Plus Jakarta Sans", sans-serif';
-      ctx.fillText(n.label[0], n.x, n.y + 13);
+      const fs = Math.max(7.5, Math.round(11 * s));
+      ctx.font = `700 ${fs}px "Plus Jakarta Sans", sans-serif`;
+      ctx.fillText(n.label[0], n.x, n.y + (10 * s));
     } else {
-      ctx.font = '700 10.5px "Plus Jakarta Sans", sans-serif';
-      ctx.fillText(n.label[0], n.x, n.y + 8);
-      ctx.fillText(n.label[1], n.x, n.y + 19);
+      const fs = Math.max(7, Math.round(10 * s));
+      ctx.font = `700 ${fs}px "Plus Jakarta Sans", sans-serif`;
+      ctx.fillText(n.label[0], n.x, n.y + (7 * s));
+      ctx.fillText(n.label[1], n.x, n.y + (17 * s));
     }
 
     ctx.restore();

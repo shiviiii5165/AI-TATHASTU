@@ -16,10 +16,10 @@ export function LandingPage({
 
     // If user is authenticated, personalize CTAs
     if (user) {
+      // When authenticated, remove redundant plain Dashboard pill from header, keeping only the styled Open Dashboard CTA
       const signInLinks = containerRef.current.querySelectorAll<HTMLAnchorElement>(".ref-signin-link");
       signInLinks.forEach((link) => {
-        link.textContent = "Dashboard";
-        link.href = "/dashboard";
+        link.style.display = "none";
       });
 
       const createButtons = containerRef.current.querySelectorAll<HTMLAnchorElement>(

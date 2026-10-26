@@ -3821,6 +3821,8 @@ input[type=range]::-moz-range-thumb {
   font: 700 0.88rem/1 var(--ref-font-body);
   color: #1E293B;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .ref-source-chev {
   margin-left: auto;
@@ -4023,6 +4025,11 @@ input[type=range]::-moz-range-thumb {
   height: 5px;
   border-radius: 50%;
   flex-shrink: 0;
+}
+
+/* Mobile Ecosystem Flow Bridges (hidden by default on desktop) */
+.ref-mobile-eco-bridge {
+  display: none;
 }
 
 /* ============================================================
@@ -4229,59 +4236,76 @@ input[type=range]::-moz-range-thumb {
   .ref-eco-stage { margin: 40px auto 0; }
 }
 @media (max-width: 768px) {
+  html { scroll-padding-top: calc(72px + env(safe-area-inset-top, 0px)); }
   .wrap { padding-inline: 16px; }
-  .ref-nav-shell { padding: 8px 12px; }
-  .ref-nav-bar { height: 62px; border-radius: 16px; padding: 0 12px; }
-  .ref-brand-tagline { display: none; }
-  .ref-brand-name { font-size: 15px; }
-  .ref-hero-headline { font-size: clamp(2.25rem, 7vw, 3rem); line-height: 1.15; word-break: break-word; }
-  .ref-hero-copy { font-size: 15px; max-width: 90%; margin: 16px auto 0; }
-  .ref-eco-stage { flex-direction: column; height: auto; gap: 24px; padding: 8px 0; }
-  .ref-source-column, .ref-dest-column { width: 100%; flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 8px; }
-  .ref-eco-svg { display: none; }
-  .stories-stats-strip { grid-template-columns: 1fr; gap: 14px; }
-}
 
-@media (max-width: 640px) {
-  .ref-hero { padding: 88px 8px 36px; }
+  /* 1. STICKY DOCKED NAVIGATION: Eliminates hero overlap & content clipping */
+  .ref-nav-shell {
+    position: sticky;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    padding: calc(6px + env(safe-area-inset-top, 0px)) 12px 6px;
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+    pointer-events: auto;
+    z-index: 1000;
+  }
+  .ref-nav-bar {
+    height: 52px;
+    border-radius: 14px;
+    padding: 0 8px;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .ref-brand-tagline { display: none; }
+  .ref-brand-mark { width: 34px; height: 34px; border-radius: 10px; font-size: 13px; }
+  .ref-brand-name { font-size: 15px; }
   .ref-nav-actions #refThemeToggleBtn,
   .ref-nav-actions #refNavSearchBtn { display: none !important; }
   .ref-nav-actions { gap: 6px; }
-  .ref-nav-actions .ref-circle-btn { width: 36px; height: 36px; }
-  .ref-cta-3d { padding: 8px 12px; font-size: 12px; border-radius: 12px; }
-  .ref-signin-link { font-size: 12px; padding: 6px 8px; }
-  .ref-source-column, .ref-dest-column {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-    width: 100%;
-    max-width: 320px;
-    margin: 0 auto;
+  .ref-cta-3d {
+    padding: 8px 14px;
+    font-size: 13px;
+    border-radius: 12px;
+    white-space: nowrap;
+    gap: 6px;
   }
-  .ref-source-card, .ref-dest-card {
-    width: 100%;
-    min-height: 44px;
-    padding: 8px 10px;
+  .ref-signin-link {
+    font-size: 12px;
+    padding: 6px 10px;
   }
-  .ref-profile-card {
-    width: 100%;
-    max-width: 300px;
-    margin: 0 auto;
-    padding: 18px 14px;
-  }
-  .ref-person-name { font-size: 18px; }
-  .ref-metrics-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
-}
 
-@media (max-width: 480px) {
-  .ref-profile-aura { inset: -8px; }
-  .ref-hero-headline { font-size: clamp(1.85rem, 8.5vw, 2.35rem); line-height: 1.12; }
+  /* 2. HERO SECTION SPACING */
+  .ref-hero {
+    min-height: auto;
+    padding: 24px 12px 36px;
+  }
+  .ref-hero-headline {
+    font-size: clamp(2.1rem, 7.5vw, 2.75rem);
+    line-height: 1.12;
+    word-break: break-word;
+    margin-bottom: 16px;
+  }
+  .ref-hero-copy {
+    font-size: 15px;
+    line-height: 1.55;
+    max-width: 92%;
+    margin: 0 auto 24px;
+  }
   .ref-cta-row {
     flex-direction: column;
     align-items: stretch;
     width: 100%;
-    max-width: 300px;
-    margin: 20px auto 0;
+    max-width: 310px;
+    margin: 0 auto;
     gap: 10px;
   }
   .ref-primary-cta, .ref-secondary-cta {
@@ -4290,7 +4314,212 @@ input[type=range]::-moz-range-thumb {
     min-height: 46px;
     padding: 12px 20px;
     font-size: 14px;
+    border-radius: 16px;
   }
+
+  /* 3. MOBILE CONNECTED ECOSYSTEM: Sources -> Profile -> Outcomes */
+  .ref-eco-stage {
+    flex-direction: column;
+    height: auto;
+    gap: 0;
+    padding: 8px 0;
+    max-width: 400px;
+    margin: 28px auto 0;
+  }
+  .ref-eco-svg { display: none; }
+
+  /* Compact 2-column sources grid */
+  .ref-source-column {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    width: 100%;
+    max-width: 360px;
+    margin: 0 auto;
+  }
+  .ref-source-card {
+    width: 100%;
+    height: 42px;
+    padding: 0 10px;
+    border-radius: 12px;
+    gap: 6px;
+    background: #FFFFFF;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  }
+  .ref-source-card:last-child {
+    grid-column: span 2;
+    max-width: 180px;
+    margin: 0 auto;
+  }
+  .ref-source-icon {
+    width: 18px;
+    height: 18px;
+    margin-right: 6px;
+  }
+  .ref-source-icon svg {
+    width: 15px;
+    height: 15px;
+  }
+  .ref-source-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+  }
+  .ref-source-chev { display: none; }
+
+  /* Mobile Flow Bridges */
+  .ref-mobile-eco-bridge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    margin: 8px 0;
+    gap: 4px;
+  }
+  .ref-bridge-stem {
+    width: 2px;
+    height: 16px;
+    border-radius: 999px;
+  }
+  .bridge-sources .ref-bridge-stem {
+    background: linear-gradient(180deg, rgba(139, 92, 246, 0.4), rgba(244, 63, 94, 0.8));
+  }
+  .bridge-dest .ref-bridge-stem {
+    background: linear-gradient(180deg, rgba(244, 63, 94, 0.8), rgba(16, 185, 129, 0.8));
+  }
+  .ref-bridge-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font: 700 0.72rem/1 var(--ref-font-body);
+    letter-spacing: 0.02em;
+  }
+  .bridge-sources .ref-bridge-badge {
+    background: #FFF1F2;
+    border: 1px solid rgba(244, 63, 94, 0.25);
+    color: #E11D48;
+    box-shadow: 0 2px 8px rgba(244, 63, 94, 0.10);
+  }
+  .bridge-dest .ref-bridge-badge {
+    background: #ECFDF5;
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    color: #059669;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.10);
+  }
+
+  /* Compact Central Profile Card */
+  .ref-profile-column {
+    width: 100%;
+    max-width: 320px;
+    margin: 0 auto;
+  }
+  .ref-profile-card {
+    width: 100%;
+    padding: 16px 14px 14px;
+    border-radius: 20px;
+    box-shadow: 0 16px 40px rgba(139, 92, 246, 0.12), 0 4px 12px rgba(0, 0, 0, 0.04);
+  }
+  .ref-profile-aura { inset: -8px; filter: blur(20px); }
+  .ref-profile-badge {
+    font-size: 0.65rem;
+    letter-spacing: 0.14em;
+    margin-bottom: 8px;
+  }
+  .ref-avatar-box {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 8px;
+  }
+  .ref-person-name {
+    font-size: 1.15rem;
+    margin-bottom: 2px;
+  }
+  .ref-person-sub {
+    font-size: 0.74rem;
+    margin-bottom: 12px;
+  }
+  .ref-metrics-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .ref-metric-tile {
+    padding: 7px 10px;
+    border-radius: 10px;
+  }
+  .ref-metric-val {
+    font-size: 0.95rem;
+  }
+
+  /* Compact Downstream Outcome Cards */
+  .ref-dest-column {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    max-width: 360px;
+    margin: 0 auto;
+  }
+  .ref-dest-card {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 14px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+  }
+  .ref-dest-header {
+    margin-bottom: 6px;
+  }
+  .ref-dest-icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    margin-right: 8px;
+  }
+  .ref-dest-icon svg {
+    width: 15px;
+    height: 15px;
+  }
+  .ref-dest-title {
+    font-size: 0.88rem;
+  }
+  .ref-dest-chev {
+    font-size: 0.85rem;
+  }
+  .ref-dest-bullets {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 5px;
+    padding: 0;
+  }
+  .ref-dest-bullets li {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #475569;
+    background: #F8FAFC;
+    padding: 3px 8px;
+    border-radius: 6px;
+    border: 1px solid rgba(0, 0, 0, 0.04);
+  }
+  .ref-dest-bullet-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+  }
+
+  /* 4. SKILL CONSTELLATION CANVAS */
+  .playground-canvas-card {
+    aspect-ratio: 16 / 12;
+    min-height: 280px;
+    border-radius: 20px;
+  }
+
+  /* 5. REMAINING SECTIONS POLISH */
+  .stories-stats-strip { grid-template-columns: 1fr; gap: 14px; }
   .room-card { padding: 18px 14px !important; }
   .room-title { font-size: 18px !important; }
   .room-desc { font-size: 13px !important; }
@@ -4299,13 +4528,25 @@ input[type=range]::-moz-range-thumb {
   .ref-strip-item { padding: 6px 10px; }
 }
 
+@media (max-width: 480px) {
+  .wrap { padding-inline: 12px; }
+  .ref-hero-headline { font-size: clamp(1.85rem, 8vw, 2.25rem); }
+  .ref-source-column, .ref-dest-column { max-width: 320px; }
+  .ref-profile-column { max-width: 290px; }
+  .playground-canvas-card { min-height: 260px; }
+}
+
 @media (max-width: 360px) {
-  .wrap { padding-inline: 10px; }
-  .ref-nav-shell { padding: 4px 6px; }
-  .ref-nav-bar { height: 56px; padding: 0 8px; }
-  .ref-brand-mark { width: 28px; height: 28px; font-size: 11px; }
-  .ref-hero { padding-top: 76px; }
-  .ref-hero-headline { font-size: 1.7rem; }
-  .ref-source-column, .ref-dest-column { grid-template-columns: 1fr; }
-  .ref-metrics-grid { grid-template-columns: 1fr; }
+  .wrap { padding-inline: 8px; }
+  .ref-nav-shell { padding-inline: 6px; }
+  .ref-nav-bar { height: 48px; padding: 0 6px; }
+  .ref-brand-mark { width: 30px; height: 30px; font-size: 11px; }
+  .ref-brand-name { font-size: 13px; }
+  .ref-cta-3d { padding: 6px 10px; font-size: 11px; border-radius: 9px; }
+  .ref-hero-headline { font-size: 1.65rem; }
+  .ref-source-column { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+  .ref-source-card { height: 38px; padding: 0 6px; }
+  .ref-source-card .ref-source-icon { margin-right: 4px; }
+  .ref-source-title { font-size: 0.68rem; letter-spacing: -0.02em; }
+  .ref-profile-card { padding: 12px 10px; }
 }
