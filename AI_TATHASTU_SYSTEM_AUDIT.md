@@ -652,7 +652,7 @@ Derivatives were generated into `public/img/` (originals untouched): photos with
 | `logos/mit.svg`, `stanford.svg` | 480 / 457 KB | 6.8 / 10.0 KB |
 | `brand/login-workspace-clean.jpg` (≤1094×1080 cover) | 601 KB | 1024 px WebP 56 KB (desktop), 640 px 26 KB (mobile, under the veil) |
 
-Markup changes: the landing LCP image keeps eager loading and gets `fetchpriority="high"` plus intrinsic `width`/`height`; logos and stack avatars get intrinsic dimensions (their CSS sets both dimensions, so the attributes can't distort them); team large slots use the 800 px variant, small avatars 160 px; `landing.js` story avatars and chip logos and `contact-markup` backgrounds point at the derivatives. `ucl.svg`, `jnu.svg` (tiny vectors) and `lpu.png` were kept. The login page keeps the same artwork, crop and positioning classes; only the source changed (Tailwind `bg-[url(...)]` per breakpoint).
+Markup changes: the landing LCP image keeps eager loading and gets `fetchpriority="high"` plus intrinsic `width`/`height`; logos and stack avatars get intrinsic dimensions (their CSS sets both dimensions, so the attributes can't distort them); team large slots use the 800 px variant, small avatars 160 px; `landing.js` story avatars and chip logos and `contact-markup` backgrounds point at the derivatives. `ucl.svg`, `jnu.svg` (tiny vectors) and `lpu.png` were kept. The login page keeps the same artwork, crop and positioning classes; only the source changed (Tailwind background image URL utility per breakpoint).
 
 Content note for review: `public/avatar_arjun.jpg` and `public/avatar_rohan.jpg` are byte-identical files, so two differently named people share one photo on the landing and team pages.
 

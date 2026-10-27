@@ -37,7 +37,7 @@ async function assertQueryRejection(description: string, queryFn: () => Promise<
     await queryFn();
     querySucceeded = true;
   } catch (err) {
-    caughtError = err;
+    caughtError = err instanceof Error ? err : new Error(String(err));
   }
 
   // Fails unconditionally if the query unexpectedly succeeds
