@@ -3,7 +3,7 @@ import "server-only";
 import { and, eq, inArray, sql } from "drizzle-orm";
 
 import { db } from "@/db";
-import { connections, jobs, onboardingState, profileFacts, type AccessMethod, type SourceId } from "@/db/schema";
+import { accounts, connections, jobs, onboardingState, profileFacts, type AccessMethod, type SourceId } from "@/db/schema";
 import { credentialAad, open, seal } from "@/lib/connectors/crypto";
 import { sourceById } from "@/lib/connectors/sources";
 import { wakeWorker } from "@/lib/worker-ping";
@@ -101,6 +101,9 @@ export async function disconnectSource(userId: string, sourceId: SourceId) {
     db.delete(connections).where(and(eq(connections.userId, userId), eq(connections.sourceId, sourceId))),
     ...(origins.length
       ? [db.delete(profileFacts).where(and(eq(profileFacts.userId, userId), inArray(profileFacts.origin, origins)))]
+      : []),
+    ...(sourceId === "linkedin"
+      ? [db.delete(accounts).where(and(eq(accounts.userId, userId), eq(accounts.provider, "linkedin")))]
       : []),
     db
       .update(onboardingState)

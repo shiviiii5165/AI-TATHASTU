@@ -2,16 +2,37 @@
 
 import { useState } from "react";
 import { Activity } from "lucide-react";
+import dynamic from "next/dynamic";
 import { DashboardHero } from "@/components/dashboard/mockup-sections/dashboard-hero";
 import { MetricCards } from "@/components/dashboard/mockup-sections/metric-cards";
 import { JourneyTimeline } from "@/components/dashboard/mockup-sections/journey-timeline";
-import { SkillBubbleChart } from "@/components/dashboard/mockup-sections/skill-bubble-chart";
 import { QuickActionsPanel } from "@/components/dashboard/mockup-sections/quick-actions-panel";
 import { EvidenceAchievementRow } from "@/components/dashboard/mockup-sections/evidence-achievement-row";
 import { GrowthDevelopmentRow } from "@/components/dashboard/mockup-sections/growth-development-row";
 import { EcosystemOpportunitiesRow } from "@/components/dashboard/mockup-sections/ecosystem-opportunities-row";
 import { NextActionsRow } from "@/components/dashboard/mockup-sections/next-actions-row";
-import { YoraModal } from "@/components/dashboard/yora-modal";
+
+const SkillBubbleChart = dynamic(
+  () =>
+    import("@/components/dashboard/mockup-sections/skill-bubble-chart").then(
+      (m) => m.SkillBubbleChart
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-full min-h-[300px] items-center justify-center rounded-2xl border border-[#E7EAF3] bg-white p-6 shadow-xs animate-pulse">
+        <div className="text-center text-xs text-[#8A9BB5]">
+          Loading skill visualization…
+        </div>
+      </div>
+    ),
+  }
+);
+
+const YoraModal = dynamic(
+  () => import("@/components/dashboard/yora-modal").then((m) => m.YoraModal),
+  { ssr: false }
+);
 
 import type {
   CareerRoadmapData,
@@ -170,7 +191,9 @@ export function DashboardView({
       )}
 
       {/* Interactive Yora Assistant Modal */}
-      <YoraModal open={yoraOpen} onOpenChange={setYoraOpen} userName={name} />
+      {yoraOpen && (
+        <YoraModal open={yoraOpen} onOpenChange={setYoraOpen} userName={name} />
+      )}
     </div>
   );
 }

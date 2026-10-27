@@ -48,7 +48,10 @@ async function SkillsContent() {
       .from(skillEvidence)
       .innerJoin(skills, eq(skillEvidence.skillId, skills.id))
       .where(eq(skillEvidence.userId, user.id))
-      .catch(() => []),
+      .catch((err) => {
+        console.error("[SkillsContent] skillEvidence query failed:", err);
+        return [];
+      }),
     db
       .select({
         normalizedValue: profileFacts.normalizedValue,
@@ -56,7 +59,10 @@ async function SkillsContent() {
       })
       .from(profileFacts)
       .where(and(usableFactsOf(user.id), eq(profileFacts.fieldGroup, "skills")))
-      .catch(() => []),
+      .catch((err) => {
+        console.error("[SkillsContent] profileFacts query failed:", err);
+        return [];
+      }),
   ]);
 
   const view = (row?.view || {}) as ProfileViewDoc;

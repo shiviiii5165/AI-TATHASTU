@@ -35,5 +35,13 @@ export async function createTestDb() {
       }
     }
   }
-  return drizzle({ client, schema });
+  const db = drizzle({ client, schema });
+  Object.assign(db, {
+    batch: async (queries: PromiseLike<unknown>[]) => {
+      const results = [];
+      for (const q of queries) results.push(await q);
+      return results;
+    },
+  });
+  return db;
 }

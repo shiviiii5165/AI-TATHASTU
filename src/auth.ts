@@ -1,5 +1,5 @@
 import { DrizzleAdapter } from "@auth/drizzle-adapter";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { after } from "next/server";
 import NextAuth from "next-auth";
 import type { Adapter } from "next-auth/adapters";
@@ -13,6 +13,8 @@ import { db } from "@/db";
 import { accounts, onboardingState, sessions, users, verificationTokens } from "@/db/schema";
 import { configuredProviders, emailProviderId } from "@/lib/auth-providers";
 import { connectSource } from "@/lib/connectors/connections";
+import { importLinkedInProfileFacts } from "@/lib/connectors/linkedin";
+import { enqueueComputeIntelligence } from "@/lib/jobs-queue";
 import { sendEmail } from "@/lib/email";
 import { magicLinkEmail, welcomeEmail } from "@/lib/email/templates";
 
@@ -76,6 +78,20 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
   adapter,
   callbacks: {
     ...authConfig.callbacks,
+    async signIn({ user, account }) {
+      if (account?.provider === "linkedin" && account.providerAccountId) {
+        // Prevent collision / duplicate linking: if already linked to a DIFFERENT user, reject
+        const [existing] = await db
+          .select({ userId: accounts.userId })
+          .from(accounts)
+          .where(and(eq(accounts.provider, "linkedin"), eq(accounts.providerAccountId, account.providerAccountId)));
+        if (existing && user?.id && existing.userId !== user.id) {
+          // Account already linked to another AI Tathastu user
+          return false;
+        }
+      }
+      return true;
+    },
     // Runs only here (Node, with DB), never in the proxy: refreshes the
     // `onboarded` claim the proxy uses to gate /dashboard. It is set at sign-in
     // and when "Generate my profile" calls unstable_update().
@@ -96,7 +112,12 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
       : []),
     // OIDC; requests only the default openid/profile/email scopes.
     ...(configuredProviders().linkedin
-      ? [LinkedIn({ clientId: process.env.LINKEDIN_CLIENT_ID, clientSecret: process.env.LINKEDIN_CLIENT_SECRET })]
+      ? [
+          LinkedIn({
+            clientId: process.env.LINKEDIN_CLIENT_ID || process.env.AUTH_LINKEDIN_ID,
+            clientSecret: process.env.LINKEDIN_CLIENT_SECRET || process.env.AUTH_LINKEDIN_SECRET,
+          }),
+        ]
       : []),
     ...emailProvider(),
   ],
@@ -120,18 +141,46 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
         );
       }
     },
-    // LinkedIn sign-in (first sign-up or linking later from Step 5) counts as
-    // the Tier 1 LinkedIn connection. Nothing to sync: the OIDC profile is it.
-    async linkAccount({ user, account }) {
+    // LinkedIn sign-in or account linking: stores the connection and imports
+    // verified basic profile facts from OpenID Connect.
+    async linkAccount({ user, account, profile }) {
       if (account.provider !== "linkedin" || !user.id) return;
+      const userId = user.id;
+
+      const p = profile as ({ name?: string; email?: string; picture?: string } | undefined);
+      const name = p?.name ?? user.name ?? null;
+      const email = p?.email ?? user.email ?? null;
+      const picture = p?.picture ?? user.image ?? null;
+
       await connectSource({
-        userId: user.id,
+        userId,
         sourceId: "linkedin",
         accessMethod: "oauth",
-        credential: null,
+        credential: {
+          providerAccountId: account.providerAccountId,
+          name,
+          email,
+          picture,
+        },
         syncKey: account.providerAccountId,
         queueSync: false,
-        keepExisting: true,
+        keepExisting: false,
+      });
+
+      await importLinkedInProfileFacts({
+        userId,
+        providerAccountId: account.providerAccountId,
+        name,
+        email,
+        picture,
+      });
+
+      after(async () => {
+        try {
+          await enqueueComputeIntelligence(userId, "oauth:linkedin");
+        } catch (error) {
+          console.error("Failed to enqueue intelligence compute after linking LinkedIn", error);
+        }
       });
     },
   },

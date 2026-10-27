@@ -13,8 +13,13 @@ import {
   Sun,
   User,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import { BrandLogo } from "@/components/brand-logo";
-import { YoraModal } from "@/components/dashboard/yora-modal";
+
+const YoraModal = dynamic(
+  () => import("@/components/dashboard/yora-modal").then((m) => m.YoraModal),
+  { ssr: false }
+);
 
 export function DashboardHeader({
   user,
@@ -468,11 +473,13 @@ export function DashboardHeader({
       )}
 
       {/* Yora AI Assistant Slide-in Dialog */}
-      <YoraModal
-        open={yoraOpen}
-        onOpenChange={setYoraOpen}
-        userName={displayName}
-      />
+      {yoraOpen && (
+        <YoraModal
+          open={yoraOpen}
+          onOpenChange={setYoraOpen}
+          userName={displayName}
+        />
+      )}
     </>
   );
 }

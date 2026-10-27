@@ -64,7 +64,10 @@ async function AchievementsContent() {
         ])
       )
     )
-    .catch(() => []);
+    .catch((err) => {
+      console.error("[AchievementsContent] profileFacts query failed:", err);
+      return [];
+    });
 
   // Group facts by recordKey
   const itemsMap = new Map<string, { group: string; fields: Record<string, string> }>();

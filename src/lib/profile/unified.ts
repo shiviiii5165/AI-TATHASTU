@@ -34,6 +34,7 @@ export const API_ORIGINS: FactOrigin[] = [
   "portfolio",
   "leetcode",
   "hackerrank",
+  "linkedin_oidc",
   "linkedin_scrape",
 ];
 
@@ -76,7 +77,7 @@ export type ProjectView = {
 export type ProfileData = Awaited<ReturnType<typeof loadProfile>>;
 
 // Which source wins when several give the same identity field.
-const PRECEDENCE: Partial<Record<FactOrigin, number>> = { user_entered: 4, resume: 3 };
+const PRECEDENCE: Partial<Record<FactOrigin, number>> = { user_entered: 5, linkedin_oidc: 4, resume: 3 };
 const rank = (f: Fact) => (PRECEDENCE[f.origin] ?? 2) + (f.confirmation === "edited" ? 0.5 : 0);
 
 /**

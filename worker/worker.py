@@ -25,6 +25,7 @@ import signal
 import socket
 import threading
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional
 
@@ -95,7 +96,7 @@ UPDATE jobs
         ORDER BY run_at
         FOR UPDATE SKIP LOCKED
         LIMIT 1)
-RETURNING id, type, user_id, payload, attempts, max_attempts, locked_by
+RETURNING id, type, user_id, payload, attempts, max_attempts, locked_by, created_at
 """
 
 # Extends the lock of a job that is still running, fenced on ownership.
@@ -213,7 +214,19 @@ class Worker:
         return Job(**row) if row else None
 
     def run_one(self, job: Job) -> None:
-        log.info("job %s (%s) attempt %d/%d", job.id, job.type, job.attempts, job.max_attempts)
+        queue_delay_str = ""
+        if job.created_at:
+            try:
+                if isinstance(job.created_at, datetime):
+                    now_utc = datetime.now(timezone.utc)
+                    if job.created_at.tzinfo is None:
+                        queue_delay_s = (datetime.now(timezone.utc).replace(tzinfo=None) - job.created_at).total_seconds()
+                    else:
+                        queue_delay_s = (now_utc - job.created_at).total_seconds()
+                    queue_delay_str = f" queue_delay={max(0, int(queue_delay_s * 1000))}ms"
+            except Exception:
+                pass
+        log.info("job %s (%s) attempt %d/%d%s", job.id, job.type, job.attempts, job.max_attempts, queue_delay_str)
         started = time.monotonic()
         heartbeat = Heartbeat(self.dsn, job.id)
         heartbeat.start()

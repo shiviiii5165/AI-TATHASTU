@@ -41,9 +41,9 @@ export const SOURCES: SourceDef[] = [
   {
     id: "linkedin",
     name: "LinkedIn",
-    blurb: "Experience, education, skills and certifications from your public profile.",
-    accessMethod: "public_scrape",
-    connect: "form",
+    blurb: "Verified identity, name, avatar and email via official LinkedIn authentication.",
+    accessMethod: "oauth",
+    connect: "linkedin_signin",
     origins: ["linkedin_oidc", "linkedin_scrape"],
   },
   {

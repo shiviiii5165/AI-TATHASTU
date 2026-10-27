@@ -54,12 +54,18 @@ async function ProjectsContent() {
       .select()
       .from(codeRepositories)
       .where(eq(codeRepositories.userId, user.id))
-      .catch(() => []),
+      .catch((err) => {
+        console.error("[ProjectsContent] codeRepositories query failed:", err);
+        return [];
+      }),
     db
       .select()
       .from(githubScores)
       .where(eq(githubScores.userId, user.id))
-      .catch(() => []),
+      .catch((err) => {
+        console.error("[ProjectsContent] githubScores query failed:", err);
+        return [];
+      }),
   ]);
 
   const scoresMap = new Map<string, { impactScore: number; rationale: string }>();

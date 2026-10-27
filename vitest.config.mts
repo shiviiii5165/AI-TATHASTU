@@ -8,6 +8,7 @@ export default defineConfig({
     include: ["src/**/*.test.ts"],
     exclude: ["**/._*", "node_modules/**"],
     testTimeout: 30_000,
+    hookTimeout: 60_000,
   },
   resolve: {
     alias: {

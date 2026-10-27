@@ -21,8 +21,8 @@ export const CONSENT_ITEMS: {
   {
     purpose: "linkedin_scrape",
     title: "Read my public LinkedIn profile",
-    body: "If you connect LinkedIn later, we fetch your public linkedin.com/in/ page through our scraping providers (Apify, Firecrawl). We never log in as you or use your cookies.",
-    without: "Without this, LinkedIn import is limited to the name, email and photo from LinkedIn sign-in.",
+    body: "If you connect public LinkedIn profiles for enrichment, we fetch public details through our scraping provider (Apify). We never log in as you or use your cookies.",
+    without: "Without this, LinkedIn is limited to verified identity, name, email and photo from official LinkedIn OAuth.",
   },
   {
     purpose: "mentor_discovery",

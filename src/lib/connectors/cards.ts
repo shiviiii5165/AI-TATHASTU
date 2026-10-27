@@ -22,7 +22,7 @@ export async function loadSourceCards(user: Pick<User, "id" | "email" | "role">)
   // The worker parks a LinkedIn scrape until linkedin_scrape is granted (older
   // connections were made before the dialog asked for it).
   const linkedinWaiting =
-    rows.some((r) => r.sourceId === "linkedin" && r.tokenEnc) &&
+    rows.some((r) => r.sourceId === "linkedin" && r.tokenEnc && r.accessMethod === "public_scrape") &&
     (await getCurrentConsents(user.id)).linkedin_scrape?.granted !== true;
 
   return sourcesFor(user.role).map((source) => {
@@ -64,8 +64,10 @@ function describe(userId: string, row: Connection, email: string | null): string
     }
     case "portfolio":
       return openCredential<{ url: string }>(userId, "portfolio", row.tokenEnc)?.url.replace(/^https?:\/\//, "") ?? null;
-    case "linkedin":
-      return openCredential<{ url?: string }>(userId, "linkedin", row.tokenEnc)?.url?.replace(/^https:\/\/www\./, "") ?? email;
+    case "linkedin": {
+      const c = openCredential<{ name?: string; email?: string; url?: string }>(userId, "linkedin", row.tokenEnc);
+      return c?.name ? `${c.name}${c.email ? ` (${c.email})` : ""}` : c?.url?.replace(/^https:\/\/www\./, "") ?? email;
+    }
     case "orcid":
       return openCredential<{ orcid?: string }>(userId, "orcid", row.tokenEnc)?.orcid ?? null;
     case "google_scholar":

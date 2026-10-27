@@ -8,8 +8,12 @@ import { isIP } from "node:net";
 
 import { z } from "zod";
 
+import { AuthError } from "next-auth";
+import { redirect } from "next/navigation";
+
 import type { SaveResult } from "@/app/onboarding/actions";
 import { signIn } from "@/auth";
+import { configuredProviders } from "@/lib/auth-providers";
 import { appendConsent } from "@/lib/consent/store";
 import { connectSource, disconnectSource, openCredential } from "@/lib/connectors/connections";
 import { isConnectorCryptoConfigured } from "@/lib/connectors/crypto";
@@ -142,5 +146,15 @@ export async function allowLinkedInImport(): Promise<SaveResult> {
 /** Links LinkedIn to the signed-in user via Auth.js; events.linkAccount records the connection. */
 export async function connectLinkedIn(from: ConnectorContext) {
   await requireConnectorUser();
-  await signIn("linkedin", { redirectTo: `${connectorReturnPath(from)}?source=linkedin&connected=1` });
+  if (!configuredProviders().linkedin) {
+    redirect(`${connectorReturnPath(from)}?source=linkedin&error=not_configured`);
+  }
+  try {
+    await signIn("linkedin", { redirectTo: `${connectorReturnPath(from)}?source=linkedin&connected=1` });
+  } catch (error) {
+    if (error instanceof AuthError) {
+      redirect(`${connectorReturnPath(from)}?source=linkedin&error=${error.type}`);
+    }
+    throw error;
+  }
 }
