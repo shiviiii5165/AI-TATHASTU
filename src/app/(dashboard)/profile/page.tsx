@@ -23,8 +23,8 @@ export default function ProfilePage() {
 const IDENTITY_ORDER = ["full_name", "headline", "location", "email", "phone", "linkedin_url", "github_url", "website"];
 
 async function Profile() {
-  const { user } = await requireOnboardedUser();
-  const p = await loadProfile(user.id);
+  const { user, state } = await requireOnboardedUser();
+  const p = await loadProfile(user.id, { user, state });
   const name = p.identity.full_name?.best.value ?? p.user.name ?? "Your profile";
   const identityRows = IDENTITY_ORDER.filter((f) => p.identity[f]).map((f) => p.identity[f]);
 

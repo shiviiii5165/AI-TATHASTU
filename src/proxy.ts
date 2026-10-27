@@ -16,6 +16,6 @@ export const config = {
     "/dashboard/:path*",
     "/settings/:path*",
     "/admin/:path*",
-    "/(profile|projects|skills|eris|learn|collaborate|connections|mentor|meet|cv-builder|avasar)/:path*",
+    "/(profile|projects|skills|achievements|opportunities|internships|learn|learning|people|mentor|research|ai-interview|collaborate|eris|meet|cv-builder|avasar|connections)/:path*",
   ],
 };

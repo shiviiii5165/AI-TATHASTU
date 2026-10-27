@@ -1,10 +1,7 @@
-import { and, eq } from "drizzle-orm";
 import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 
 import { importance, roleLabel } from "@/components/dashboard/widgets/labels";
-import { db } from "@/db";
-import { erisScores } from "@/db/schema";
 import type { SkillGap, SkillGapsData } from "@/lib/dashboard/types";
 
 const LOW = 0.5;
@@ -15,14 +12,8 @@ const MAX_ROWS = 6;
  * most important first. Uses the full skill list from the precomputed ERIS
  * breakdown; the view itself only carries the top 3.
  */
-export async function SkillGapsWidget({ userId, data }: { userId: string; data: SkillGapsData }) {
-  const [row] = data.role
-    ? await db
-        .select({ breakdown: erisScores.breakdownJson })
-        .from(erisScores)
-        .where(and(eq(erisScores.userId, userId), eq(erisScores.role, data.role)))
-    : [];
-  const all = ((row?.breakdown as { skills?: SkillGap[] } | undefined)?.skills ?? data.gaps)
+export function SkillGapsWidget({ data, breakdown }: { data: SkillGapsData; breakdown: Record<string, unknown> | undefined }) {
+  const all = ((breakdown as { skills?: SkillGap[] } | undefined)?.skills ?? data.gaps)
     .filter((s) => s.readiness < LOW)
     .sort((a, b) => b.weight - a.weight || a.readiness - b.readiness);
   const shown = all.slice(0, MAX_ROWS);

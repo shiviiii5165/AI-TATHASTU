@@ -241,5 +241,4 @@ export const widgets: WidgetDefinition[] = [
 ];
 
 export const WIDGET_IDS = widgets.map((w) => w.id);
-export const widgetById = (id: string) => widgets.find((w) => w.id === id);
 export const widgetsFor = (persona: Persona) => widgets.filter((w) => w.personas.includes(persona));

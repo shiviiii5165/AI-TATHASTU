@@ -1,13 +1,13 @@
-import { eq, ne } from "drizzle-orm";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, Users } from "lucide-react";
 
-import { db } from "@/db";
-import { collaborationEmbeddings, users } from "@/db/schema";
 import { requireOnboardedUser } from "@/lib/dal";
+import { similarPeople } from "@/lib/people";
 import { Suspense } from "react";
 import { PeopleListClient } from "@/components/dashboard/people-list-client";
+
+const ROLE_LABEL = { student: "Student", faculty: "Faculty / Mentor", alumni: "Alumni" } as const;
 
 export const metadata: Metadata = {
   title: "People & Research Network | AI Tathastu",
@@ -34,72 +34,28 @@ function PeopleSkeleton() {
   );
 }
 
-function cosineSimilarity(a: number[], b: number[]): number {
-  if (!a.length || !b.length || a.length !== b.length) return 0;
-  let dot = 0;
-  let normA = 0;
-  let normB = 0;
-  for (let i = 0; i < a.length; i++) {
-    dot += a[i] * b[i];
-    normA += a[i] * a[i];
-    normB += b[i] * b[i];
-  }
-  if (normA <= 0 || normB <= 0) return 0;
-  return Math.max(0, Math.min(1, dot / (Math.sqrt(normA) * Math.sqrt(normB))));
-}
-
 async function PeopleContent() {
   const { user } = await requireOnboardedUser();
 
-  const [userEmbRow, allPeers] = await Promise.all([
-    db
-      .select()
-      .from(collaborationEmbeddings)
-      .where(eq(collaborationEmbeddings.userId, user.id))
-      .limit(1)
-      .then((rows) => rows[0]),
-    db
-      .select({
-        id: users.id,
-        name: users.name,
-        role: users.role,
-        department: users.department,
-        institution: users.university,
-        embedding: collaborationEmbeddings.embedding,
-        profileSummary: collaborationEmbeddings.profileSummary,
-      })
-      .from(collaborationEmbeddings)
-      .innerJoin(users, eq(users.id, collaborationEmbeddings.userId))
-      .where(ne(users.id, user.id))
-      .limit(24),
-  ]);
+  // Discoverable people only (mentor_discovery consent), ranked in Postgres by
+  // pgvector distance to this user's embedding. No floor or default on the score.
+  const people = await similarPeople({ id: user.id, role: user.role }, 24);
 
-  const userVec = userEmbRow?.embedding || [];
-
-  const scoredPeers = allPeers.map((p) => {
-    const sim = p.embedding && userVec.length > 0 ? cosineSimilarity(userVec, p.embedding) : 0.75;
-    const pct = Math.max(72, Math.min(99, Math.round(sim * 100)));
-
-    const initials = (p.name || "Peer")
+  const scoredPeers = people.map((p) => ({
+    id: p.id,
+    name: p.name || "AI Tathastu member",
+    role: ROLE_LABEL[p.role],
+    institution: p.institution,
+    department: p.department,
+    matchPercentage: p.similarity === null ? null : Math.round(p.similarity * 100),
+    summary: p.summary,
+    initials: (p.name || "AT")
       .split(/\s+/)
       .map((n) => n[0])
       .join("")
       .slice(0, 2)
-      .toUpperCase();
-
-    return {
-      id: p.id,
-      name: p.name || "Peer Scholar",
-      role: p.role === "faculty" ? "Faculty / Mentor" : p.role === "alumni" ? "Alumni" : "Student Researcher",
-      institution: p.institution || "Research Institution",
-      department: p.department || "AI Systems Lab",
-      matchPercentage: pct,
-      summary: p.profileSummary || "Complementary technical focus in machine learning systems.",
-      initials,
-    };
-  });
-
-  scoredPeers.sort((a, b) => b.matchPercentage - a.matchPercentage);
+      .toUpperCase(),
+  }));
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-16">

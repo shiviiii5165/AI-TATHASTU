@@ -16,7 +16,21 @@ vi.mock("@/db", async () => {
   return { db: await createTestDb() };
 });
 
+// pgvector isn't available in PGlite; discovery rules are covered in src/lib/discovery.test.ts.
+const people = vi.hoisted(() => ({ result: [] as unknown[], lastViewer: null as unknown }));
+vi.mock("@/lib/people", () => ({
+  similarPeople: async (viewer: unknown) => {
+    people.lastViewer = viewer;
+    return people.result;
+  },
+}));
+
+const { db } = await import("@/db");
+const { users } = await import("@/db/schema");
+const { eq } = await import("drizzle-orm");
 const { parseIntent, POST } = await import("./route");
+
+await db.insert(users).values({ id: "00000000-0000-4000-8000-00000000000a", name: "Dr. Ananya", role: "faculty" });
 
 describe("Deterministic Yora Intent Router", () => {
   describe("parseIntent", () => {
@@ -142,16 +156,52 @@ describe("Deterministic Yora Intent Router", () => {
       expect(json.response).toContain("Here are some opportunities matching your profile");
     });
 
-    it("handles people intent with database data", async () => {
-      const req = new Request("http://localhost/api/yora/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: "Connect with peer researchers" }),
-      });
-      const res = await POST(req);
+    const ask = (message: string) =>
+      POST(
+        new Request("http://localhost/api/yora/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message }),
+        }),
+      );
+
+    it("people intent reports the real similarity of a discoverable match", async () => {
+      people.result = [
+        { id: "p1", name: "Ravi Kumar", role: "student", department: null, institution: null, summary: "Graph neural networks.", similarity: 0.634 },
+      ];
+      const res = await ask("Connect with peer researchers");
       expect(res.status).toBe(200);
       const json = await res.json();
-      expect(json.response).toContain("match with");
+      expect(json.response).toContain("63% match with Ravi Kumar");
+      // Lookups go through the discovery rules with the viewer's real role.
+      expect(people.lastViewer).toEqual({ id: userId, role: "faculty" });
+    });
+
+    it("people intent never invents a match when nobody is discoverable", async () => {
+      people.result = [];
+      const json = await (await ask("Connect with peer researchers")).json();
+      expect(json.response).toContain("I don't have a match for you yet");
+      expect(json.response).not.toMatch(/\d+% match/);
+    });
+
+    it("people intent shows no percentage when the viewer has no embedding yet", async () => {
+      people.result = [{ id: "p2", name: "Meera", role: "alumni", department: null, institution: null, summary: null, similarity: null }];
+      const json = await (await ask("Who should I know?")).json();
+      expect(json.response).not.toMatch(/\d+% match/);
+    });
+
+    it("rejects a session whose account was deleted", async () => {
+      await db.update(users).set({ deletedAt: new Date() }).where(eq(users.id, userId));
+      try {
+        expect((await ask("hello")).status).toBe(401);
+      } finally {
+        await db.update(users).set({ deletedAt: null }).where(eq(users.id, userId));
+      }
+    });
+
+    it("profile intent doesn't invent a completeness score", async () => {
+      const json = await (await ask("Check my profile completeness and stats")).json();
+      expect(json.response).not.toMatch(/75% complete/);
     });
 
     it("handles skills intent with database data", async () => {

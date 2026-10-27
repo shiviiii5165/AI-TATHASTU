@@ -1,31 +1,23 @@
-import { and, count, desc, eq, isNotNull } from "drizzle-orm";
 import { ExternalLink, Star } from "lucide-react";
 
-import { db } from "@/db";
-import { codeRepositories, connections } from "@/db/schema";
+import type { CodeRepository, Connection } from "@/db/schema";
 import { openCredential } from "@/lib/connectors/connections";
 import { timeAgo } from "@/lib/format";
 
-/** Reads code_repositories directly (the sync's output), newest first. */
-export async function GithubWidget({ userId, now }: { userId: string; now: Date }) {
-  const [connection, [total], recent] = await Promise.all([
-    db
-      .select({ tokenEnc: connections.tokenEnc, lastSyncAt: connections.lastSyncAt })
-      .from(connections)
-      .where(and(eq(connections.userId, userId), eq(connections.sourceId, "github")))
-      .then((r) => r[0]),
-    db
-      .select({ n: count() })
-      .from(codeRepositories)
-      .where(and(eq(codeRepositories.userId, userId), eq(codeRepositories.source, "github"))),
-    db
-      .select()
-      .from(codeRepositories)
-      .where(and(eq(codeRepositories.userId, userId), eq(codeRepositories.source, "github"), isNotNull(codeRepositories.lastCommitAt)))
-      .orderBy(desc(codeRepositories.lastCommitAt))
-      .limit(3),
-  ]);
-  const login = connection ? openCredential<{ login?: string }>(userId, "github", connection.tokenEnc)?.login : null;
+export type GithubWidgetData = {
+  userId: string;
+  connection: Pick<Connection, "tokenEnc" | "lastSyncAt"> | null;
+  /** All the user's repositories, newest push first (already loaded by the dashboard). */
+  repositories: CodeRepository[];
+};
+
+/** Renders code_repositories (the sync's output), newest first. No queries of its own. */
+export function GithubWidget({ data, now }: { data: GithubWidgetData; now: Date }) {
+  const { connection } = data;
+  const githubRepos = data.repositories.filter((r) => r.source === "github");
+  const total = { n: githubRepos.length };
+  const recent = githubRepos.filter((r) => r.lastCommitAt).slice(0, 3);
+  const login = connection ? openCredential<{ login?: string }>(data.userId, "github", connection.tokenEnc)?.login : null;
 
   return (
     <div>

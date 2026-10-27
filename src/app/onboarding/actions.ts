@@ -16,7 +16,7 @@ import { nextStep, stepHref, type WizardStep } from "@/lib/onboarding/steps";
 import { factDisplayValue } from "@/lib/profile/display";
 import { FIELD_GROUPS } from "@/lib/profile/field-groups";
 import { dispatchWebhooks, enqueueProfileUpdated } from "@/lib/integrations/webhooks";
-import { triggerRecompute } from "@/lib/jobs-queue";
+import { enqueueComputeIntelligence } from "@/lib/jobs-queue";
 
 export type SaveResult = { ok: true } | { ok: false; error: string };
 
@@ -167,7 +167,8 @@ export async function saveResumeReview(input: ResumeReviewInput): Promise<SaveRe
   if ((await enqueueProfileUpdated(user.id, "facts_confirmed")).length) {
     after(() => dispatchWebhooks().catch((e) => console.error("webhook dispatch failed", e)));
   }
-  after(() => triggerRecompute(user.id, "resume_facts_confirmed"));
+  // Gated on finished onboarding (a no-op mid-wizard; "Generate my profile" queues the first run).
+  after(() => enqueueComputeIntelligence(user.id, "resume_facts_confirmed"));
   refreshOnboardingShell();
   redirect(stepHref(nextStep("resume", user.role)));
 }

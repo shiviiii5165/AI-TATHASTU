@@ -8,6 +8,7 @@ import { SkillBubbleChart } from "@/components/dashboard/mockup-sections/skill-b
 import { db } from "@/db";
 import { profileFacts, profileViews, skillEvidence, skills } from "@/db/schema";
 import { requireOnboardedUser } from "@/lib/dal";
+import { usableFactsOf } from "@/lib/profile/unified";
 import type { ProfileViewDoc } from "@/lib/dashboard/types";
 
 export const metadata: Metadata = {
@@ -54,7 +55,7 @@ async function SkillsContent() {
         extractedValue: profileFacts.extractedValue,
       })
       .from(profileFacts)
-      .where(and(eq(profileFacts.userId, user.id), eq(profileFacts.fieldGroup, "skills")))
+      .where(and(usableFactsOf(user.id), eq(profileFacts.fieldGroup, "skills")))
       .catch(() => []),
   ]);
 
@@ -62,9 +63,11 @@ async function SkillsContent() {
   const inferredSkills = view.inferredSkills || [];
   const skillGraph = view.skillGraph || view.skill_graph;
 
-  let confirmedSkills = (view.skills || []).map((s) => ({
+  // strength is the evidence score from the intelligence engine; null when a
+  // skill comes only from confirmed facts (no score is invented for it).
+  let confirmedSkills: { name: string; strength: number | null; category: string }[] = (view.skills || []).map((s) => ({
     name: s.name,
-    strength: s.evidenceStrength || 0.8,
+    strength: typeof s.evidenceStrength === "number" ? s.evidenceStrength : null,
     category: s.category || "Competency",
   }));
 
@@ -72,8 +75,8 @@ async function SkillsContent() {
   if (confirmedSkills.length === 0 && dbSkills.length > 0) {
     confirmedSkills = dbSkills.map((s) => ({
       name: s.skillName,
-      strength: typeof s.strength === "number" ? s.strength : 0.8,
-      category: "Verified Skill",
+      strength: s.strength,
+      category: "Evidenced skill",
     }));
   } else if (confirmedSkills.length === 0 && factSkills.length > 0) {
     confirmedSkills = factSkills
@@ -81,8 +84,8 @@ async function SkillsContent() {
       .filter(Boolean)
       .map((name) => ({
         name,
-        strength: 0.75,
-        category: "Confirmed Skill",
+        strength: null,
+        category: "Confirmed skill",
       }));
   }
 
@@ -123,7 +126,12 @@ async function SkillsContent() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <div className="lg:col-span-5 min-h-[380px] sm:min-h-[420px] h-auto">
               <SkillBubbleChart
-                skills={inferredSkills.length > 0 ? inferredSkills : confirmedSkills}
+                skills={
+                  inferredSkills.length > 0
+                    ? inferredSkills
+                    : // The chart shows a confidence per node: only skills that have a real score.
+                      confirmedSkills.flatMap((s) => (s.strength === null ? [] : [{ name: s.name, strength: s.strength }]))
+                }
                 skillGraph={skillGraph}
                 fullView
                 height={400}
@@ -203,14 +211,14 @@ async function SkillsContent() {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-[#F0F2F7] gap-3">
                 <div>
                   <h2 className="font-sans text-base font-bold text-[#11182B]">
-                    Verified Proof-of-Work Skills
+                    Confirmed & Evidenced Skills
                   </h2>
                   <p className="text-xs text-[#64748B]">
                     Extracted from commits, repository frameworks, and confirmed profile facts.
                   </p>
                 </div>
                 <span className="text-xs font-bold text-slate-600">
-                  {confirmedSkills.length} Verified Skills
+                  {confirmedSkills.length} {confirmedSkills.length === 1 ? "Skill" : "Skills"}
                 </span>
               </div>
 
@@ -230,7 +238,7 @@ async function SkillsContent() {
                     <div className="mt-3 flex items-center justify-between text-xs">
                       <span className="text-slate-500">Confidence</span>
                       <span className="font-mono font-bold text-[#2878F0]">
-                        {Math.round(item.strength * 100)}%
+                        {item.strength === null ? "Not scored yet" : `${Math.round(item.strength * 100)}%`}
                       </span>
                     </div>
                   </div>

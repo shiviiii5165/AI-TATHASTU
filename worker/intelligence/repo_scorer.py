@@ -1,18 +1,22 @@
-"""GitHub Repository AI Impact Score Engine.
+"""GitHub repository impact scores (github_scores).
 
-Performs deep code analysis of repositories by fetching top complex files and READMEs via GitHub API,
-evaluating architectural quality, code complexity, and real-world impact using Gemini / LLM router.
+Privacy: the privacy policy covers "public repository metadata" only, so
+nothing beyond metadata (name, description, languages, topics, stars, forks)
+is ever sent to an AI provider, and only with the user's external_ai consent.
+README and source files are not fetched. Without consent, or when the LLM
+fails, the score is a labelled heuristic estimate.
+
+Performance: scoring makes no DB calls (run it outside a transaction), runs a
+bounded number of repos concurrently, and skips repos whose score is newer
+than their last push (cache keyed on repo identity + last push time).
 """
 
 from __future__ import annotations
 
-import base64
-import json
 import logging
-import urllib.error
-import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 log = logging.getLogger("worker.repo_scorer")
 
@@ -26,12 +30,11 @@ REPO_SCORE_SCHEMA = {
     "required": ["impact_score", "rationale"],
 }
 
-CODE_EXTENSIONS = (
-    ".py", ".ts", ".tsx", ".rs", ".cpp", ".cu", ".c", ".go", ".java", ".scala", ".kt", ".swift",
-)
-EXCLUDED_PATTERNS = (
-    "test", "spec", "min.js", "min.css", "node_modules", "vendor", "dist", "build", "lock", ".d.ts",
-)
+# Marks heuristic rationales, so a repo scored without consent is re-scored
+# once the user grants it.
+HEURISTIC_PREFIX = "Estimated from repository metadata"
+MAX_CONCURRENCY = 4
+LLM_TIMEOUT_S = 15.0
 
 
 def heuristic_impact_score(
@@ -42,237 +45,115 @@ def heuristic_impact_score(
     stars: int,
     forks: int,
 ) -> Dict[str, Any]:
-    """Calculates deterministic impact score based on technical depth and complexity."""
+    """Deterministic estimate from metadata only; the rationale says so."""
     score = 70
     reasons: List[str] = []
 
-    # 1. Advanced ML / Systems languages & frameworks
     langs_lower = [str(l).lower() for l in languages.keys()]
     topics_lower = [str(t).lower() for t in topics]
 
     if any(l in langs_lower for l in ("python", "c++", "cuda", "rust")):
         score += 8
-        reasons.append("Advanced systems/ML stack")
-
+        reasons.append("systems/ML languages")
     if any(t in topics_lower for t in ("deep-learning", "machine-learning", "pytorch", "transformers", "xgboost", "llm")):
         score += 9
-        reasons.append("High architectural complexity")
-
-    # 2. Multi-language modularity
+        reasons.append("ML topics")
     if len(languages) >= 2:
         score += 4
-
-    # 3. Community adoption & stars
+        reasons.append("multiple languages")
     if stars > 30:
         score += 5
     elif stars > 10:
         score += 3
-
+    if stars > 10:
+        reasons.append(f"{stars} stars")
     if forks > 5:
         score += 3
+        reasons.append(f"{forks} forks")
 
     final_score = min(98, max(65, score))
-
-    if "corxgb" in repo_name.lower():
-        final_score = 94
-        rationale = "94 - High complexity, hybrid CNN+LSTM+XGBoost design with clean modularity."
-    elif "medical" in repo_name.lower() or "cancer" in (description or "").lower():
-        final_score = 86
-        rationale = "86 - Deep learning model for clinical cancer detection with high precision."
-    elif "robotics" in (description or "").lower() or "vira" in repo_name.lower():
-        final_score = 83
-        rationale = "83 - Multi-modal robotics and computer vision educational platform."
-    else:
-        rationale = f"{final_score} - {', '.join(reasons) or 'Well-structured codebase with clear documentation'}."
-
-    return {
-        "impact_score": final_score,
-        "rationale": rationale,
-    }
+    detail = ", ".join(reasons) if reasons else "limited metadata"
+    return {"impact_score": final_score, "rationale": f"{HEURISTIC_PREFIX}: {detail}."}
 
 
-def fetch_github_code_artifacts(repo_name: str, token: Optional[str] = None) -> Tuple[str, List[Dict[str, str]]]:
-    """Pulls README and top 3 most complex code files from GitHub API."""
-    headers = {
-        "User-Agent": "ai-tathastu-worker/1.0",
-        "Accept": "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
-    }
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
+def score_repository(repo: Dict[str, Any], *, allow_external_ai: bool) -> Dict[str, Any]:
+    """Scores one repo. LLM (metadata only) with consent, heuristic otherwise or on failure."""
+    from provider_router import route_llm
 
-    readme_text = ""
-    code_files: List[Dict[str, str]] = []
+    args = (
+        repo["repo_name"],
+        repo.get("description"),
+        repo.get("languages") or {},
+        repo.get("topics") or [],
+        repo.get("stars") or 0,
+        repo.get("forks") or 0,
+    )
+    if not allow_external_ai:
+        return heuristic_impact_score(*args)
 
-    # 1. Fetch README
-    readme_url = f"https://api.github.com/repos/{repo_name}/readme"
-    req = urllib.request.Request(readme_url, headers=headers)
-    try:
-        with urllib.request.urlopen(req, timeout=5.0) as res:
-            data = json.loads(res.read().decode("utf-8"))
-            if data.get("content"):
-                readme_text = base64.b64decode(data["content"]).decode("utf-8", errors="ignore")[:1000]
-    except Exception as exc:
-        log.debug("Could not fetch README for %s: %s", repo_name, exc)
-
-    # 2. Fetch repo metadata for default branch
-    default_branch = "main"
-    repo_meta_url = f"https://api.github.com/repos/{repo_name}"
-    try:
-        req = urllib.request.Request(repo_meta_url, headers=headers)
-        with urllib.request.urlopen(req, timeout=5.0) as res:
-            meta = json.loads(res.read().decode("utf-8"))
-            default_branch = meta.get("default_branch") or "main"
-    except Exception:
-        pass
-
-    # 3. Fetch git tree to find top 3 most complex code files
-    tree_url = f"https://api.github.com/repos/{repo_name}/git/trees/{default_branch}?recursive=1"
-    try:
-        req = urllib.request.Request(tree_url, headers=headers)
-        with urllib.request.urlopen(req, timeout=8.0) as res:
-            tree_data = json.loads(res.read().decode("utf-8"))
-            blobs = [
-                b for b in tree_data.get("tree", [])
-                if b.get("type") == "blob"
-                and any(b.get("path", "").endswith(ext) for ext in CODE_EXTENSIONS)
-                and not any(ex in b.get("path", "").lower() for ex in EXCLUDED_PATTERNS)
-            ]
-            # Sort by size descending (largest code files indicate core model/pipeline)
-            blobs.sort(key=lambda x: x.get("size", 0), reverse=True)
-            top_blobs = blobs[:3]
-
-            for blob in top_blobs:
-                path = blob.get("path")
-                if not path:
-                    continue
-                raw_url = f"https://raw.githubusercontent.com/{repo_name}/{default_branch}/{path}"
-                try:
-                    raw_req = urllib.request.Request(raw_url, headers={"User-Agent": "ai-tathastu-worker"})
-                    with urllib.request.urlopen(raw_req, timeout=5.0) as raw_res:
-                        content = raw_res.read().decode("utf-8", errors="ignore")
-                        # Truncate to first 120 lines
-                        lines = content.splitlines()[:120]
-                        code_files.append({"path": path, "content": "\n".join(lines)})
-                except Exception as file_exc:
-                    log.debug("Could not fetch raw code file %s: %s", path, file_exc)
-    except Exception as tree_exc:
-        log.debug("Could not fetch git tree for %s: %s", repo_name, tree_exc)
-
-    return readme_text, code_files
-
-
-def score_repository(
-    repo_name: str,
-    description: Optional[str],
-    languages: Dict[str, Any],
-    topics: List[str],
-    stars: int,
-    forks: int,
-    readme_text: str = "",
-    code_files: Optional[List[Dict[str, str]]] = None,
-    has_consent: bool = True,
-) -> Dict[str, Any]:
-    """Scores a repo using deep code analysis with LLM router (fallback to heuristic)."""
-    from provider_router import ConsentRequired, NeedsReviewError, route_llm
-
-    if not has_consent:
-        return heuristic_impact_score(repo_name, description, languages, topics, stars, forks)
-
-    code_sections = ""
-    if code_files:
-        code_sections = "\n\n".join([
-            f"File: {cf['path']}\n```{cf['path'].split('.')[-1]}\n{cf['content'][:2500]}\n```"
-            for cf in code_files
-        ])
-
+    name, description, languages, topics, stars, forks = args
     prompt = (
-        f"Perform a deep architectural and code complexity evaluation for this GitHub repository:\n"
-        f"Repository: {repo_name}\n"
+        "Estimate the engineering impact of this GitHub repository from its public metadata only.\n"
+        f"Repository: {name}\n"
         f"Description: {description or 'None provided'}\n"
         f"Languages: {list(languages.keys())}\n"
         f"Topics: {topics}\n"
         f"Stars: {stars}, Forks: {forks}\n\n"
-        f"README excerpt:\n{readme_text[:600] if readme_text else 'None provided'}\n\n"
-        f"Source Code Artifacts (Top Complex Files):\n{code_sections or 'Standard codebase layout'}\n\n"
-        f"Evaluate architectural quality, code complexity (e.g. neural models, concurrency, optimization), "
-        f"and real-world software engineering rigor. "
-        f"Provide 'impact_score' (0-100 integer) and 'rationale' (1 concise sentence starting with score, e.g. '94 - High architectural complexity, ...')."
+        "Provide 'impact_score' (0-100 integer) and 'rationale' (one concise sentence starting with the score). "
+        "Do not claim to have read the code."
     )
-
     try:
         res = route_llm(
-            system="You evaluate code repositories on software engineering rigor, architecture, and innovation. Output strictly valid JSON.",
+            system="You evaluate code repositories from metadata. Output strictly valid JSON.",
             user=prompt,
             schema=REPO_SCORE_SCHEMA,
-            consent_granted=has_consent,
+            consent_granted=True,
             purpose="repo_impact_score",
-            timeout=15.0,
+            timeout=LLM_TIMEOUT_S,
         )
         if isinstance(res.data, dict) and "impact_score" in res.data:
             return res.data
-    except Exception as exc:
-        log.warning("LLM repo impact scoring failed (%s); using heuristic fallback", exc)
+    except Exception as exc:  # noqa: BLE001 - one repo's failure never fails the job
+        log.warning("LLM repo scoring failed for %s (%s); using heuristic", name, exc)
+    return heuristic_impact_score(*args)
 
-    return heuristic_impact_score(repo_name, description, languages, topics, stars, forks)
 
+def repos_needing_scores(cur: Any, user_id: str, *, allow_external_ai: bool) -> List[Dict[str, Any]]:
+    """Repos with no score, a score older than their last push, or (with consent) a heuristic score."""
+    from db import fetch_all
 
-def score_and_save_user_repos(cur: Any, user_id: str) -> None:
-    """Evaluates all synced repositories for a user with deep code analysis and writes to github_scores."""
-    from db import fetch_all, fetch_one
-
-    # Check for github connection and token
-    conn_row = fetch_one(
+    return fetch_all(
         cur,
-        "SELECT token_enc FROM connections WHERE user_id = %s AND source_id = 'github' AND token_enc IS NOT NULL",
-        (user_id,),
+        """SELECT r.id, r.repo_name, r.description, r.languages, r.topics, r.stars, r.forks
+             FROM code_repositories r
+             LEFT JOIN github_scores s ON s.user_id = r.user_id AND s.repo_id = r.id::text
+            WHERE r.user_id = %s
+              AND (s.id IS NULL
+                   OR (r.last_commit_at IS NOT NULL AND s.updated_at < r.last_commit_at)
+                   OR (%s AND s.rationale LIKE %s))""",
+        (user_id, allow_external_ai, HEURISTIC_PREFIX + "%"),
     )
-    github_token = None
-    if conn_row and conn_row.get("token_enc"):
-        try:
-            from crypto_box import open_credential
-            cred = open_credential(conn_row["token_enc"], user_id, "github")
-            github_token = cred.get("token") or cred.get("access_token")
-        except Exception as exc:
-            log.debug("Could not decrypt GitHub token for user %s: %s", user_id, exc)
 
-    repos = fetch_all(
-        cur,
-        "SELECT id, repo_name, description, languages, topics, stars, forks FROM code_repositories WHERE user_id = %s",
-        (user_id,),
-    )
+
+def score_repos(repos: List[Dict[str, Any]], *, allow_external_ai: bool) -> List[Dict[str, Any]]:
+    """Scores repos with at most MAX_CONCURRENCY in flight. No DB access."""
+    if not repos:
+        return []
+    with ThreadPoolExecutor(max_workers=min(MAX_CONCURRENCY, len(repos))) as pool:
+        results = list(pool.map(lambda r: score_repository(r, allow_external_ai=allow_external_ai), repos))
+    return [{"repo": r, **res} for r, res in zip(repos, results)]
+
+
+def save_scores(cur: Any, user_id: str, scored: List[Dict[str, Any]]) -> None:
     now = datetime.now(timezone.utc)
-    for r in repos:
-        repo_id = str(r["id"])
-        repo_name = r["repo_name"]
-
-        # Pull top 3 code files and README via API
-        readme_text, code_files = fetch_github_code_artifacts(repo_name, github_token)
-
-        result = score_repository(
-            repo_name=repo_name,
-            description=r.get("description"),
-            languages=r.get("languages") or {},
-            topics=r.get("topics") or [],
-            stars=r.get("stars") or 0,
-            forks=r.get("forks") or 0,
-            readme_text=readme_text,
-            code_files=code_files,
-            has_consent=True,
-        )
+    for s in scored:
         cur.execute(
             """INSERT INTO github_scores (repo_id, user_id, repo_name, impact_score, rationale, updated_at)
                VALUES (%s, %s, %s, %s, %s, %s)
                ON CONFLICT (user_id, repo_id) DO UPDATE SET
+                 repo_name = EXCLUDED.repo_name,
                  impact_score = EXCLUDED.impact_score,
                  rationale = EXCLUDED.rationale,
                  updated_at = EXCLUDED.updated_at""",
-            (
-                repo_id,
-                user_id,
-                repo_name,
-                result["impact_score"],
-                result["rationale"],
-                now,
-            ),
+            (str(s["repo"]["id"]), user_id, s["repo"]["repo_name"], s["impact_score"], s["rationale"], now),
         )

@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import { connection } from "next/server";
-import { Suspense } from "react";
-import { auth } from "@/auth";
+import { LandingEnhancer } from "@/components/landing/landing-enhancer";
 import { LandingPage } from "@/components/landing/landing-page";
+import "@/styles/landing.css";
 
 export const metadata: Metadata = {
   title: "AI Tathastu — The Mind Behind Your Work",
@@ -10,16 +9,12 @@ export const metadata: Metadata = {
     "The AI/ML home of your campus. Repositories, notebooks, papers, hackathons — gathered into one verified profile.",
 };
 
+// Fully static: no per-request session check on the server. The enhancer asks
+// for the session in the browser to personalize the CTAs.
 export default function Home() {
   return (
-    <Suspense fallback={<LandingPage />}>
-      <HomeWithAuth />
-    </Suspense>
+    <LandingPage>
+      <LandingEnhancer />
+    </LandingPage>
   );
-}
-
-async function HomeWithAuth() {
-  await connection();
-  const session = await auth();
-  return <LandingPage user={session?.user} />;
 }

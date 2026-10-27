@@ -23,6 +23,7 @@ import logging
 import os
 import signal
 import socket
+import threading
 import time
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional
@@ -34,7 +35,7 @@ from dotenv import load_dotenv
 from connectors.sync import SUPPORTED_SOURCES, process_connector_sync
 from intelligence.compute import process_compute_intelligence
 from intelligence.matches import process_compute_matches
-from jobs import Job, NeedsReview
+from jobs import Job, LockLost, NeedsReview
 from notify import notify_job, notify_profile_updated
 from resume.extract import process_resume_extract
 
@@ -49,7 +50,10 @@ IDLE_POLL_MAX_S = 10.0
 RETRY_BASE_S = 30
 
 def process_generate_roadmap(conn: Any, job: Job) -> None:
-    from db import fetch_one
+    """Legacy job type: compute_intelligence already regenerates the roadmap and
+    the web app no longer queues this, but rows queued before that change are
+    still drained safely here."""
+    from db import fetch_one, has_consent
     from intelligence.roadmap import generate_career_roadmap, save_roadmap
     with conn, conn.cursor() as cur:
         user = fetch_one(
@@ -57,8 +61,10 @@ def process_generate_roadmap(conn: Any, job: Job) -> None:
             "SELECT name, role::text AS role, degree, university, department, academic_title, company, job_title FROM users WHERE id = %s",
             (job.user_id,),
         )
-        if user:
-            rm = generate_career_roadmap(user, cur=cur)
+        ai_ok = has_consent(cur, job.user_id, "external_ai")
+    if user:
+        rm = generate_career_roadmap(user, has_consent=ai_ok)  # network call outside the transaction
+        with conn, conn.cursor() as cur:
             save_roadmap(cur, job.user_id, rm)
 
 Handler = Callable[[Any, Job], None]
@@ -89,7 +95,13 @@ UPDATE jobs
         ORDER BY run_at
         FOR UPDATE SKIP LOCKED
         LIMIT 1)
-RETURNING id, type, user_id, payload, attempts, max_attempts
+RETURNING id, type, user_id, payload, attempts, max_attempts, locked_by
+"""
+
+# Extends the lock of a job that is still running, fenced on ownership.
+HEARTBEAT_SQL = """
+UPDATE jobs SET locked_until = now() + make_interval(secs => %(lock)s)
+ WHERE id = %(id)s AND locked_by = %(worker)s AND status = 'running'
 """
 
 # Jobs whose worker died on their final attempt can't be reclaimed; close them out.
@@ -126,6 +138,39 @@ UPDATE jobs
    SET status = 'failed', finished_at = now(), locked_by = NULL, locked_until = NULL, last_error = %(error)s
  WHERE id = %(id)s AND locked_by = %(worker)s
 """
+
+
+class Heartbeat(threading.Thread):
+    """Keeps a long job's lock alive (every LOCK_SECONDS/3), so a slow but
+    healthy job isn't reclaimed by another worker. Uses its own connection,
+    opened only if the job outlives the first beat."""
+
+    def __init__(self, dsn: str, job_id: str) -> None:
+        super().__init__(name=f"heartbeat-{job_id}", daemon=True)
+        self.dsn = dsn
+        self.job_id = job_id
+        self._stopped = threading.Event()
+
+    def run(self) -> None:
+        conn: Optional[Any] = None
+        try:
+            while not self._stopped.wait(max(5.0, LOCK_SECONDS / 3)):
+                try:
+                    if conn is None or conn.closed:
+                        conn = psycopg2.connect(self.dsn, application_name=f"ait-worker-heartbeat {WORKER_ID}")
+                    with conn, conn.cursor() as cur:
+                        cur.execute(HEARTBEAT_SQL, {"id": self.job_id, "worker": WORKER_ID, "lock": LOCK_SECONDS})
+                        if cur.rowcount == 0:
+                            return  # finished or taken over; nothing to extend
+                except psycopg2.Error:
+                    log.warning("heartbeat for job %s failed; retrying", self.job_id, exc_info=True)
+                    conn = None
+        finally:
+            if conn is not None and not conn.closed:
+                conn.close()
+
+    def stop(self) -> None:
+        self._stopped.set()
 
 
 class Worker:
@@ -169,9 +214,25 @@ class Worker:
 
     def run_one(self, job: Job) -> None:
         log.info("job %s (%s) attempt %d/%d", job.id, job.type, job.attempts, job.max_attempts)
+        started = time.monotonic()
+        heartbeat = Heartbeat(self.dsn, job.id)
+        heartbeat.start()
+        try:
+            self._run_one(job)
+        finally:
+            heartbeat.stop()
+            log.info("job %s (%s) took %dms", job.id, job.type, (time.monotonic() - started) * 1000)
+
+    def _run_one(self, job: Job) -> None:
         params: Dict[str, Any] = {"id": job.id, "worker": WORKER_ID}
         try:
             HANDLERS[job.type](self.connect(), job)
+        except LockLost as exc:
+            # Another worker owns the job now; its run records the outcome.
+            log.warning("job %s: %s; result discarded", job.id, exc)
+            if self.conn is not None and not self.conn.closed:
+                self.conn.rollback()
+            return
         except NeedsReview as exc:
             log.warning("job %s needs review: %s", job.id, exc)
             if self.execute(NEEDS_REVIEW_SQL, {**params, "error": str(exc)[:2000]}):

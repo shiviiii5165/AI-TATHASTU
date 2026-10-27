@@ -94,11 +94,13 @@ function RecentProjectsCard({ projects = [] }: { projects?: RecentProjectItem[] 
                     {p.title}
                   </span>
                 </div>
-                <span className="rounded-full bg-[#E8FAF4] px-1.5 py-0.5 text-[10px] font-bold text-[#19C58A] shrink-0">
-                  Impact {p.impact}
-                </span>
+                {p.impact !== null && (
+                  <span className="rounded-full bg-[#E8FAF4] px-1.5 py-0.5 text-[10px] font-bold text-[#19C58A] shrink-0">
+                    Impact {p.impact}
+                  </span>
+                )}
               </div>
-              <p className="mt-1 line-clamp-1 text-[11px] text-[#617493]">{p.description}</p>
+              {p.description && <p className="mt-1 line-clamp-1 text-[11px] text-[#617493]">{p.description}</p>}
               <div className="mt-2 flex flex-wrap gap-1">
                 {p.tags.slice(0, 3).map((t, tidx) => (
                   <span
@@ -119,7 +121,7 @@ function RecentProjectsCard({ projects = [] }: { projects?: RecentProjectItem[] 
                   </span>
                 </div>
                 <a
-                  href={p.url}
+                  href={p.url ?? `https://github.com/${p.title}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-semibold text-[#2878F0] hover:underline"
@@ -162,14 +164,10 @@ function RecentProjectsCard({ projects = [] }: { projects?: RecentProjectItem[] 
 function GitHubActivityCard({ activity }: { activity?: GitHubActivityData | null }) {
   const hasActivity = Boolean(activity && activity.hasRepos);
 
-  const months = ["Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"];
-  const intensityGrid = [
-    [0, 1, 2, 1, 3, 2, 4, 2, 3, 1, 4, 2, 3, 1],
-    [1, 0, 3, 2, 4, 3, 2, 4, 2, 3, 1, 4, 2, 3],
-    [2, 3, 1, 4, 2, 4, 3, 1, 4, 2, 3, 2, 4, 1],
-    [1, 2, 4, 1, 3, 1, 4, 3, 2, 4, 1, 3, 2, 4],
-    [0, 1, 2, 3, 1, 2, 3, 4, 1, 2, 4, 1, 3, 2],
-  ];
+  // Real data only: how many repositories were last pushed in each month.
+  const buckets = activity?.pushesByMonth ?? [];
+  const peak = Math.max(1, ...buckets.map((b) => b.count));
+  const levelOf = (n: number) => (n === 0 ? 0 : Math.min(4, Math.ceil((n / peak) * 4)));
 
   const getColor = (level: number) => {
     switch (level) {
@@ -210,40 +208,27 @@ function GitHubActivityCard({ activity }: { activity?: GitHubActivityData | null
         <>
           <div className="my-auto py-2 overflow-x-auto no-scrollbar">
             <div className="min-w-[220px]">
-              {/* Months header */}
-              <div className="flex justify-between pl-6 text-[9px] font-medium text-[#8C9AA8]">
-                {months.map((m, i) => (
-                  <span key={i}>{m}</span>
+              <p className="text-[10px] font-medium text-[#617493]">Repositories by month of last push</p>
+              <div className="mt-2 grid grid-cols-7 gap-1.5">
+                {buckets.map((b) => (
+                  <div key={b.label} className="flex flex-col items-center gap-1">
+                    <div
+                      className={`h-8 w-full rounded-xs ${getColor(levelOf(b.count))}`}
+                      title={`${b.count} ${b.count === 1 ? "repository" : "repositories"} last pushed in ${b.label}`}
+                    />
+                    <span className="text-[9px] font-medium text-[#8C9AA8]">{b.label}</span>
+                    <span className="text-[9px] tabular-nums text-[#4A5568]">{b.count}</span>
+                  </div>
                 ))}
-              </div>
-
-              {/* Heatmap grid */}
-              <div className="mt-1 flex gap-1.5 items-center">
-                <div className="flex flex-col justify-between text-[8px] text-[#A0AEC0] h-20 pr-1">
-                  <span>Mon</span>
-                  <span>Wed</span>
-                  <span>Fri</span>
-                </div>
-                <div className="grid flex-1 grid-flow-col grid-rows-5 gap-1">
-                  {intensityGrid.map((row, rIdx) =>
-                    row.map((cell, cIdx) => (
-                      <div
-                        key={`${rIdx}-${cIdx}`}
-                        className={`h-3 w-3 rounded-2xs ${getColor(cell)} transition-transform hover:scale-125`}
-                        title={`Level ${cell}`}
-                      />
-                    ))
-                  )}
-                </div>
               </div>
             </div>
           </div>
 
-          {/* Summary stats */}
+          {/* Summary stats (all from synced repository data) */}
           <div className="grid grid-cols-4 gap-1 border-t border-[#F8FAFC] pt-3 text-center">
             <div>
-              <p className="font-sans text-xs font-bold tabular-nums text-[#11182B]">{activity?.contributions || 0}</p>
-              <p className="text-[9px] text-[#64748B]">Contributions</p>
+              <p className="font-sans text-xs font-bold tabular-nums text-[#11182B]">{activity?.stars ?? 0}</p>
+              <p className="text-[9px] text-[#64748B]">Stars</p>
             </div>
             <div>
               <p className="font-sans text-xs font-bold tabular-nums text-[#11182B]">{activity?.repositories || 0}</p>
@@ -254,8 +239,8 @@ function GitHubActivityCard({ activity }: { activity?: GitHubActivityData | null
               <p className="text-[9px] text-[#64748B]">Languages</p>
             </div>
             <div>
-              <p className="font-sans text-xs font-bold tabular-nums text-[#11182B]">{activity?.pinned || 0}</p>
-              <p className="text-[9px] text-[#64748B]">Pinned</p>
+              <p className="font-sans text-xs font-bold tabular-nums text-[#11182B]">{activity?.forks ?? 0}</p>
+              <p className="text-[9px] text-[#64748B]">Forks</p>
             </div>
           </div>
         </>
@@ -313,9 +298,11 @@ function RecentPublicationsCard({ publications = [] }: { publications?: Publicat
                   <p className="line-clamp-2 text-xs font-semibold text-[#11182B] group-hover:text-[#8554FF] transition-colors leading-snug">
                     {pub.title}
                   </p>
-                  <p className="mt-1 text-[10px] text-[#617493]">
-                    {pub.year} · <span className="font-semibold text-[#4A5568]">{pub.source}</span>
-                  </p>
+                  {(pub.year || pub.source) && (
+                    <p className="mt-1 text-[10px] text-[#617493]">
+                      {[pub.year, pub.source].filter(Boolean).join(" · ")}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -341,9 +328,9 @@ function RecentPublicationsCard({ publications = [] }: { publications?: Publicat
       )}
 
       <div className="border-t border-[#F8FAFC] pt-2 text-[11px] text-[#617493] flex justify-between items-center">
-        <span>{hasPubs ? `${publications.length} indexed papers` : "Verified research"}</span>
+        <span>{hasPubs ? `${publications.length} ${publications.length === 1 ? "paper" : "papers"}` : "Research"}</span>
         <span className="font-medium text-[#19C58A]">
-          {hasPubs ? "Indexed" : "Syncing"}
+          {hasPubs ? "From your profile" : "None yet"}
         </span>
       </div>
     </div>
@@ -398,7 +385,7 @@ function AchievementsCard({ achievements = [] }: { achievements?: AchievementIte
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-xs font-bold text-[#11182B]">{item.title}</p>
-                  <p className="text-[10px] text-[#617493] truncate">{item.subtitle}</p>
+                  {item.subtitle && <p className="text-[10px] text-[#617493] truncate">{item.subtitle}</p>}
                 </div>
               </div>
             );
@@ -424,7 +411,7 @@ function AchievementsCard({ achievements = [] }: { achievements?: AchievementIte
       )}
 
       <div className="border-t border-[#F8FAFC] pt-2 text-[11px] text-[#617493] flex justify-between items-center">
-        <span>Verified honors</span>
+        <span>Honors & certifications</span>
         <span className="font-semibold text-[#FFB547]">
           {hasAchievements ? `${achievements.length} Honors Total` : "0 Honors"}
         </span>

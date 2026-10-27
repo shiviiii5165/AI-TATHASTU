@@ -82,9 +82,9 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
     async jwt(params) {
       const token = authConfig.callbacks.jwt(params);
       if (params.trigger && token.sub) {
-        token.onboarded = await isOnboarded(token.sub);
         // users.is_admin, as a claim the proxy can check without the database.
-        token.admin = await isAdminUser(token.sub);
+        // Independent reads: one round trip instead of two.
+        [token.onboarded, token.admin] = await Promise.all([isOnboarded(token.sub), isAdminUser(token.sub)]);
       }
       return token;
     },

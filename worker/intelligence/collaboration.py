@@ -85,8 +85,15 @@ def compute_profile_vector(
     projects: List[str],
     goals: List[str],
     dim: int = EMBEDDING_DIM,
+    *,
+    allow_external: bool,
 ) -> List[float]:
-    """Generates a dense normalized 768-dim feature vector from profile signals."""
+    """Generates a dense normalized 768-dim feature vector from profile signals.
+
+    `allow_external` must be the user's external_ai consent whenever the inputs
+    are profile data; without it the text never leaves the worker and the
+    deterministic local vector is used.
+    """
     profile_text = (
         f"Role: {role}. "
         f"Skills: {', '.join(skills[:25])}. "
@@ -94,9 +101,10 @@ def compute_profile_vector(
         f"Goals: {', '.join(goals[:10])}."
     )
 
-    api_vec = fetch_dense_api_embedding(profile_text, target_dim=dim)
-    if api_vec and len(api_vec) == dim:
-        return api_vec
+    if allow_external:
+        api_vec = fetch_dense_api_embedding(profile_text, target_dim=dim)
+        if api_vec and len(api_vec) == dim:
+            return api_vec
 
     # High-precision deterministic fallback vector (768 dimensions)
     vec = [0.0] * dim
@@ -136,48 +144,32 @@ def cosine_similarity(v1: List[float], v2: List[float]) -> float:
     return max(0.0, min(1.0, dot / (norm1 * norm2)))
 
 
-def process_collaboration_embedding(cur: Any, user_id: str) -> List[float]:
-    """Computes and stores the collaboration embedding vector in NeonDB."""
-    from db import fetch_all, fetch_one
-
-    user = fetch_one(cur, "SELECT role, degree, university, department FROM users WHERE id = %s", (user_id,))
-    if not user:
-        return [0.0] * EMBEDDING_DIM
-
-    # Collect skills
-    skills_rows = fetch_all(
-        cur,
-        """SELECT s.canonical_name FROM skill_evidence e
-           JOIN skills s ON s.id = e.skill_id WHERE e.user_id = %s""",
-        (user_id,),
-    )
-    skills = [r["canonical_name"] for r in skills_rows]
-
-    # Collect projects
-    project_rows = fetch_all(
-        cur,
-        "SELECT canonical_title, technologies FROM unified_projects WHERE user_id = %s",
-        (user_id,),
-    )
-    projects = [r["canonical_title"] for r in project_rows]
-
-    # Collect goals
-    state = fetch_one(cur, "SELECT career_roles, priorities FROM onboarding_state WHERE user_id = %s", (user_id,))
-    goals = (state.get("career_roles") or []) + (state.get("priorities") or []) if state else []
-
+def build_collaboration_embedding(
+    user: Dict[str, Any],
+    skills: List[str],
+    projects: List[str],
+    goals: List[str],
+    *,
+    allow_external_ai: bool,
+) -> Tuple[List[float], str]:
+    """Vector + summary for collaboration_embeddings. No DB access (may call the
+    embedding API, so run it outside a transaction)."""
     vec = compute_profile_vector(
         role=user.get("role") or "student",
         skills=skills,
         projects=projects,
         goals=goals,
         dim=EMBEDDING_DIM,
+        allow_external=allow_external_ai,
     )
-
     summary = (
         f"{user.get('role')} at {user.get('university')}. "
         f"Skills: {', '.join(skills[:10])}. Projects: {', '.join(projects[:5])}."
     )
+    return vec, summary
 
+
+def save_collaboration_embedding(cur: Any, user_id: str, vec: List[float], summary: str) -> None:
     now = datetime.now(timezone.utc)
     vector_str = f"[{','.join(f'{x:.6f}' for x in vec)}]"
 
@@ -190,4 +182,3 @@ def process_collaboration_embedding(cur: Any, user_id: str) -> List[float]:
              updated_at = EXCLUDED.updated_at""",
         (user_id, vector_str, summary, now),
     )
-    return vec

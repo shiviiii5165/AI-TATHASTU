@@ -120,16 +120,15 @@ async function LearningContent() {
                 </h2>
                 <p className="text-xs text-[#64748B] mt-0.5">{path.subtitle || path.description}</p>
 
-                <div className="mt-4 flex items-center gap-3 text-xs text-slate-600 font-medium">
-                  <span className="flex items-center gap-1">
-                    <Layers className="size-3.5 text-slate-400" />
-                    {path.modules || `${path.modules_count || 10} Modules`}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <GraduationCap className="size-3.5 text-slate-400" />
-                    Certificate Included
-                  </span>
-                </div>
+                {/* Only what the path states; no invented module counts or certificates. */}
+                {(path.modules || path.modules_count) && (
+                  <div className="mt-4 flex items-center gap-3 text-xs text-slate-600 font-medium">
+                    <span className="flex items-center gap-1">
+                      <Layers className="size-3.5 text-slate-400" />
+                      {path.modules || `${path.modules_count} Modules`}
+                    </span>
+                  </div>
+                )}
 
                 {/* Syllabus Overview */}
                 <div className="mt-5 space-y-2 border-t border-slate-100 pt-4">

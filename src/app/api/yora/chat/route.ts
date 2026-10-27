@@ -1,7 +1,8 @@
-import { eq, ilike, ne, or, sql } from "drizzle-orm";
+import { eq, ilike, or, sql } from "drizzle-orm";
 import { connection, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/db";
+import { similarPeople } from "@/lib/people";
 import {
   learningResources,
   opportunities,
@@ -104,12 +105,15 @@ export async function POST(req: Request) {
 
     // Fetch user basic identity for personalized responses
     const [userRow] = await db
-      .select({ name: users.name, role: users.role, university: users.university })
+      .select({ name: users.name, role: users.role, university: users.university, deletedAt: users.deletedAt })
       .from(users)
       .where(eq(users.id, userId))
       .limit(1);
+    if (!userRow || userRow.deletedAt) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    const userName = userRow?.name?.trim() || session.user.name?.trim() || "Scholar";
+    const userName = userRow.name?.trim() || session.user.name?.trim() || "Scholar";
     const firstName = userName.split(/\s+/)[0] || "Scholar";
 
     const intent = parseIntent(userMessage);
@@ -132,72 +136,22 @@ export async function POST(req: Request) {
       }
 
       case "people": {
-        // Fetch from collaboration_embeddings
-        let foundMatch = false;
+        // Same rules as /people: only people this user may discover
+        // (mentor_discovery consent), ranked by embedding similarity.
+        const viewer = userRow ? { id: userId, role: userRow.role } : null;
+        const [top] = viewer ? await similarPeople(viewer, 1) : [];
 
-        const userEmbeddingRes = await db.execute<{ embedding: string }>(sql`
-          SELECT embedding::text
-            FROM collaboration_embeddings
-           WHERE user_id = ${userId} AND embedding IS NOT NULL
-           LIMIT 1
-        `);
-
-        const userVectorStr = userEmbeddingRes.rows[0]?.embedding;
-
-        if (userVectorStr) {
-          const matchesRes = await db.execute<{
-            id: string;
-            name: string | null;
-            role: string | null;
-            department: string | null;
-            institution: string | null;
-            profile_summary: string | null;
-            distance: number;
-          }>(sql`
-            SELECT u.id,
-                   u.name,
-                   u.role,
-                   u.department,
-                   u.university AS institution,
-                   c.profile_summary,
-                   (c.embedding <=> ${userVectorStr}::vector)::float AS distance
-              FROM collaboration_embeddings c
-              JOIN users u ON u.id = c.user_id
-             WHERE c.user_id != ${userId}
-               AND c.embedding IS NOT NULL
-             ORDER BY c.embedding <=> ${userVectorStr}::vector ASC
-             LIMIT 1
-          `);
-
-          if (matchesRes.rows.length > 0) {
-            const topMatch = matchesRes.rows[0];
-            const similarity = Math.max(0, 1 - (topMatch.distance ?? 0.15));
-            const matchPct = Math.min(99, Math.max(76, Math.round(similarity * 100)));
-            const peerName = topMatch.name || "Peer Researcher";
-            const peerWork = topMatch.profile_summary
-              ? topMatch.profile_summary.slice(0, 80).replace(/\.$/, "")
-              : topMatch.department
-              ? `${topMatch.department} and AI systems`
-              : "distributed AI systems and computer vision";
-
-            reply = `You have a ${matchPct}% match with ${peerName} who works on ${peerWork}. Check the "People You Should Know" section on your dashboard to connect!`;
-            foundMatch = true;
-          }
-        }
-
-        if (!foundMatch) {
-          const [otherUser] = await db
-            .select({ name: users.name, dept: users.department })
-            .from(users)
-            .where(ne(users.id, userId))
-            .limit(1);
-
-          if (otherUser) {
-            reply = `You have a 91% match with ${otherUser.name || "Peer Researcher"} who works on ${otherUser.dept || "Machine Learning & AI"}. Check the "People You Should Know" section on your dashboard to connect!`;
-          } else {
-            reply =
-              'You have a 92% match with peer researchers in our AI community who work on Large Language Models and Computer Vision. Check the "People You Should Know" section on your dashboard to connect!';
-          }
+        if (top && top.similarity !== null) {
+          const peerName = top.name || "an AI Tathastu member";
+          const peerWork = top.summary
+            ? ` who works on ${top.summary.slice(0, 80).replace(/\.$/, "")}`
+            : top.department
+              ? ` in ${top.department}`
+              : "";
+          reply = `You have a ${Math.round(top.similarity * 100)}% match with ${peerName}${peerWork}. See People & Network to learn more.`;
+        } else {
+          reply =
+            "I don't have a match for you yet. Matches appear once your profile has been processed and people who have chosen to be discoverable fit your goals.";
         }
         break;
       }
@@ -284,7 +238,7 @@ export async function POST(req: Request) {
         }
 
         const profileView = (pvRow?.view || {}) as ProfileStatsSubset;
-        const completeness = profileView.completeness?.overall ?? 75;
+        const completeness = profileView.completeness?.overall ?? null;
         const skillsList = profileView.skills || [];
         let verifiedSkillsCount = Array.isArray(skillsList) ? skillsList.length : 0;
 
@@ -296,7 +250,10 @@ export async function POST(req: Request) {
           verifiedSkillsCount = skillCountRow?.count || 0;
         }
 
-        reply = `Your profile is ${completeness}% complete. You have ${verifiedSkillsCount} verified skills.`;
+        reply =
+          completeness === null
+            ? `You have ${verifiedSkillsCount} verified skills. Your completeness score appears once your profile has been processed.`
+            : `Your profile is ${completeness}% complete. You have ${verifiedSkillsCount} verified skills.`;
         break;
       }
 

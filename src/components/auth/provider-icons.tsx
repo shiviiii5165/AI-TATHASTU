@@ -1,16 +1,5 @@
 // Monochrome brand marks (currentColor) so they follow the theme tokens.
 
-export function GoogleIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden {...props}>
-      <path
-        fill="currentColor"
-        d="M21.35 11.1H12v2.98h5.36c-.23 1.4-1.66 4.1-5.36 4.1-3.23 0-5.86-2.67-5.86-5.97S8.77 6.24 12 6.24c1.84 0 3.07.78 3.77 1.46l2.57-2.48C16.69 3.68 14.56 2.75 12 2.75 6.89 2.75 2.75 6.89 2.75 12s4.14 9.25 9.25 9.25c5.34 0 8.88-3.75 8.88-9.04 0-.61-.07-1.07-.15-1.53Z"
-      />
-    </svg>
-  );
-}
-
 export function LinkedInIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" aria-hidden {...props}>

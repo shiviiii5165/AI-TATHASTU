@@ -70,7 +70,7 @@ export function MetricCards({
       id: "network",
       icon: Users,
       value: `${networkCount}`,
-      label: "Network Connections",
+      label: "People to Discover",
       sublabel: null,
       iconBg: "bg-[#E6F8FB] text-[#00AEC7]",
       href: "/people",

@@ -6,6 +6,7 @@ interface BrandLogoProps {
   withTagline?: boolean;
   href?: string;
   size?: "sm" | "md" | "lg";
+  taglineClassName?: string;
 }
 
 export function BrandLogo({
@@ -13,6 +14,7 @@ export function BrandLogo({
   withTagline = true,
   href,
   size = "md",
+  taglineClassName,
 }: BrandLogoProps) {
   const content = (
     <span className={cn("inline-flex items-center gap-3 select-none", className)}>
@@ -43,7 +45,8 @@ export function BrandLogo({
           <span
             className={cn(
               "font-sans font-medium text-slate-500 hidden min-[400px]:block",
-              size === "sm" ? "text-[0.625rem]" : "text-xs"
+              size === "sm" ? "text-[0.625rem]" : "text-xs",
+              taglineClassName
             )}
           >
             The mind behind your work

@@ -385,16 +385,29 @@ GAP_RECOMMENDATIONS_SCHEMA = {
 }
 
 
-def query_rag_learning_resources(cur: Any, gap_skills: List[str], limit: int = 4) -> List[Dict[str, Any]]:
-    """Retrieves verified learning resources from NeonDB using pgvector cosine distance."""
-    if not cur:
-        return []
+def rag_query_vectors(terms: List[str]) -> List[List[float]]:
+    """Embeds catalogue search terms (network; call outside a DB transaction).
+
+    Only generic catalogue terms (skill names, a career-role id) are sent to
+    the embedding provider, never profile data, so no user consent is needed.
+    """
     from intelligence.collaboration import compute_profile_vector
 
+    return [compute_profile_vector("course", [t], [], [t], dim=768, allow_external=True) for t in terms[:3]]
+
+
+def query_rag_learning_resources(cur: Any, gap_skills: List[str], limit: int = 4) -> List[Dict[str, Any]]:
+    """Embeds the terms, then looks up resources. Prefer the split form in long jobs."""
+    if not cur:
+        return []
+    return lookup_learning_resources(cur, rag_query_vectors(gap_skills), limit)
+
+
+def lookup_learning_resources(cur: Any, vectors: List[List[float]], limit: int = 4) -> List[Dict[str, Any]]:
+    """Nearest learning_resources rows (pgvector cosine distance) for precomputed vectors."""
     found: List[Dict[str, Any]] = []
     seen = set()
-    for skill in gap_skills[:3]:
-        vec = compute_profile_vector("course", [skill], [], [skill], dim=768)
+    for vec in vectors:
         vec_str = f"[{','.join(f'{x:.6f}' for x in vec)}]"
         try:
             cur.execute(
@@ -492,19 +505,29 @@ def fallback_gaps_and_paths(
     }
 
 
+RAG_GAP_TERMS = ["Large Language Models", "MLOps"]
+
+
 def generate_skill_gaps_and_recommendations(
     inferred_skills: Dict[str, Any],
     target_role: str = "ml_engineer",
-    has_consent: bool = True,
+    *,
+    has_consent: bool,
     cur: Optional[Any] = None,
+    rag_courses: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
-    """Generates prioritized gaps and curated learning paths using RAG + internal LLM router."""
+    """Generates prioritized gaps and curated learning paths using RAG + internal LLM router.
+
+    `has_consent` is the user's current external_ai consent and is required:
+    without it the user's skills are never sent to an AI provider.
+    """
     from provider_router import ConsentRequired, NeedsReviewError, route_llm
 
     known_skills = list(inferred_skills.keys())
     existing_set = set(known_skills)
 
-    rag_courses = query_rag_learning_resources(cur, ["Large Language Models", "MLOps", target_role]) if cur else []
+    if rag_courses is None:
+        rag_courses = query_rag_learning_resources(cur, [*RAG_GAP_TERMS, target_role]) if cur else []
 
     if not has_consent:
         return fallback_gaps_and_paths(target_role, existing_set, rag_courses)

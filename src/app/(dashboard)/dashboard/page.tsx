@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
@@ -8,14 +8,14 @@ import { WidgetErrorBoundary } from "@/components/dashboard/widget-error-boundar
 import { WidgetEmpty, WidgetSkeleton } from "@/components/dashboard/widget-states";
 import { WidgetWrapper } from "@/components/dashboard/widget-wrapper";
 import { ErisWidget } from "@/components/dashboard/widgets/eris-widget";
-import { GithubWidget } from "@/components/dashboard/widgets/github-widget";
+import { GithubWidget, type GithubWidgetData } from "@/components/dashboard/widgets/github-widget";
 import { priorityLabel, roleLabel } from "@/components/dashboard/widgets/labels";
 import { CompletenessWidget, JobMatchesWidget } from "@/components/dashboard/widgets/simple-widgets";
 import { MatchesWidget } from "@/components/dashboard/widgets/matches-widget";
 import { PreviewWidget } from "@/components/dashboard/widgets/preview-widget";
 import { SkillGapsWidget } from "@/components/dashboard/widgets/skill-gaps-widget";
 import { db } from "@/db";
-import { profileViews, roadmaps } from "@/db/schema";
+import { connections, erisScores, profileViews, roadmaps } from "@/db/schema";
 import { requireOnboardedUser } from "@/lib/dal";
 import { compose, type ComposedWidget } from "@/lib/dashboard/compose";
 import { getWidgetPrefs } from "@/lib/dashboard/prefs";
@@ -40,12 +40,25 @@ export default function DashboardPage() {
 
 async function Dashboard() {
   const { user } = await requireOnboardedUser();
-  const [[row], [roadmapRow], prefs, liveStats] = await Promise.all([
+  const isMentor = user.role === "faculty" || user.role === "alumni";
+  // One wave: everything the page and its widgets read, in parallel.
+  const [[row], [roadmapRow], prefs, liveStats, erisRows, [github], mentorMatches] = await Promise.all([
     db.select().from(profileViews).where(eq(profileViews.userId, user.id)),
     db.select().from(roadmaps).where(eq(roadmaps.userId, user.id)),
     getWidgetPrefs(user.id),
-    getLiveDashboardData(user.id),
+    getLiveDashboardData({ id: user.id, role: user.role }),
+    db.select({ role: erisScores.role, breakdown: erisScores.breakdownJson }).from(erisScores).where(eq(erisScores.userId, user.id)),
+    db
+      .select({ tokenEnc: connections.tokenEnc, lastSyncAt: connections.lastSyncAt })
+      .from(connections)
+      .where(and(eq(connections.userId, user.id), eq(connections.sourceId, "github"))),
+    // Faculty and alumni: matched students (compute_matches), shown only with the student's consent.
+    isMentor ? matchesForMentor(user.id) : null,
   ]);
+  const widgetData: WidgetData = {
+    erisBreakdown: (role: string | null) => (role ? erisRows.find((e) => e.role === role)?.breakdown : undefined),
+    github: { userId: user.id, connection: github ?? null, repositories: liveStats.repositories },
+  };
   const firstName = user.name?.trim().split(/\s+/)[0] ?? "there";
 
   // compute_intelligence hasn't written a view yet (it's queued at the end of onboarding).
@@ -83,8 +96,6 @@ async function Dashboard() {
 
   const view = row.view as ProfileViewDoc;
   const now = new Date();
-  // Faculty and alumni: matched students (compute_matches), shown only with the student's consent.
-  const mentorMatches = view.persona === "faculty" || view.persona === "alumni" ? await matchesForMentor(user.id) : null;
   const { visible, hidden } = compose(view, prefs);
 
   const line = [
@@ -141,7 +152,7 @@ async function Dashboard() {
       ) : (
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
           {visible.map((w) => (
-            <WidgetSlot key={w.def.id} widget={w} view={view} userId={user.id} now={now} matches={mentorMatches} />
+            <WidgetSlot key={w.def.id} widget={w} view={view} data={widgetData} now={now} matches={mentorMatches} />
           ))}
         </div>
       )}
@@ -154,9 +165,15 @@ async function Dashboard() {
 type MentorMatches = { visible: MatchCard[]; hidden: number } | null;
 const MATCH_WIDGETS = new Set(["student_matches", "top_talent"]);
 
+/** Rows the widgets render, loaded once by the page (no per-widget queries). */
+type WidgetData = {
+  erisBreakdown: (role: string | null) => Record<string, unknown> | undefined;
+  github: GithubWidgetData;
+};
+
 function WidgetSlot({
-  widget, view, userId, now, matches,
-}: { widget: ComposedWidget; view: ProfileViewDoc; userId: string; now: Date; matches: MentorMatches }) {
+  widget, view, data, now, matches,
+}: { widget: ComposedWidget; view: ProfileViewDoc; data: WidgetData; now: Date; matches: MentorMatches }) {
   const { def, scored } = widget;
   // A match widget stops being a preview once there are matches to show.
   const hasMatches = MATCH_WIDGETS.has(def.id) && Boolean(matches && (matches.visible.length || matches.hidden));
@@ -180,7 +197,7 @@ function WidgetSlot({
     >
       <WidgetErrorBoundary label={def.label}>
         <Suspense fallback={<WidgetSkeleton label={def.label} />}>
-          {effectiveState === "empty" ? <WidgetEmpty def={def} /> : <WidgetBody widget={widget} view={view} userId={userId} now={now} matches={hasMatches ? matches : null} />}
+          {effectiveState === "empty" ? <WidgetEmpty def={def} /> : <WidgetBody widget={widget} view={view} data={data} now={now} matches={hasMatches ? matches : null} />}
         </Suspense>
       </WidgetErrorBoundary>
     </WidgetWrapper>
@@ -189,16 +206,16 @@ function WidgetSlot({
 
 /** Maps a registry id to its component. Unknown ids never get here (compose() only yields registry widgets). */
 function WidgetBody({
-  widget, view, userId, now, matches,
-}: { widget: ComposedWidget; view: ProfileViewDoc; userId: string; now: Date; matches: MentorMatches }) {
+  widget, view, data: rows, now, matches,
+}: { widget: ComposedWidget; view: ProfileViewDoc; data: WidgetData; now: Date; matches: MentorMatches }) {
   const data = widget.scored?.data;
   switch (widget.def.id) {
     case "eris_readiness":
-      return <ErisWidget userId={userId} data={data as ErisData} byRole={view.erisScore.byRole} />;
+      return <ErisWidget data={data as ErisData} byRole={view.erisScore.byRole} breakdown={rows.erisBreakdown((data as ErisData).role)} />;
     case "skill_gaps":
-      return <SkillGapsWidget userId={userId} data={data as SkillGapsData} />;
+      return <SkillGapsWidget data={data as SkillGapsData} breakdown={rows.erisBreakdown((data as SkillGapsData).role)} />;
     case "github_activity":
-      return <GithubWidget userId={userId} now={now} />;
+      return <GithubWidget data={rows.github} now={now} />;
     case "profile_completeness":
       return <CompletenessWidget data={data as CompletenessData} />;
     case "job_matches":

@@ -1,6 +1,29 @@
 
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+/* Tracks whether an element is on (or near) screen, so continuous animations
+   skip their per-frame drawing and layout reads while it's scrolled away.
+   (rAF itself already pauses in hidden tabs.) */
+function trackOnScreen(el) {
+  const state = { visible: true };
+  if (!el || !('IntersectionObserver' in window)) return state;
+  new IntersectionObserver((entries) => {
+    state.visible = entries[entries.length - 1].isIntersecting;
+  }, { rootMargin: '150px 0px' }).observe(el);
+  return state;
+}
+
+/* Runs a scroll handler at most once per animation frame instead of on every
+   scroll event (handlers here read layout, then write styles). */
+function onScrollFrame(fn) {
+  let queued = false;
+  window.addEventListener('scroll', () => {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(() => { queued = false; fn(); });
+  }, { passive: true });
+}
+
 /* ============================================================
    1. SUBTLE WEB AUDIO SYNTHESIZER
 ============================================================ */
@@ -227,7 +250,13 @@ function initReferenceMeshWaves() {
     { baseAlpha: 0.22, speed: 0.005, freq: 0.0024, amp: 50, yOffset: 0.78, color1: '#F59E0B', color2: '#FF3366' }
   ];
 
+  const onScreen = trackOnScreen(cv);
+
   function drawWaves() {
+    if (!onScreen.visible && !RM) {
+      requestAnimationFrame(drawWaves); // idle until it scrolls back into view
+      return;
+    }
     if (!RM) time += 1;
     ctx.clearRect(0, 0, W, H);
 
@@ -301,8 +330,10 @@ function initReferenceStripCarousel() {
     });
   }
 
+  const onScreen = trackOnScreen(track);
+
   function autoScroll() {
-    if (!isHovered && !isTouching && !RM) {
+    if (onScreen.visible && !isHovered && !isTouching && !RM) {
       track.scrollLeft += speed;
       const singleSetWidth = track.scrollWidth / 3;
       if (track.scrollLeft >= singleSetWidth * 2) {
@@ -326,15 +357,6 @@ if (themeToggleBtn) {
     document.body.classList.toggle('alt-ambient', isAltTheme);
     if (typeof sfx !== 'undefined' && sfx.chime) sfx.chime(isAltTheme ? 659.25 : 523.25, 0.12, 'sine');
     showToast(isAltTheme ? '✨ Ambient violet theme enabled' : '☀️ Crisp sunlight theme restored');
-  });
-}
-const navSearchBtn = document.getElementById('refNavSearchBtn');
-if (navSearchBtn) {
-  navSearchBtn.addEventListener('click', () => {
-    if (typeof sfx !== 'undefined' && sfx.chime) sfx.chime(440, 0.1, 'sine');
-    const labEl = document.getElementById('journey');
-    if (labEl) labEl.scrollIntoView({ behavior: 'smooth' });
-    showToast('🔍 Exploring Career Lab & Trajectories');
   });
 }
 const seeHowBtn = document.getElementById('seeHowItWorksBtn');
@@ -373,15 +395,6 @@ if (mobMenuBtn && mobDrawer) {
       toggleMobDrawer(false);
     }
   });
-
-  const mobSearchBtn = document.getElementById('refMobileSearchBtn');
-  if (mobSearchBtn) {
-    mobSearchBtn.addEventListener('click', () => {
-      toggleMobDrawer(false);
-      const searchBtn = document.getElementById('refNavSearchBtn');
-      if (searchBtn) searchBtn.click();
-    });
-  }
 
   const mobThemeBtn = document.getElementById('refMobileThemeBtn');
   if (mobThemeBtn) {
@@ -426,8 +439,12 @@ attTokens.forEach((btn, idx) => {
   btn.addEventListener('click', activate);
 });
 
+const attOnScreen = trackOnScreen(attCv);
+
 (function drawAttentionLoop() {
   requestAnimationFrame(drawAttentionLoop);
+  // Off-screen: skip the per-frame getBoundingClientRect reads and redraw.
+  if (!attOnScreen.visible) return;
   if (!attCtx || !attCv || !attCv.parentElement) return;
   const r = attCv.getBoundingClientRect();
   if (!r.width) return;
@@ -1440,7 +1457,7 @@ function initReviewShuffle() {
     {
       chip: {
         campus: 'IIT Delhi',
-        logo: '/logos/iitd.svg',
+        logo: '/img/logos/iitd.webp',
         bg: '#FFF1F2',
         border: 'rgba(244, 63, 94, 0.22)',
         color: '#E11D48'
@@ -1452,13 +1469,13 @@ function initReviewShuffle() {
       body: 'Turned a weekend project in guidance and opportunity with verified code reviews and global community feedback.',
       authorName: 'Arjun M.',
       authorMeta: 'CSE · IIT Delhi',
-      avatar: '/avatar_arjun.jpg',
+      avatar: '/img/avatar_arjun-160.webp',
       hasProof: false
     },
     {
       chip: {
         campus: 'NIT Trichy',
-        logo: '/logos/nitt.svg',
+        logo: '/img/logos/nitt.webp',
         bg: '#FFF1F2',
         border: 'rgba(244, 63, 94, 0.22)',
         color: '#FF385C'
@@ -1473,7 +1490,7 @@ function initReviewShuffle() {
       body: 'Received live code review in Meet room from a senior alumnus at Google who helped optimize our real-time graph traversal algorithm.',
       authorName: 'Divya R.',
       authorMeta: 'ECE Senior · NIT Trichy',
-      avatar: '/avatar_divya.jpg',
+      avatar: '/img/avatar_divya-160.webp',
       hasProof: true,
       proofText: '15-Min Live Guidance',
       proofColor: '#FF385C'
@@ -1490,7 +1507,7 @@ function initReviewShuffle() {
       body: 'My research idea from a paper I uploaded got noticed by a professor in our university.',
       authorName: 'Karan S.',
       authorMeta: 'BTech · IIT Bombay',
-      avatar: '/avatar_karan.jpg',
+      avatar: '/img/avatar_karan-160.webp',
       hasProof: false
     },
     {
@@ -1505,7 +1522,7 @@ function initReviewShuffle() {
       body: 'Turned a late-night PyTorch repo into an accepted corporate research fellowship.',
       authorName: 'Rohan M.',
       authorMeta: 'Dual Degree AI · IIT Madras',
-      avatar: '/avatar_rohan.jpg',
+      avatar: '/img/avatar_rohan-160.webp',
       hasProof: false
     },
     {
@@ -1520,7 +1537,7 @@ function initReviewShuffle() {
       body: 'Paired my ML model with a frontend designer and data pitch specialist from Collaborate room.',
       authorName: 'Ananya S.',
       authorMeta: 'BTech · BITS Pilani',
-      avatar: '/avatar_ananya.jpg',
+      avatar: '/img/avatar_ananya-160.webp',
       hasProof: false
     }
   ];
@@ -1548,7 +1565,7 @@ function initReviewShuffle() {
 
         <div class="story-footer">
           <div class="story-author-block">
-            <img src="${s.avatar}" alt="${s.authorName}" class="story-author-avatar" onerror="this.src='/avatar_divya.jpg'" />
+            <img src="${s.avatar}" alt="${s.authorName}" class="story-author-avatar" onerror="this.src='/img/avatar_divya-160.webp'" />
             <div>
               <div class="story-author-name">${s.authorName}</div>
               <div class="story-author-meta">${s.authorMeta}</div>
@@ -1994,7 +2011,7 @@ function onScrollChoreography() {
   const scrollTop = window.scrollY;
   const docHeight = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
   const pct = Math.min(100, Math.max(0, (scrollTop / docHeight) * 100));
-  if (scrollBar) scrollBar.style.width = `${pct}%`;
+  if (scrollBar) scrollBar.style.transform = `scaleX(${(pct / 100).toFixed(4)})`;
 
   const heroP = Math.min(scrollTop / (window.innerHeight * 0.78), 1);
   if (heroCopy && !RM) {
@@ -2023,7 +2040,7 @@ function onScrollChoreography() {
     }
   }
 }
-window.addEventListener('scroll', onScrollChoreography, { passive: true });
+onScrollFrame(onScrollChoreography);
 onScrollChoreography();
 
 /* ============================================================
@@ -2075,7 +2092,7 @@ function revealVisibleRv() {
   });
 }
 revealVisibleRv();
-window.addEventListener('scroll', revealVisibleRv, { passive: true });
+onScrollFrame(revealVisibleRv);
 setTimeout(revealVisibleRv, 150);
 setTimeout(revealVisibleRv, 600);
 
@@ -2217,7 +2234,7 @@ function initBackToTop() {
     }
   }
 
-  window.addEventListener('scroll', updateBtt, { passive: true });
+  onScrollFrame(updateBtt);
   updateBtt();
 }
 initBackToTop();

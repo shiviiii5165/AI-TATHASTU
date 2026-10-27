@@ -32,14 +32,3 @@ export const PRIORITIES = [
 export type PriorityId = (typeof PRIORITIES)[number]["id"];
 export const PRIORITY_IDS = PRIORITIES.map((p) => p.id) as [PriorityId, ...PriorityId[]];
 export const MAX_PRIORITIES = 3;
-
-export const ACADEMIC_YEARS = [
-  "1st year",
-  "2nd year",
-  "3rd year",
-  "4th year",
-  "5th year or later",
-  "Master's",
-  "PhD",
-  "Graduated",
-] as const;

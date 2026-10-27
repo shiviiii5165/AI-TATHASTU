@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { consents, institutions, matches, onboardingState, users } from "@/db/schema";
@@ -21,6 +21,11 @@ export type MatchCard = {
  * are counted, never shown.
  */
 export async function matchesForMentor(mentorId: string, limit = 5): Promise<{ visible: MatchCard[]; hidden: number }> {
+  // One query: each match plus the student's latest mentor_discovery answer.
+  const consented = sql<boolean>`coalesce((
+    select ${consents.granted} from ${consents}
+     where ${consents.userId} = ${matches.studentId} and ${consents.purpose} = 'mentor_discovery'
+     order by ${consents.createdAt} desc limit 1), false)`;
   const rows = await db
     .select({
       studentId: matches.studentId,
@@ -30,24 +35,16 @@ export async function matchesForMentor(mentorId: string, limit = 5): Promise<{ v
       university: institutions.canonicalName,
       legacyUniversity: users.university,
       role: onboardingState.careerRole,
+      consented,
     })
     .from(matches)
-    .innerJoin(users, eq(users.id, matches.studentId))
+    .innerJoin(users, and(eq(users.id, matches.studentId), isNull(users.deletedAt)))
     .leftJoin(institutions, eq(institutions.id, users.institutionId))
     .leftJoin(onboardingState, eq(onboardingState.userId, users.id))
     .where(eq(matches.mentorId, mentorId))
     .orderBy(desc(matches.score));
-  if (!rows.length) return { visible: [], hidden: 0 };
 
-  const decisions = await db
-    .select({ userId: consents.userId, granted: consents.granted })
-    .from(consents)
-    .where(and(eq(consents.purpose, "mentor_discovery"), inArray(consents.userId, rows.map((r) => r.studentId))))
-    .orderBy(desc(consents.createdAt));
-  const latest = new Map<string, boolean>();
-  for (const d of decisions) if (!latest.has(d.userId)) latest.set(d.userId, d.granted === true);
-
-  const discoverable = rows.filter((r) => latest.get(r.studentId) === true);
+  const discoverable = rows.filter((r) => r.consented === true);
   return {
     visible: discoverable.slice(0, limit).map((r) => ({
       studentId: r.studentId,

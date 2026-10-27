@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+// landing.css first, then this page's own styles (the cascade order it was designed with).
+import "@/styles/landing.css";
 import "@/styles/team.css";
 import { TEAM_HTML } from "@/components/landing/team-markup";
 import { InteractiveMarkup } from "@/components/landing/interactive-markup";

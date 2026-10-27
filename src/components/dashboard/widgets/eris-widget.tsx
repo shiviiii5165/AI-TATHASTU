@@ -1,8 +1,5 @@
-import { and, eq } from "drizzle-orm";
 import Link from "next/link";
 
-import { db } from "@/db";
-import { erisScores } from "@/db/schema";
 import type { ErisData } from "@/lib/dashboard/types";
 import { roleLabel } from "@/components/dashboard/widgets/labels";
 import { cn } from "@/lib/utils";
@@ -18,15 +15,17 @@ const COMPONENTS = [
   ["problem_solving", "Problem solving"],
 ] as const;
 
-/** Reads the precomputed eris_scores row for the breakdown; computes nothing. */
-export async function ErisWidget({ userId, data, byRole }: { userId: string; data: ErisData; byRole: Record<string, number> }) {
-  const [row] = data.role
-    ? await db
-        .select({ breakdown: erisScores.breakdownJson })
-        .from(erisScores)
-        .where(and(eq(erisScores.userId, userId), eq(erisScores.role, data.role)))
-    : [];
-  const breakdown = row?.breakdown as Breakdown | undefined;
+/** Renders the precomputed eris_scores breakdown (loaded by the dashboard page); computes nothing. */
+export function ErisWidget({
+  data,
+  byRole,
+  breakdown: raw,
+}: {
+  data: ErisData;
+  byRole: Record<string, number>;
+  breakdown: Record<string, unknown> | undefined;
+}) {
+  const breakdown = raw as Breakdown | undefined;
   const score = Math.round(data.score * 100);
   const otherRoles = Object.entries(byRole).filter(([r]) => r !== data.role);
 

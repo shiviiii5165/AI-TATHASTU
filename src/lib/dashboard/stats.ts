@@ -1,4 +1,4 @@
-import { and, count, countDistinct, desc, eq, inArray, ne } from "drizzle-orm";
+import { count, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   codeRepositories,
@@ -8,7 +8,13 @@ import {
   profileFacts,
   skillEvidence,
   skills,
+  users,
 } from "@/db/schema";
+import { discoverableBy, type Viewer } from "@/lib/discovery";
+import { usableFactsOf } from "@/lib/profile/unified";
+
+// Every number here comes from stored data. Where a value isn't known it is
+// null and the UI shows it as unavailable rather than inventing one.
 
 export interface JourneyMilestone {
   title: string;
@@ -20,33 +26,35 @@ export interface JourneyMilestone {
 export interface RecentProjectItem {
   id: string;
   title: string;
-  description: string;
+  description: string | null;
   tags: string[];
   stars: number;
   forks: number;
-  views: number;
-  impact: number;
-  url: string;
+  /** github_scores.impact_score; null until the repo has been scored. */
+  impact: number | null;
+  url: string | null;
 }
 
 export interface GitHubActivityData {
-  contributions: number;
   repositories: number;
   languages: number;
-  pinned: number;
+  stars: number;
+  forks: number;
   hasRepos: boolean;
+  /** Repositories whose last push falls in each of the last 7 months, oldest first. */
+  pushesByMonth: Array<{ label: string; count: number }>;
 }
 
 export interface PublicationItem {
   title: string;
-  year: string;
-  source: string;
+  year: string | null;
+  source: string | null;
   recordKey: string;
 }
 
 export interface AchievementItem {
   title: string;
-  subtitle: string;
+  subtitle: string | null;
   category: "patent" | "certification" | "award" | "achievement";
   year?: string;
 }
@@ -56,7 +64,8 @@ export interface OpportunityItem {
   title: string;
   org: string;
   match: string;
-  matchPercentage: number;
+  /** Share of the role's required skills found on the profile; null when it can't be computed. */
+  matchPercentage: number | null;
   type: string;
   location?: string;
   deadline?: string;
@@ -87,75 +96,35 @@ export interface LiveDashboardStats {
   researchOpportunities: OpportunityItem[];
   internships: OpportunityItem[];
   quickActions: QuickActionItem[];
+  /** The user's repositories, newest push first (shared with the GitHub widget). */
+  repositories: (typeof codeRepositories.$inferSelect)[];
 }
 
-export async function getLiveDashboardData(
-  userId: string,
-  fallbackCompleteness = 0
-): Promise<LiveDashboardStats> {
-  const [
-    skillsRes,
-    reposRows,
-    scoresRows,
-    achievementsCountRes,
-    networkRes,
-    factsRows,
-    evidenceSkills,
-    oppsRows,
-  ] = await Promise.all([
-    // 1. Live Skills Count
-    db
-      .select({ count: countDistinct(skillEvidence.skillId) })
-      .from(skillEvidence)
-      .where(eq(skillEvidence.userId, userId))
-      .catch(() => [{ count: 0 }]),
+const ACHIEVEMENT_GROUPS = ["achievement", "publication", "certification", "patent", "award"];
+const isAchievementGroup = (g: string) => ACHIEVEMENT_GROUPS.some((a) => g.toLowerCase().startsWith(a));
+const OPPORTUNITY_LIMIT = 50;
 
-    // 2. Live GitHub Repositories
+const text = (v: unknown) => (v === null || v === undefined ? "" : String(v));
+
+export async function getLiveDashboardData(viewer: Viewer): Promise<LiveDashboardStats> {
+  const userId = viewer.id;
+  // One wave: every read is independent.
+  const [reposRows, scoresRows, networkRes, factsRows, evidenceSkills, oppsRows] = await Promise.all([
     db
       .select()
       .from(codeRepositories)
       .where(eq(codeRepositories.userId, userId))
-      .orderBy(desc(codeRepositories.stars), desc(codeRepositories.lastCommitAt))
-      .catch(() => []),
-
-    // 3. GitHub AI Impact Scores
+      .orderBy(sql`${codeRepositories.lastCommitAt} desc nulls last`),
     db
-      .select()
+      .select({ repoId: githubScores.repoId, repoName: githubScores.repoName, impactScore: githubScores.impactScore })
       .from(githubScores)
-      .where(eq(githubScores.userId, userId))
-      .catch(() => []),
-
-    // 4. Live Achievements & Publications Count
-    db
-      .select({ count: countDistinct(profileFacts.recordKey) })
-      .from(profileFacts)
-      .where(
-        and(
-          eq(profileFacts.userId, userId),
-          inArray(profileFacts.fieldGroup, [
-            "achievements",
-            "publications",
-            "certifications",
-            "achievement",
-            "publication",
-            "certification",
-            "patents",
-            "patent",
-            "awards",
-            "award",
-          ])
-        )
-      )
-      .catch(() => [{ count: 0 }]),
-
-    // 5. Live Collaboration Network Count
+      .where(eq(githubScores.userId, userId)),
+    // People this user can actually discover (mentor_discovery consent).
     db
       .select({ count: count() })
       .from(collaborationEmbeddings)
-      .where(ne(collaborationEmbeddings.userId, userId))
-      .catch(() => [{ count: 0 }]),
-
-    // 6. Raw Facts for Journey, Publications, and Achievements
+      .innerJoin(users, eq(users.id, collaborationEmbeddings.userId))
+      .where(discoverableBy(viewer)),
     db
       .select({
         fieldGroup: profileFacts.fieldGroup,
@@ -165,235 +134,181 @@ export async function getLiveDashboardData(
         extractedValue: profileFacts.extractedValue,
       })
       .from(profileFacts)
-      .where(eq(profileFacts.userId, userId))
-      .catch(() => []),
-
-    // 7. Evidenced skills with strength ratings
+      .where(usableFactsOf(userId)),
     db
-      .select({
-        skillName: skills.canonicalName,
-        strength: skillEvidence.evidenceStrength,
-      })
+      .select({ skillName: skills.canonicalName, strength: skillEvidence.evidenceStrength })
       .from(skillEvidence)
       .innerJoin(skills, eq(skillEvidence.skillId, skills.id))
-      .where(eq(skillEvidence.userId, userId))
-      .catch(() => []),
-
-    // 8. Live Opportunities
+      .where(eq(skillEvidence.userId, userId)),
     db
-      .select()
+      .select({
+        id: opportunities.id,
+        title: opportunities.title,
+        organization: opportunities.organization,
+        type: opportunities.type,
+        location: opportunities.location,
+        deadline: opportunities.deadline,
+        requiredSkills: opportunities.requiredSkills,
+        url: opportunities.url,
+      })
       .from(opportunities)
-      .catch(() => []),
+      .orderBy(desc(opportunities.createdAt))
+      .limit(OPPORTUNITY_LIMIT),
   ]);
 
-  // Determine user skill names and counts
-  let skillsCount = skillsRes[0]?.count ?? 0;
+  // Skills: evidenced strength where the intelligence engine has run; names
+  // from confirmed skill facts otherwise (used for matching only, no score).
   const userSkillNames = new Set<string>();
   const skillProficiencyMap = new Map<string, number>();
-
   for (const s of evidenceSkills) {
-    if (!s.skillName) continue;
     userSkillNames.add(s.skillName.toLowerCase());
-    const current = skillProficiencyMap.get(s.skillName) ?? 0;
-    const strengthNum = typeof s.strength === "number" ? s.strength : parseFloat(String(s.strength || "0.7"));
-    const pct = Math.min(100, Math.max(30, Math.round(strengthNum * 100)));
-    if (pct > current) {
-      skillProficiencyMap.set(s.skillName, pct);
-    }
+    const pct = Math.round(Math.min(1, Math.max(0, s.strength)) * 100);
+    if (pct > (skillProficiencyMap.get(s.skillName) ?? -1)) skillProficiencyMap.set(s.skillName, pct);
   }
-
-  // Also check profileFacts if evidenceSkills is thin
   if (userSkillNames.size === 0) {
     for (const f of factsRows) {
-      if (f.fieldGroup === "skills" && (f.normalizedValue || f.extractedValue)) {
-        const val = String(f.normalizedValue || f.extractedValue).trim();
-        userSkillNames.add(val.toLowerCase());
-        skillProficiencyMap.set(val, 75);
-      }
-    }
-    if (skillsCount === 0) {
-      skillsCount = userSkillNames.size;
+      const val = text(f.normalizedValue || f.extractedValue).trim();
+      if (f.fieldGroup === "skills" && val) userSkillNames.add(val.toLowerCase());
     }
   }
+  const skillsCount = userSkillNames.size;
 
-  const skillProficiency = Array.from(skillProficiencyMap.entries())
-    .map(([name, pct]) => ({ name, pct }))
+  const skillProficiency = Array.from(skillProficiencyMap, ([name, pct]) => ({ name, pct }))
     .sort((a, b) => b.pct - a.pct)
     .slice(0, 8);
 
-  const githubReposCount = reposRows.length;
-  const achievementsCount = achievementsCountRes[0]?.count ?? 0;
-  const networkCount = networkRes[0]?.count ?? 0;
-  const opportunitiesCount = oppsRows.length;
-
-  // Build Scores map for repos
   const scoreMap = new Map<string, number>();
   for (const s of scoresRows) {
     scoreMap.set(s.repoId, s.impactScore);
-    if (s.repoName) {
-      scoreMap.set(s.repoName.toLowerCase(), s.impactScore);
-    }
+    if (s.repoName) scoreMap.set(s.repoName.toLowerCase(), s.impactScore);
   }
 
-  // Build Recent Projects
-  const recentProjects: RecentProjectItem[] = reposRows.slice(0, 3).map((r) => {
-    const langs = Object.keys((r.languages as Record<string, number>) || {});
-    const topics = (r.topics as string[]) || [];
-    const tags = [...langs.slice(0, 2), ...topics.slice(0, 2)];
-    const impact = scoreMap.get(String(r.id)) || scoreMap.get(r.repoName.toLowerCase()) || 80;
-
+  // Most-starred first, then most recently pushed (reposRows is already in push order).
+  const byStars = [...reposRows].sort((a, b) => b.stars - a.stars);
+  const recentProjects: RecentProjectItem[] = byStars.slice(0, 3).map((r) => {
+    const tags = [...Object.keys(r.languages ?? {}).slice(0, 2), ...(r.topics ?? []).slice(0, 2)];
     return {
       id: r.id,
       title: r.repoName,
-      description: r.description || "Verified code repository synced with GitHub.",
-      tags: tags.length > 0 ? tags : ["Source Code"],
-      stars: r.stars || 0,
-      forks: r.forks || 0,
-      views: Math.max((r.stars || 0) * 4 + (r.forks || 0) * 2, 12),
-      impact,
-      url: r.url || "#",
+      description: r.description,
+      tags,
+      stars: r.stars,
+      forks: r.forks,
+      impact: scoreMap.get(r.id) ?? scoreMap.get(r.repoName.toLowerCase()) ?? null,
+      url: r.url,
     };
   });
 
-  // Build GitHub Activity
-  let distinctLanguagesCount = 0;
   const allLanguages = new Set<string>();
+  for (const r of reposRows) Object.keys(r.languages ?? {}).forEach((l) => allLanguages.add(l.toLowerCase()));
+
+  const now = new Date();
+  const pushesByMonth = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - 6 + i, 1);
+    return { year: d.getFullYear(), month: d.getMonth(), label: d.toLocaleString("en", { month: "short" }), count: 0 };
+  });
   for (const r of reposRows) {
-    const lObj = (r.languages as Record<string, number>) || {};
-    Object.keys(lObj).forEach((l) => allLanguages.add(l.toLowerCase()));
+    if (!r.lastCommitAt) continue;
+    const bucket = pushesByMonth.find((b) => b.year === r.lastCommitAt!.getFullYear() && b.month === r.lastCommitAt!.getMonth());
+    if (bucket) bucket.count++;
   }
-  distinctLanguagesCount = allLanguages.size;
 
   const githubActivity: GitHubActivityData | null =
     reposRows.length > 0
       ? {
-          contributions: Math.max(reposRows.length * 12, 24),
           repositories: reposRows.length,
-          languages: distinctLanguagesCount || 1,
-          pinned: Math.min(reposRows.length, 6),
+          languages: allLanguages.size,
+          stars: reposRows.reduce((s, r) => s + r.stars, 0),
+          forks: reposRows.reduce((s, r) => s + r.forks, 0),
           hasRepos: true,
+          pushesByMonth: pushesByMonth.map(({ label, count }) => ({ label, count })),
         }
       : null;
 
-  // Group Facts by recordKey
+  // Group facts by record.
   const factsMap = new Map<string, { group: string; fields: Record<string, string> }>();
   for (const row of factsRows) {
     if (!row.recordKey) continue;
-    if (!factsMap.has(row.recordKey)) {
-      factsMap.set(row.recordKey, { group: row.fieldGroup, fields: {} });
-    }
-    const entry = factsMap.get(row.recordKey)!;
-    entry.fields[row.fieldName.toLowerCase()] = String(row.normalizedValue || row.extractedValue || "");
+    const entry = factsMap.get(row.recordKey) ?? { group: row.fieldGroup, fields: {} };
+    entry.fields[row.fieldName.toLowerCase()] = text(row.normalizedValue || row.extractedValue);
+    factsMap.set(row.recordKey, entry);
   }
 
-  // Build Journey Milestones
-  const rawMilestones: Array<{
-    title: string;
-    year: string;
-    field: string;
-    active: boolean;
-    sortKey: number;
-  }> = [];
-
+  const rawMilestones: Array<JourneyMilestone & { active: boolean; sortKey: number }> = [];
   const recentPublications: PublicationItem[] = [];
   const recentAchievements: AchievementItem[] = [];
+  let achievementsCount = 0;
 
-  for (const [recKey, rec] of factsMap.entries()) {
+  for (const [recKey, rec] of factsMap) {
     const f = rec.fields;
     const g = rec.group.toLowerCase();
 
-    // Journey Timeline
     if (g === "education" || g === "experience") {
       const isEdu = g === "education";
-      let title = "";
-      let field = "";
-      let year = "";
-      let isPresent = false;
-
+      let title: string;
+      let field: string;
+      let year: string;
+      let isPresent: boolean;
       if (isEdu) {
         title = f["degree"] || f["degree_name"] || "Degree";
-        field = f["field_of_study"] || f["major"] || f["institution"] || "CSE";
-        const start = f["start_date"] || f["start_year"] || "";
+        field = f["field_of_study"] || f["major"] || f["institution"] || "";
         const end = f["end_date"] || f["end_year"] || "";
         isPresent = end.toLowerCase().includes("present");
-        year = end || start || "Academic";
+        year = end || f["start_date"] || f["start_year"] || "";
       } else {
         title = f["role"] || f["job_title"] || "Role";
-        field = f["organization"] || f["company"] || "Industry";
+        field = f["organization"] || f["company"] || "";
         const start = f["start_date"] || "";
         const end = f["end_date"] || "";
         isPresent = end.toLowerCase().includes("present") || !end;
-        year = isPresent ? `${start ? start + "–" : ""}Present` : end || start || "Career";
+        year = isPresent ? `${start ? start + "–" : ""}Present` : end || start;
       }
-
       const yearMatch = year.match(/\b(19\d\d|20\d\d)\b/);
-      const sortKey = isPresent ? 9999 : yearMatch ? parseInt(yearMatch[1], 10) : 2000;
-
       rawMilestones.push({
         title: title.slice(0, 20),
         year,
         field: field.slice(0, 24),
         active: isPresent,
-        sortKey,
+        sortKey: isPresent ? 9999 : yearMatch ? parseInt(yearMatch[1], 10) : 2000,
       });
     }
 
-    // Publications
-    if (g.includes("pub")) {
+    if (isAchievementGroup(g)) achievementsCount++;
+
+    if (g.startsWith("publication")) {
       recentPublications.push({
-        title: f["title"] || f["paper_title"] || "Research Publication",
-        year: f["year"] || f["date"] || "2024",
-        source: f["venue"] || f["journal"] || f["publisher"] || "Peer Reviewed",
+        title: f["title"] || f["paper_title"] || "Untitled publication",
+        year: f["year"] || f["date"] || null,
+        source: f["venue"] || f["journal"] || f["publisher"] || null,
         recordKey: recKey,
       });
-    }
-
-    // Achievements, Certifications, Patents, Awards
-    if (g.includes("achieve") || g.includes("cert") || g.includes("patent") || g.includes("award")) {
-      const isPatent = g.includes("patent");
-      const isCert = g.includes("cert");
-      const isAward = g.includes("award");
-      const category = isPatent ? "patent" : isCert ? "certification" : isAward ? "award" : "achievement";
-
+    } else if (isAchievementGroup(g)) {
+      const category = g.startsWith("patent") ? "patent" : g.startsWith("cert") ? "certification" : g.startsWith("award") ? "award" : "achievement";
       recentAchievements.push({
-        title: f["title"] || f["name"] || f["award_name"] || "Technical Milestone",
-        subtitle: f["issuer"] || f["organization"] || f["description"] || "Verified Credential",
+        title: f["title"] || f["name"] || f["award_name"] || "Untitled",
+        subtitle: f["issuer"] || f["organization"] || f["description"] || null,
         category,
         year: f["year"] || f["date"],
       });
     }
   }
 
-  // Sort Milestones chronologically
   rawMilestones.sort((a, b) => a.sortKey - b.sortKey);
-  if (rawMilestones.length > 0) {
-    rawMilestones[rawMilestones.length - 1].active = true;
-  }
-  const milestones: JourneyMilestone[] = rawMilestones.map(({ title, year, field, active }) => ({
-    title,
-    year,
-    field,
-    active,
-  }));
+  if (rawMilestones.length > 0) rawMilestones[rawMilestones.length - 1].active = true;
+  const milestones: JourneyMilestone[] = rawMilestones.map(({ title, year, field, active }) => ({ title, year, field, active }));
 
-  // Match Opportunities against user's live skills
+  // Opportunity match = share of its required skills found on the profile. No floors or defaults.
   const scoredOpps: OpportunityItem[] = oppsRows.map((opp) => {
     const required = (opp.requiredSkills || []).map((s) => s.toLowerCase());
-    let matchPct = 0;
-    if (required.length > 0 && userSkillNames.size > 0) {
-      const matches = required.filter((s) => userSkillNames.has(s)).length;
-      matchPct = Math.round((matches / required.length) * 100);
-      // Give a boost if multiple core skills align
-      if (matches >= 2) matchPct = Math.max(matchPct, 82);
-    } else if (userSkillNames.size > 0) {
-      matchPct = 70;
-    }
-
+    const matchPct =
+      required.length > 0 && userSkillNames.size > 0
+        ? Math.round((required.filter((s) => userSkillNames.has(s)).length / required.length) * 100)
+        : null;
     return {
       id: opp.id,
       title: opp.title,
       org: opp.organization,
-      match: matchPct > 0 ? `${matchPct}% Match` : "Skills Required",
+      match: matchPct === null ? (userSkillNames.size === 0 ? "Add skills to match" : "No skills listed") : `${matchPct}% skills match`,
       matchPercentage: matchPct,
       type: opp.type,
       location: opp.location || undefined,
@@ -405,82 +320,39 @@ export async function getLiveDashboardData(
   const researchOpportunities = scoredOpps.filter((o) => o.type === "research" || o.type === "grant");
   const internships = scoredOpps.filter((o) => o.type === "internship");
 
-  // Dynamic Quick Actions based on missing sections or next steps
   const quickActions: QuickActionItem[] = [];
   const hasResume = factsRows.some((f) => f.fieldGroup === "education" || f.fieldGroup === "experience");
-
   if (!hasResume) {
-    quickActions.push({
-      id: "resume",
-      title: "Upload your resume or CV",
-      iconName: "FileUp",
-      iconBg: "bg-[#EDF5FF] text-[#2878F0]",
-      href: "/onboarding/resume",
-    });
+    quickActions.push({ id: "resume", title: "Upload your resume or CV", iconName: "FileUp", iconBg: "bg-[#EDF5FF] text-[#2878F0]", href: "/onboarding/resume" });
   }
-
   if (reposRows.length === 0) {
-    quickActions.push({
-      id: "github",
-      title: "Connect your GitHub account",
-      iconName: "Github",
-      iconBg: "bg-[#F3EFFF] text-[#8554FF]",
-      href: "/settings/integrations",
-    });
+    quickActions.push({ id: "github", title: "Connect your GitHub account", iconName: "Github", iconBg: "bg-[#F3EFFF] text-[#8554FF]", href: "/settings/integrations" });
   }
-
   if (skillsCount < 3) {
-    quickActions.push({
-      id: "skills",
-      title: "Confirm your core competencies",
-      iconName: "Sparkles",
-      iconBg: "bg-[#FFF0F4] text-[#FF496D]",
-      href: "/skills",
-    });
+    quickActions.push({ id: "skills", title: "Confirm your core competencies", iconName: "Sparkles", iconBg: "bg-[#FFF0F4] text-[#FF496D]", href: "/skills" });
   }
-
-  quickActions.push({
-    id: "learning",
-    title: "Improve skills with a learning path",
-    iconName: "BookOpen",
-    iconBg: "bg-[#E8FAF4] text-[#19C58A]",
-    href: "/learning",
-  });
-
-  quickActions.push({
-    id: "collaborators",
-    title: "Find potential collaborators",
-    iconName: "Users",
-    iconBg: "bg-[#E6F8FB] text-[#00AEC7]",
-    href: "/people",
-  });
-
+  quickActions.push({ id: "learning", title: "Improve skills with a learning path", iconName: "BookOpen", iconBg: "bg-[#E8FAF4] text-[#19C58A]", href: "/learning" });
+  quickActions.push({ id: "collaborators", title: "Find potential collaborators", iconName: "Users", iconBg: "bg-[#E6F8FB] text-[#00AEC7]", href: "/people" });
   if (quickActions.length < 4) {
-    quickActions.push({
-      id: "project",
-      title: "Add your latest engineering project",
-      iconName: "Plus",
-      iconBg: "bg-[#EDF5FF] text-[#2878F0]",
-      href: "/projects",
-    });
+    quickActions.push({ id: "project", title: "Add your latest engineering project", iconName: "Plus", iconBg: "bg-[#EDF5FF] text-[#2878F0]", href: "/projects" });
   }
 
-  // Calculate dynamic profile completeness percentage based on real assets
-  let computedPercent = 0;
-  if (hasResume) computedPercent += 35;
-  if (reposRows.length > 0) computedPercent += 25;
-  if (skillsCount >= 3) computedPercent += 20;
-  if (achievementsCount > 0) computedPercent += 10;
-  if (networkCount > 0) computedPercent += 10;
+  const networkCount = networkRes[0]?.count ?? 0;
 
-  const profilePercent = fallbackCompleteness > 0 ? fallbackCompleteness : computedPercent;
+  // Fallback completeness (the worker's profile_completeness widget wins when present).
+  let profilePercent = 0;
+  if (hasResume) profilePercent += 35;
+  if (reposRows.length > 0) profilePercent += 25;
+  if (skillsCount >= 3) profilePercent += 20;
+  if (achievementsCount > 0) profilePercent += 10;
+  if (networkCount > 0) profilePercent += 10;
 
   return {
     profilePercent,
     skillsCount,
-    githubReposCount,
+    githubReposCount: reposRows.length,
     achievementsCount,
-    opportunitiesCount,
+    opportunitiesCount: oppsRows.length,
     networkCount,
     milestones,
     recentProjects,
@@ -491,5 +363,6 @@ export async function getLiveDashboardData(
     researchOpportunities,
     internships,
     quickActions: quickActions.slice(0, 4),
+    repositories: reposRows,
   };
 }

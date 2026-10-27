@@ -1,31 +1,20 @@
 "use client";
 
-import { useState } from "react";
-import { Check, UserPlus } from "lucide-react";
+import { UserPlus } from "lucide-react";
 
 export interface PeerCardItem {
   id: string;
   name: string;
   role: string;
-  institution: string;
-  department: string;
-  matchPercentage: number;
-  summary: string;
+  institution: string | null;
+  department: string | null;
+  /** Embedding similarity; null until both profiles have been computed. */
+  matchPercentage: number | null;
+  summary: string | null;
   initials: string;
 }
 
 export function PeopleListClient({ initialPeers }: { initialPeers: PeerCardItem[] }) {
-  const [connectedIds, setConnectedIds] = useState<Set<string>>(new Set());
-
-  function toggleConnect(id: string) {
-    setConnectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
   if (initialPeers.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-[#E7EAF3] bg-white p-12 text-center max-w-lg mx-auto">
@@ -43,8 +32,6 @@ export function PeopleListClient({ initialPeers }: { initialPeers: PeerCardItem[
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
       {initialPeers.map((peer) => {
-        const isConnected = connectedIds.has(peer.id);
-
         return (
           <div
             key={peer.id}
@@ -66,42 +53,33 @@ export function PeopleListClient({ initialPeers }: { initialPeers: PeerCardItem[
                   </div>
                 </div>
 
-                <span className="shrink-0 rounded-full bg-[#19C58A]/10 border border-[#19C58A]/30 px-2.5 py-0.5 text-xs font-bold text-[#107C55]">
-                  {peer.matchPercentage}% Match
-                </span>
+                {peer.matchPercentage !== null && (
+                  <span className="shrink-0 rounded-full bg-[#19C58A]/10 border border-[#19C58A]/30 px-2.5 py-0.5 text-xs font-bold text-[#107C55]">
+                    {peer.matchPercentage}% Match
+                  </span>
+                )}
               </div>
 
-              <div className="mt-4 p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs text-slate-600">
-                <p className="font-medium text-slate-900">{peer.institution}</p>
-                <p className="text-[11px] text-slate-500 mt-0.5">{peer.department}</p>
-              </div>
+              {(peer.institution || peer.department) && (
+                <div className="mt-4 p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs text-slate-600">
+                  {peer.institution && <p className="font-medium text-slate-900">{peer.institution}</p>}
+                  {peer.department && <p className="text-[11px] text-slate-500 mt-0.5">{peer.department}</p>}
+                </div>
+              )}
 
-              <p className="mt-3 text-xs text-[#617493] line-clamp-2">
-                {peer.summary}
-              </p>
+              {peer.summary && <p className="mt-3 text-xs text-[#617493] line-clamp-2">{peer.summary}</p>}
             </div>
 
             <div className="mt-5 pt-3.5 border-t border-[#F0F2F7]">
+              {/* No connection backend exists yet: nothing would be sent, so the
+                  button doesn't pretend to send a request. */}
               <button
                 type="button"
-                onClick={() => toggleConnect(peer.id)}
-                className={`w-full min-h-[40px] py-2 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer touch-manipulation ${
-                  isConnected
-                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                    : "bg-[#2878F0] text-white hover:bg-[#2063CC] shadow-xs active:scale-95"
-                }`}
+                disabled
+                className="w-full min-h-[40px] py-2 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 bg-slate-100 text-slate-500 border border-slate-200 cursor-not-allowed"
               >
-                {isConnected ? (
-                  <>
-                    <Check className="size-3.5" />
-                    <span>Connection Requested</span>
-                  </>
-                ) : (
-                  <>
-                    <UserPlus className="size-3.5" />
-                    <span>Connect</span>
-                  </>
-                )}
+                <UserPlus aria-hidden className="size-3.5" />
+                <span>Connect · coming soon</span>
               </button>
             </div>
           </div>

@@ -40,6 +40,7 @@ for r in rows:
         projects=[],
         goals=[r["description"] or ""],
         dim=768,
+        allow_external=True,  # public course catalogue text, not user data
     )
     vec_str = f"[{','.join(f'{x:.6f}' for x in vec)}]"
     cur.execute("UPDATE learning_resources SET embedding = %s::vector WHERE id = %s", (vec_str, r["id"]))

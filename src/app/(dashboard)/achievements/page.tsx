@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, inArray } from "drizzle-orm";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, Award, BookOpen, CheckCircle, FileCheck, Sparkles, Trophy } from "lucide-react";
@@ -6,6 +6,7 @@ import { ArrowLeft, Award, BookOpen, CheckCircle, FileCheck, Sparkles, Trophy } 
 import { db } from "@/db";
 import { profileFacts } from "@/db/schema";
 import { requireOnboardedUser } from "@/lib/dal";
+import { usableFactsOf } from "@/lib/profile/unified";
 
 import { Suspense } from "react";
 
@@ -48,7 +49,7 @@ async function AchievementsContent() {
     .from(profileFacts)
     .where(
       and(
-        eq(profileFacts.userId, user.id),
+        usableFactsOf(user.id),
         inArray(profileFacts.fieldGroup, [
           "achievements",
           "publications",
@@ -87,21 +88,22 @@ async function AchievementsContent() {
 
     if (group.includes("pub")) {
       publications.push({
-        title: f["title"] || f["paper_title"] || "Research Publication",
-        venue: f["venue"] || f["journal"] || f["publisher"] || "IEEE / Scopus Indexed",
-        year: f["year"] || f["date"] || "2024",
+        // Only extracted values; missing fields stay empty (no invented venues or years).
+        title: f["title"] || f["paper_title"] || "Untitled publication",
+        venue: f["venue"] || f["journal"] || f["publisher"] || "",
+        year: f["year"] || f["date"] || "",
       });
     } else if (group.includes("cert")) {
       certifications.push({
-        title: f["name"] || f["title"] || f["certificate"] || "Professional Certification",
-        issuer: f["issuer"] || f["organization"] || "Verified Authority",
-        year: f["year"] || f["issue_date"] || "2023",
+        title: f["name"] || f["title"] || f["certificate"] || "Untitled certification",
+        issuer: f["issuer"] || f["organization"] || "",
+        year: f["year"] || f["issue_date"] || "",
       });
     } else {
       awards.push({
-        title: f["title"] || f["award_name"] || "Academic Honor",
-        desc: f["description"] || f["organization"] || "Verified Recognition",
-        year: f["year"] || f["date"] || "2024",
+        title: f["title"] || f["award_name"] || "Untitled award",
+        desc: f["description"] || f["organization"] || "",
+        year: f["year"] || f["date"] || "",
       });
     }
   }

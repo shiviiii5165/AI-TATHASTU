@@ -90,17 +90,27 @@ def fallback_roadmap(user: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+RAG_ROADMAP_TERMS = ["Deep Learning", "Systems"]
+
+
 def generate_career_roadmap(
     user: Dict[str, Any],
-    has_consent: bool = True,
+    *,
+    has_consent: bool,
     cur: Optional[Any] = None,
+    rag_courses: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
-    """Generates structured career trajectory using RAG + internal LLM router."""
+    """Generates structured career trajectory using RAG + internal LLM router.
+
+    `has_consent` is the user's current external_ai consent and is required:
+    without it no profile data (name, degree, university…) goes to an AI provider.
+    """
     from intelligence.skill_graph import query_rag_learning_resources
     from provider_router import ConsentRequired, NeedsReviewError, route_llm
 
     target_role = user.get("career_role") or "Machine Learning Engineer"
-    rag_courses = query_rag_learning_resources(cur, [target_role, "Deep Learning", "Systems"]) if cur else []
+    if rag_courses is None:
+        rag_courses = query_rag_learning_resources(cur, [target_role, *RAG_ROADMAP_TERMS]) if cur else []
 
     if not has_consent:
         return fallback_roadmap(user)

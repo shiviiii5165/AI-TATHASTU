@@ -122,20 +122,23 @@ class Breaker:
     min_calls: int = 4
     calls: Deque[Tuple[float, bool]] = field(default_factory=deque)
     open_until: float = 0.0
+    # Shared by the queue threads and the concurrent repo scorer.
+    _lock: threading.Lock = field(default_factory=threading.Lock, repr=False, compare=False)
 
     def allow(self) -> bool:
         return time.monotonic() >= self.open_until
 
     def record(self, ok: bool) -> None:
-        now = time.monotonic()
-        self.calls.append((now, ok))
-        while self.calls and self.calls[0][0] < now - self.window_s:
-            self.calls.popleft()
-        failures = sum(1 for _, good in self.calls if not good)
-        if len(self.calls) >= self.min_calls and failures / len(self.calls) >= self.threshold:
-            self.open_until = now + self.pause_s
-            log.warning("circuit open for %.0fs after %d/%d failed calls", self.pause_s, failures, len(self.calls))
-            self.calls.clear()
+        with self._lock:
+            now = time.monotonic()
+            self.calls.append((now, ok))
+            while self.calls and self.calls[0][0] < now - self.window_s:
+                self.calls.popleft()
+            failures = sum(1 for _, good in self.calls if not good)
+            if len(self.calls) >= self.min_calls and failures / len(self.calls) >= self.threshold:
+                self.open_until = now + self.pause_s
+                log.warning("circuit open for %.0fs after %d/%d failed calls", self.pause_s, failures, len(self.calls))
+                self.calls.clear()
 
 
 # ─── Providers ──────────────────────────────────────────────────────────────
@@ -327,23 +330,28 @@ class GeminiPool(Provider):
 
 
 _chain: Optional[List[Provider]] = None
+_chain_lock = threading.Lock()
 
 
 def chain() -> List[Provider]:
     global _chain
-    if _chain is None:
-        env = os.environ.get
-        _chain = [
-            GroqPool(KeyPool("groq", "GROQ_KEYS"),
-                     parse_models(env("GROQ_MODELS", "llama-3.3-70b-versatile:strict,llama-3.1-8b-instant:strict,openai/gpt-oss-120b:strict,openai/gpt-oss-20b:strict"))),
-            GeminiPool(KeyPool("gemini", "GEMINI_KEYS"),
-                       parse_models(env("GEMINI_MODELS", "gemini-2.5-flash:strict,gemini-2.0-flash:strict,gemini-1.5-flash:strict,gemini-3.5-flash:strict,gemini-3.5-flash-lite:strict"), vision=True)),
-            OpenRouterPool(KeyPool("openrouter", "OPENROUTER_KEYS"),
-                           parse_models(env("OPENROUTER_MODELS", "nvidia/nemotron-3.5-super-vl:free:strict,xingchen-agi/xing4.0-29b-a4b:free:strict"))
-                           + parse_models(env("OPENROUTER_VISION_MODELS", "nvidia/nemotron-3.5-super-vl:free:strict"), vision=True)),
-        ]
-    return _chain
+    with _chain_lock:
+        return _chain if _chain is not None else _build_chain()
 
+
+def _build_chain() -> List[Provider]:
+    global _chain
+    env = os.environ.get
+    _chain = [
+        GroqPool(KeyPool("groq", "GROQ_KEYS"),
+                 parse_models(env("GROQ_MODELS", "llama-3.3-70b-versatile:strict,llama-3.1-8b-instant:strict,openai/gpt-oss-120b:strict,openai/gpt-oss-20b:strict"))),
+        GeminiPool(KeyPool("gemini", "GEMINI_KEYS"),
+                   parse_models(env("GEMINI_MODELS", "gemini-2.5-flash:strict,gemini-2.0-flash:strict,gemini-1.5-flash:strict,gemini-3.5-flash:strict,gemini-3.5-flash-lite:strict"), vision=True)),
+        OpenRouterPool(KeyPool("openrouter", "OPENROUTER_KEYS"),
+                       parse_models(env("OPENROUTER_MODELS", "nvidia/nemotron-3.5-super-vl:free:strict,xingchen-agi/xing4.0-29b-a4b:free:strict"))
+                       + parse_models(env("OPENROUTER_VISION_MODELS", "nvidia/nemotron-3.5-super-vl:free:strict"), vision=True)),
+    ]
+    return _chain
 
 def set_chain_for_tests(providers: Optional[List[Provider]]) -> None:
     global _chain

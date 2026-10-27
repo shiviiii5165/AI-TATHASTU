@@ -138,7 +138,6 @@ export const FIELD_GROUPS: FieldGroupDef[] = [
   },
 ];
 
-export const FIELD_GROUP_IDS = FIELD_GROUPS.map((g) => g.id) as [FieldGroupId, ...FieldGroupId[]];
 
 export function fieldLabel(groupId: string, fieldName: string) {
   const group = FIELD_GROUPS.find((g) => g.id === groupId);

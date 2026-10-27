@@ -303,7 +303,6 @@ export function DashboardHeader({
               aria-expanded={notifMenuOpen}
             >
               <Bell className="size-4.5" />
-              <span className="absolute top-2.5 right-2.5 size-2 rounded-full bg-[#FF496D] ring-2 ring-white" />
             </button>
 
             {notifMenuOpen && (
@@ -315,22 +314,9 @@ export function DashboardHeader({
                 <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-xs sm:w-80 rounded-2xl border border-slate-200 bg-white p-4 shadow-xl z-50 text-sm animate-in fade-in zoom-in-95 duration-150">
                   <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                     <span className="font-bold text-slate-900">Notifications</span>
-                    <span className="text-xs font-semibold text-[#FF496D]">3 New</span>
                   </div>
-                  <div className="mt-3 space-y-2.5 text-xs text-slate-600">
-                    <div className="p-2 rounded-xl bg-rose-50/50 border border-rose-100">
-                      <p className="font-semibold text-slate-900">GitHub Sync Verified</p>
-                      <p className="mt-0.5 text-slate-500">2 repositories & 147 contributions imported.</p>
-                    </div>
-                    <div className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors">
-                      <p className="font-semibold text-slate-900">New Mentorship Match</p>
-                      <p className="mt-0.5 text-slate-500">Dr. Priya Singh (IIT Bombay) viewed your skill graph.</p>
-                    </div>
-                    <div className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors">
-                      <p className="font-semibold text-slate-900">Research Call Matching 97%</p>
-                      <p className="mt-0.5 text-slate-500">LLM-based Intelligent Systems at IIT Delhi.</p>
-                    </div>
-                  </div>
+                  {/* No notification feed exists yet; the previous entries were placeholders, not real events. */}
+                  <p className="mt-3 text-xs text-slate-500">You&apos;re all caught up. Updates about your profile will appear here.</p>
                 </div>
               </>
             )}

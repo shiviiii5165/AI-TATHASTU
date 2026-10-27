@@ -38,29 +38,39 @@ const ERRORS: Record<string, string> = {
 
 export default function LoginPage({ searchParams }: PageProps<"/login">) {
   return (
-    <main className="relative flex min-h-dvh flex-col overflow-x-hidden bg-[#FAFAFD] text-[#0F172A] lg:grid lg:grid-cols-[56%_44%]">
+    <main className="relative flex min-h-dvh flex-col overflow-x-hidden bg-[#FAFAFD] text-[#0F172A] lg:grid lg:grid-cols-[57%_43%]">
       {/* ============================================================
-          LEFT PANEL: RICH EDITORIAL WORKSPACE COMPOSITION (~56%)
+          LEFT PANEL: RICH EDITORIAL WORKSPACE COMPOSITION (~57%)
       ============================================================ */}
-      <section className="relative flex flex-col justify-start overflow-hidden px-5 py-6 sm:px-10 sm:py-8 lg:px-12 lg:py-10 xl:px-16 xl:py-12 min-h-auto lg:min-h-dvh">
-        {/* Workspace Photographic Background */}
+      <section className="relative flex flex-col overflow-hidden min-h-[260px] sm:min-h-[290px] lg:min-h-dvh">
+        {/* Workspace Photographic Background — anchored at top on mobile, desk/books at bottom-left on desktop */}
+        {/* Same artwork as /brand/login-workspace-clean.jpg, as WebP: 640px under the mobile veil, 1024px (source resolution) from lg. */}
         <div
-          className="absolute inset-0 bg-cover bg-[center_top] sm:bg-[center_bottom] pointer-events-none select-none transition-transform duration-700 ease-out"
-          style={{
-            backgroundImage: "url('/brand/login-workspace-clean.jpg')",
-          }}
+          className="absolute inset-0 bg-cover pointer-events-none select-none bg-[center_top] lg:bg-[left_bottom] bg-[url('/img/login-workspace-clean-640.webp')] lg:bg-[url('/img/login-workspace-clean-1024.webp')]"
           aria-hidden="true"
         />
 
-        {/* Mobile Readability Overlay */}
+        {/* Subtle dark overlay for rich contrast */}
         <div
-          className="absolute inset-0 bg-gradient-to-b from-[#FAFAFD]/95 via-[#FAFAFD]/85 to-[#FAFAFD]/40 lg:hidden pointer-events-none"
+          className="absolute inset-0 bg-gradient-to-br from-black/5 via-transparent to-black/10 pointer-events-none"
           aria-hidden="true"
         />
 
-        {/* Brand Logo in Upper-Left Corner */}
-        <div className="relative z-10 flex items-center justify-between">
-          <BrandLogo href="/" withTagline size="md" />
+        {/* Mobile Readability Overlay — gentle soft warm veil on mobile so text is completely crisp and readable above photographic art */}
+        <div
+          className="absolute inset-0 bg-gradient-to-b from-[#FAFAFD]/98 via-[#FAFAFD]/92 to-[#FAFAFD]/60 lg:hidden pointer-events-none"
+          aria-hidden="true"
+        />
+
+        {/* Soft, localized light treatment behind logo — desktop only */}
+        <div
+          className="absolute top-0 left-0 w-96 h-32 bg-gradient-to-br from-white/70 via-white/30 to-transparent pointer-events-none hidden lg:block"
+          aria-hidden="true"
+        />
+
+        {/* Brand Logo in Upper-Left Corner — comfortably placed on light wall region on desktop */}
+        <div className="relative z-10 flex items-center justify-between px-6 pt-6 sm:px-10 sm:pt-8 lg:px-0 lg:pl-[24%] xl:pl-[27%] lg:pt-6 xl:pt-8">
+          <BrandLogo href="/" withTagline size="md" taglineClassName="text-slate-600 font-semibold" />
           <Link
             href="/"
             className="lg:hidden inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 hover:text-[#0F172A] bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-slate-200/90 shadow-2xs transition-colors"
@@ -70,34 +80,40 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
           </Link>
         </div>
 
-        {/* Storytelling Hero: Headline, Tathastu Signature & Subtitle */}
-        {/* Positioned in the upper right sunlit area, above the laptop */}
-        <div className="relative z-10 mt-3 sm:mt-6 lg:mt-8 xl:mt-10 ml-auto max-w-[420px] lg:mr-2 xl:mr-6 text-left">
-          <h1 className="font-sans text-xl sm:text-2xl lg:text-[40px] xl:text-[44px] font-extrabold leading-[1.15] lg:leading-[1.1] tracking-tight text-[#0F172A]">
-            Turn effort<br className="hidden sm:inline" />{" "}
-            into{" "}
-            <span className="bg-gradient-to-r from-[#FF2A85] via-[#FF4542] to-[#FF6B4A] bg-clip-text text-transparent">
-              opportunities.
+        {/* ── Desktop Hero Layout ── */}
+        {/* Positioned in upper portion above the window, matching Image B */}
+        <div className="hidden lg:block relative z-10 ml-[42%] xl:ml-[44%] pr-4 xl:pr-8 mt-5 xl:mt-8 2xl:mt-12 max-w-[480px]">
+          <h1
+            className="font-sans text-[32px] lg:text-[34px] xl:text-[42px] 2xl:text-[46px] font-extrabold leading-[1.08] tracking-[-0.03em] text-[#0F172A]"
+            style={{ textShadow: "0 1px 12px rgba(255,255,255,0.7), 0 0 20px rgba(255,255,255,0.4)" }}
+          >
+            <span className="block">Turn effort</span>
+            <span className="block whitespace-nowrap">
+              into{" "}
+              <span className="bg-gradient-to-r from-[#FF2A85] via-[#FF4542] to-[#FF6B4A] bg-clip-text text-transparent">
+                opportunities.
+              </span>
             </span>
           </h1>
 
-          {/* Tathastu Brand Signature with light-yellow curved underline */}
-          <div className="mt-0.5 sm:mt-1 flex justify-start sm:justify-end pr-1 sm:pr-4">
+          {/* Tathastu signature — aligned toward the right side beneath opportunities. */}
+          <div className="mt-1 flex justify-end pr-3 xl:pr-6">
             <div className="relative inline-block -rotate-2 select-none">
               <span
-                className={`${scriptFont.className} text-xl sm:text-2xl lg:text-[38px] xl:text-[42px] font-bold text-[#FF2A85] tracking-tight inline-block drop-shadow-[0_1px_2px_rgba(255,42,133,0.15)]`}
+                className={`${scriptFont.className} text-[32px] lg:text-[34px] xl:text-[40px] font-bold text-[#FF2A85] tracking-tight inline-block`}
               >
                 Tathastu.
               </span>
               <svg
-                className="absolute -bottom-1 left-0 w-full h-2.5 sm:h-3.5 overflow-visible pointer-events-none"
-                viewBox="0 0 140 16"
+                className="absolute -bottom-1 left-0 w-full overflow-visible pointer-events-none"
+                style={{ height: "14px" }}
+                viewBox="0 0 160 16"
                 fill="none"
                 preserveAspectRatio="none"
                 aria-hidden="true"
               >
                 <path
-                  d="M 4 11 C 45 3, 95 3, 136 8"
+                  d="M 3 13 C 45 15, 110 9, 157 4"
                   stroke="#FDE047"
                   strokeWidth="3.5"
                   strokeLinecap="round"
@@ -106,23 +122,65 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
             </div>
           </div>
 
-          {/* Supporting Description */}
-          <p className="mt-2 sm:mt-3 lg:mt-4 text-[11px] sm:text-xs lg:text-[14.5px] font-medium leading-relaxed text-[#334155] max-w-[340px] sm:ml-auto">
+          {/* Supporting paragraph — sits cleanly above laptop and window frame */}
+          <p
+            className="mt-2 xl:mt-3 text-[13px] lg:text-[13.5px] xl:text-[15px] font-medium leading-relaxed text-[#334155]"
+            style={{ textShadow: "0 1px 8px rgba(255,255,255,0.8)" }}
+          >
+            <span className="block whitespace-nowrap">Showcase your work, get discovered</span>
+            <span className="block whitespace-nowrap">and grow with the right people.</span>
+          </p>
+        </div>
+
+        {/* ── Mobile Hero Layout ── */}
+        <div className="lg:hidden relative z-10 px-6 pt-4 pb-5 sm:px-8 sm:pt-6">
+          <h1 className="font-sans text-2xl sm:text-3xl font-extrabold leading-[1.12] tracking-[-0.02em] text-[#0F172A]">
+            Turn effort into{" "}
+            <span className="bg-gradient-to-r from-[#FF2A85] via-[#FF4542] to-[#FF6B4A] bg-clip-text text-transparent">
+              opportunities.
+            </span>
+          </h1>
+
+          {/* Mobile Tathastu signature */}
+          <div className="mt-1 flex justify-start">
+            <div className="relative inline-block -rotate-2 select-none">
+              <span
+                className={`${scriptFont.className} text-2xl sm:text-[26px] font-bold text-[#FF2A85] tracking-tight inline-block`}
+              >
+                Tathastu.
+              </span>
+              <svg
+                className="absolute -bottom-0.5 left-0 w-full overflow-visible pointer-events-none"
+                style={{ height: "10px" }}
+                viewBox="0 0 140 12"
+                fill="none"
+                preserveAspectRatio="none"
+                aria-hidden="true"
+              >
+                <path
+                  d="M 3 9 C 35 11, 85 6, 137 3"
+                  stroke="#FDE047"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </div>
+          </div>
+
+          {/* Mobile supporting paragraph */}
+          <p className="mt-2 text-xs sm:text-[13px] font-medium leading-relaxed text-[#334155] max-w-xs">
             Showcase your work, get discovered and grow with the right people.
           </p>
         </div>
 
-        {/* Illustrative Demo Badge for Laptop Preview */}
-        <div className="relative z-10 hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/75 backdrop-blur-md border border-slate-200/70 text-[11px] font-medium text-slate-500 shadow-2xs mt-auto self-start select-none">
-          <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          <span>Illustrative demo profile · Sample dashboard preview</span>
-        </div>
+        {/* Spacer so the left panel fills the height on desktop */}
+        <div className="hidden lg:block flex-1" aria-hidden="true" />
       </section>
 
       {/* ============================================================
-          RIGHT PANEL: CLEAN FOCUSED AUTHENTICATION CARD (~44%)
+          RIGHT PANEL: CLEAN FOCUSED AUTHENTICATION CARD (~43%)
       ============================================================ */}
-      <section className="relative z-10 flex flex-col justify-between p-4 sm:p-8 lg:p-12 xl:p-16 bg-[#FAFAFD] border-t border-slate-100 lg:border-t-0 lg:border-l lg:border-slate-200/60 min-h-[480px] lg:min-h-dvh">
+      <section className="relative z-10 flex flex-col justify-between p-4 sm:p-8 lg:p-8 xl:p-14 bg-[#FAFAFD] border-t border-slate-100 lg:border-t-0 lg:border-l lg:border-slate-200/60 min-h-[480px] lg:min-h-dvh">
         {/* Ambient flowing pastel wave decoration in bottom-right corner */}
         <div className="pointer-events-none absolute bottom-0 right-0 size-[440px] overflow-hidden" aria-hidden="true">
           <div className="absolute -bottom-24 -right-24 size-[400px] rounded-full bg-gradient-to-tl from-[#FF2A85]/14 via-[#8B5CF6]/10 to-transparent blur-3xl" />
@@ -145,7 +203,7 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
         <div className="hidden lg:flex items-center justify-end w-full">
           <Link
             href="/"
-            className="group inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-slate-500 hover:text-[#0F172A] transition-colors py-1.5 px-3 rounded-lg hover:bg-slate-100/70"
+            className="group inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-slate-500 hover:text-[#0F172A] transition-colors py-1 px-2.5 rounded-lg hover:bg-slate-100/70"
           >
             <ArrowLeft className="size-4 transition-transform group-hover:-translate-x-1" />
             <span>Back to website</span>
@@ -153,10 +211,10 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
         </div>
 
         {/* Center Authentication Card */}
-        <div className="my-auto w-full max-w-[430px] mx-auto py-2 sm:py-6">
-          <div className="rounded-3xl border border-slate-200/85 bg-white p-5 sm:p-9 shadow-xl shadow-slate-200/50">
-            <div className="mb-5 sm:mb-7">
-              <h2 className="font-sans text-xl sm:text-[27px] font-bold tracking-tight text-[#0F172A] leading-tight">
+        <div className="my-auto w-full max-w-[440px] mx-auto py-1 sm:py-3 lg:py-2 xl:py-6">
+          <div className="rounded-3xl border border-slate-200/85 bg-white p-5 sm:p-7 lg:p-6 xl:p-8 shadow-xl shadow-slate-200/50">
+            <div className="mb-4 sm:mb-6">
+              <h2 className="font-sans text-xl sm:text-[24px] xl:text-[27px] font-bold tracking-tight text-[#0F172A] leading-tight">
                 Welcome to AI Tathastu
               </h2>
               <p className="mt-1 text-xs sm:text-sm text-slate-500">
@@ -168,13 +226,13 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
               <SignInWithParams searchParams={searchParams} />
             </Suspense>
 
-            <p className="mt-6 text-center text-[11px] sm:text-xs leading-relaxed text-slate-400">
+            <p className="mt-5 xl:mt-6 text-center text-[11px] sm:text-[11.5px] leading-relaxed text-slate-500 whitespace-nowrap">
               By continuing, you agree to AI Tathastu&apos;s{" "}
-              <Link href="/terms" className="font-medium text-slate-600 underline underline-offset-2 hover:text-[#0F172A] transition-colors">
+              <Link href="/terms" className="font-medium text-slate-700 underline underline-offset-2 hover:text-[#0F172A] transition-colors">
                 Terms
               </Link>{" "}
               and{" "}
-              <Link href="/privacy" className="font-medium text-slate-600 underline underline-offset-2 hover:text-[#0F172A] transition-colors">
+              <Link href="/privacy" className="font-medium text-slate-700 underline underline-offset-2 hover:text-[#0F172A] transition-colors">
                 Privacy Policy
               </Link>
               .

@@ -171,18 +171,26 @@ export function SkillBubbleChart({
   // Keep dimensions in sync with container width
   useEffect(() => {
     if (!containerRef.current) return;
+    let frame = 0;
     const updateSize = () => {
       if (containerRef.current) {
         const w = containerRef.current.clientWidth;
         const h = height || (fullView ? 360 : 250);
-        if (w > 0) {
-          setDimensions({ width: w, height: h });
-        }
+        // Same size → keep the same object, so the layout isn't recomputed.
+        if (w > 0) setDimensions((prev) => (prev.width === w && prev.height === h ? prev : { width: w, height: h }));
       }
     };
+    // At most once per frame while the window is being resized.
+    const onResize = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(updateSize);
+    };
     updateSize();
-    window.addEventListener("resize", updateSize);
-    return () => window.removeEventListener("resize", updateSize);
+    window.addEventListener("resize", onResize);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("resize", onResize);
+    };
   }, [fullView, height]);
 
   // Transform input data into graph nodes & edges
@@ -352,8 +360,12 @@ export function SkillBubbleChart({
         forceCollide<GraphNodeDatum>().radius((d) => d.radius + 8),
       );
 
-    // Warm-up simulation ticks for an immediate balanced layout
-    for (let i = 0; i < 90; i++) sim.tick();
+    // Settle the layout synchronously, then stop d3's internal timer. Running
+    // to the same convergence point (alpha decays below alphaMin by ~300 ticks)
+    // gives the final layout the timer used to reach, without ~200 post-mount
+    // ticks that each re-rendered (and, via key={simTick}, remounted) the SVG.
+    sim.stop();
+    for (let i = 0; i < 300; i++) sim.tick();
 
     return { nodes: simNodes, links: simLinks, simulation: sim };
   }, [initialNodes, initialLinks, dimensions, fullView]);

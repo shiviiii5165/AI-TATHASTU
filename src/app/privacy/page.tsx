@@ -1,4 +1,4 @@
-import { ArrowLeft, CheckCircle2, Lock, ShieldCheck } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ShieldCheck } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 

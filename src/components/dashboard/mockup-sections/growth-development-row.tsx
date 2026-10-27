@@ -235,8 +235,11 @@ function LearningPathsCard({ paths = [] }: { paths?: LearningPathItem[] }) {
         return {
           title: p.title,
           desc: p.description,
-          modules: `${p.modules_count || 10} Modules`,
-          duration: `${p.duration_weeks || 5} Weeks`,
+          // Only what the path actually states; no invented defaults.
+          meta: [
+            p.modules_count ? `${p.modules_count} Modules` : null,
+            p.duration_weeks ? `${p.duration_weeks} Weeks` : null,
+          ].filter(Boolean).join(" · "),
           icon: Icon,
           iconBg,
         };
@@ -281,9 +284,7 @@ function LearningPathsCard({ paths = [] }: { paths?: LearningPathItem[] }) {
                     {p.title}
                   </p>
                   <p className="text-[10px] text-[#617493] line-clamp-1">{p.desc}</p>
-                  <p className="mt-1 text-[9px] font-mono font-medium text-[#8C9AA8]">
-                    {p.modules} · {p.duration}
-                  </p>
+                  {p.meta && <p className="mt-1 text-[9px] font-mono font-medium text-[#8C9AA8]">{p.meta}</p>}
                 </div>
               </Link>
             );

@@ -15,21 +15,45 @@ import { stepHref, stepIndex, type WizardStep } from "@/lib/onboarding/steps";
 // Server Actions call these too, so they authorize themselves rather than
 // trusting that the page that rendered them was guarded.
 
-export const getCurrentUser = cache(async (): Promise<User> => {
+/**
+ * The session's user row and onboarding row, read in parallel (one round trip
+ * instead of two: the JWT already carries the user id). Cached per request.
+ */
+const loadSessionRows = cache(async () => {
   // auth() touches crypto before reading the request; mark it request-time
   // first so Cache Components doesn't treat it as prerenderable.
   await connection();
   const session = await auth();
-  if (!session?.user?.id) redirect("/login");
-
-  const [user] = await db.select().from(users).where(eq(users.id, session.user.id));
-  // A valid JWT for a deleted user: send them to sign in again. /login does
-  // not auto-redirect on a bare JWT, so this cannot loop.
-  if (!user || user.deletedAt) redirect("/login?reason=session");
-  return user;
+  const userId = session?.user?.id;
+  if (!userId) return null;
+  const [[user], [state]] = await Promise.all([
+    db.select().from(users).where(eq(users.id, userId)),
+    db.select().from(onboardingState).where(eq(onboardingState.userId, userId)),
+  ]);
+  return { user: user as User | undefined, state: state as OnboardingState | undefined };
 });
 
+export const getCurrentUser = cache(async (): Promise<User> => {
+  const rows = await loadSessionRows();
+  if (!rows) redirect("/login");
+  // A valid JWT for a deleted user: send them to sign in again. /login does
+  // not auto-redirect on a bare JWT, so this cannot loop.
+  if (!rows.user || rows.user.deletedAt) redirect("/login?reason=session");
+  return rows.user;
+});
+
+/** The signed-in user and their onboarding row (backfilled if missing). */
+async function getUserAndState(): Promise<{ user: User; state: OnboardingState }> {
+  const user = await getCurrentUser();
+  const rows = await loadSessionRows();
+  return { user, state: rows?.state ?? (await getOnboardingState(user.id)) };
+}
+
 export const getOnboardingState = cache(async (userId: string): Promise<OnboardingState> => {
+  // Already read alongside the user for this request's session.
+  const rows = await loadSessionRows();
+  if (rows?.user?.id === userId && rows.state) return rows.state;
+
   const [existing] = await db.select().from(onboardingState).where(eq(onboardingState.userId, userId));
   if (existing) return existing;
 
@@ -59,8 +83,7 @@ export const FINISHED_REDIRECT = "/api/session/refresh";
  * users go to the dashboard.
  */
 export async function requireOnboardingStep(step: WizardStep) {
-  const user = await getCurrentUser();
-  const state = await getOnboardingState(user.id);
+  const { user, state } = await getUserAndState();
 
   if (state.currentStep === "done") redirect(FINISHED_REDIRECT);
   const target = stepIndex(step, user.role);
@@ -71,8 +94,7 @@ export async function requireOnboardingStep(step: WizardStep) {
 
 /** Guard for Step 0 (/onboarding/role): anyone who hasn't finished onboarding. */
 export async function requireRoleChoice() {
-  const user = await getCurrentUser();
-  const state = await getOnboardingState(user.id);
+  const { user, state } = await getUserAndState();
   if (state.currentStep === "done") redirect(FINISHED_REDIRECT);
   return { user, state };
 }
@@ -83,8 +105,7 @@ export async function requireRoleChoice() {
  * users are allowed.
  */
 export async function requireConnectorUser() {
-  const user = await getCurrentUser();
-  const state = await getOnboardingState(user.id);
+  const { user, state } = await getUserAndState();
   if (state.currentStep !== "done" && stepIndex(state.currentStep, user.role) < stepIndex("connectors", user.role)) {
     redirect(stepHref(state.currentStep));
   }
@@ -93,8 +114,7 @@ export async function requireConnectorUser() {
 
 /** Guard for the app (dashboard and module pages): onboarding must be finished. */
 export async function requireOnboardedUser() {
-  const user = await getCurrentUser();
-  const state = await getOnboardingState(user.id);
+  const { user, state } = await getUserAndState();
   if (state.currentStep !== "done") redirect(stepHref(state.currentStep));
   return { user, state };
 }
@@ -110,15 +130,17 @@ export type ApiAuth =
  * Signed-in user who has reached `step` of onboarding. Finished users are
  * rejected unless `allowDone` (connector routes serve /connections too).
  */
+/** Session user + onboarding row for route handlers (parallel reads, no redirects). */
+async function apiSessionRows(): Promise<{ user: User; state: OnboardingState } | null> {
+  const rows = await loadSessionRows();
+  if (!rows?.user || rows.user.deletedAt) return null;
+  return { user: rows.user, state: rows.state ?? (await getOnboardingState(rows.user.id)) };
+}
+
 export async function getApiUserAtStep(step: WizardStep, { allowDone = false } = {}): Promise<ApiAuth> {
-  await connection();
-  const session = await auth();
-  if (!session?.user?.id) return { ok: false, status: 401, error: "Sign in to continue." };
-
-  const [user] = await db.select().from(users).where(eq(users.id, session.user.id));
-  if (!user || user.deletedAt) return { ok: false, status: 401, error: "Sign in to continue." };
-
-  const state = await getOnboardingState(user.id);
+  const rows = await apiSessionRows();
+  if (!rows) return { ok: false, status: 401, error: "Sign in to continue." };
+  const { user, state } = rows;
   const needed = stepIndex(step, user.role);
   if (state.currentStep === "done" ? !allowDone : needed < 0 || stepIndex(state.currentStep, user.role) < needed) {
     return { ok: false, status: 403, error: "This step isn't available yet." };
@@ -129,12 +151,9 @@ export async function getApiUserAtStep(step: WizardStep, { allowDone = false } =
 
 /** Signed-in user who has finished onboarding (dashboard APIs). */
 export async function getApiOnboardedUser(): Promise<ApiAuth> {
-  await connection();
-  const session = await auth();
-  if (!session?.user?.id) return { ok: false, status: 401, error: "Sign in to continue." };
-  const [user] = await db.select().from(users).where(eq(users.id, session.user.id));
-  if (!user || user.deletedAt) return { ok: false, status: 401, error: "Sign in to continue." };
-  const state = await getOnboardingState(user.id);
+  const rows = await apiSessionRows();
+  if (!rows) return { ok: false, status: 401, error: "Sign in to continue." };
+  const { user, state } = rows;
   if (state.currentStep !== "done") return { ok: false, status: 403, error: "Finish onboarding first." };
   return { ok: true, user, state };
 }

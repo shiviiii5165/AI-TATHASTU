@@ -6,7 +6,6 @@ import { getApiUserAtStep } from "@/lib/dal";
 import { connectSource } from "@/lib/connectors/connections";
 import { exchangeGithubCode, fetchGithubUser, GITHUB_STATE_COOKIE, githubCallbackUrl } from "@/lib/connectors/github";
 import { connectorReturnPath } from "@/lib/connectors/sources";
-import { triggerRecompute } from "@/lib/jobs-queue";
 
 function finish(request: NextRequest, query: string, from: string | undefined) {
   const path = connectorReturnPath(from === "connections" ? "connections" : "onboarding");
@@ -52,7 +51,8 @@ export async function GET(request: NextRequest) {
       credential: { access_token: accessToken, scope, login: githubUser.login, github_id: githubUser.id },
       syncKey: state,
     });
-    void triggerRecompute(authz.user.id, "github_connected");
+    // No recompute here: the queued connector_sync enqueues compute_intelligence
+    // once the repos are in, which also regenerates the roadmap and matches.
   } catch (error) {
     console.error("GitHub connect failed", error);
     return finish(request, "error=github", from);

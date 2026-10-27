@@ -25,13 +25,7 @@ export async function isFeatureEnabled(key: FlagKey): Promise<boolean> {
   const [row] = await db.select({ enabled: featureFlags.enabled }).from(featureFlags).where(eq(featureFlags.key, key));
   return row?.enabled === true;
 }
-
-export async function setFeatureFlag(key: FlagKey, enabled: boolean, updatedBy: string) {
-  await db
-    .insert(featureFlags)
-    .values({ key, enabled, updatedBy, updatedAt: new Date() })
-    .onConflictDoUpdate({ target: featureFlags.key, set: { enabled, updatedBy, updatedAt: new Date() } });
-}
+// Flags are toggled with `npm run flags` (scripts/flags.mjs), which writes the table directly.
 
 /** Module name a caller declares (X-AIT-Module / ?module=) → the flag gating it. */
 export const MODULE_FLAGS: Record<string, FlagKey> = {

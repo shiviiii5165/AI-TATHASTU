@@ -12,7 +12,9 @@ import {
   unifiedProjects,
   users,
   type FactOrigin,
+  type OnboardingState,
   type ProfileFact,
+  type User,
 } from "@/db/schema";
 import type { ProfileViewDoc } from "@/lib/dashboard/types";
 import { CAREER_ROLES } from "@/lib/onboarding/catalog";
@@ -34,6 +36,18 @@ export const API_ORIGINS: FactOrigin[] = [
   "hackerrank",
   "linkedin_scrape",
 ];
+
+/** WHERE clause for the user's usable, current facts (the rule above). */
+export function usableFactsOf(userId: string) {
+  return and(
+    eq(profileFacts.userId, userId),
+    isNull(profileFacts.supersededBy),
+    or(
+      inArray(profileFacts.confirmation, ["confirmed", "edited"]),
+      and(inArray(profileFacts.origin, API_ORIGINS), ne(profileFacts.confirmation, "rejected")),
+    ),
+  )!;
+}
 
 export type Fact = {
   id: string;
@@ -65,24 +79,16 @@ export type ProfileData = Awaited<ReturnType<typeof loadProfile>>;
 const PRECEDENCE: Partial<Record<FactOrigin, number>> = { user_entered: 4, resume: 3 };
 const rank = (f: Fact) => (PRECEDENCE[f.origin] ?? 2) + (f.confirmation === "edited" ? 0.5 : 0);
 
-export async function loadProfile(userId: string) {
+/**
+ * `known`: the user and onboarding rows the caller's auth guard already read,
+ * so they aren't fetched twice in one request.
+ */
+export async function loadProfile(userId: string, known?: { user: User; state: OnboardingState }) {
   const [[user], [state], [viewRow], factRows, repos, projects, [connCount]] = await Promise.all([
-    db.select().from(users).where(eq(users.id, userId)),
-    db.select().from(onboardingState).where(eq(onboardingState.userId, userId)),
+    known ? [known.user] : db.select().from(users).where(eq(users.id, userId)),
+    known ? [known.state] : db.select().from(onboardingState).where(eq(onboardingState.userId, userId)),
     db.select().from(profileViews).where(eq(profileViews.userId, userId)),
-    db
-      .select()
-      .from(profileFacts)
-      .where(
-        and(
-          eq(profileFacts.userId, userId),
-          isNull(profileFacts.supersededBy),
-          or(
-            inArray(profileFacts.confirmation, ["confirmed", "edited"]),
-            and(inArray(profileFacts.origin, API_ORIGINS), ne(profileFacts.confirmation, "rejected")),
-          ),
-        ),
-      ),
+    db.select().from(profileFacts).where(usableFactsOf(userId)),
     db.select().from(codeRepositories).where(eq(codeRepositories.userId, userId)),
     db.select().from(unifiedProjects).where(eq(unifiedProjects.userId, userId)),
     db.select({ n: count() }).from(connections).where(eq(connections.userId, userId)),

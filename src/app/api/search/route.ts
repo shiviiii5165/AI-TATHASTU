@@ -1,8 +1,10 @@
-import { ilike, or } from "drizzle-orm";
+import { and, eq, ilike, or, sql } from "drizzle-orm";
 import { connection, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { codeRepositories, skills, unifiedProjects, users } from "@/db/schema";
+import { discoverableBy } from "@/lib/discovery";
+import { viewerFor } from "@/lib/people";
 
 const CURATED_OPPORTUNITIES = [
   { title: "Advanced LLMs: From Foundations to Agents", category: "Learning", url: "/learning" },
@@ -28,11 +30,15 @@ export async function GET(req: Request) {
     });
   }
 
-  const pattern = `%${q}%`;
+  // Escape LIKE wildcards so "%" or "_" in the query match literally.
+  const pattern = `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
 
   try {
+    const viewer = await viewerFor(session.user.id);
+    if (!viewer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     const [peopleRows, skillRows, projectRows, repoRows] = await Promise.all([
-      // 1. People search
+      // 1. People: only those this user may discover (mentor_discovery consent).
       db
         .select({
           id: users.id,
@@ -43,15 +49,18 @@ export async function GET(req: Request) {
         })
         .from(users)
         .where(
-          or(
-            ilike(users.name, pattern),
-            ilike(users.university, pattern),
-            ilike(users.department, pattern),
-            ilike(users.role, pattern)
-          )
+          and(
+            discoverableBy(viewer),
+            or(
+              ilike(users.name, pattern),
+              ilike(users.university, pattern),
+              ilike(users.department, pattern),
+              // role is an enum; ILIKE needs text.
+              ilike(sql`${users.role}::text`, pattern),
+            ),
+          ),
         )
-        .limit(4)
-        .catch(() => []),
+        .limit(4),
 
       // 2. Skills search
       db
@@ -62,10 +71,9 @@ export async function GET(req: Request) {
         })
         .from(skills)
         .where(ilike(skills.canonicalName, pattern))
-        .limit(5)
-        .catch(() => []),
+        .limit(5),
 
-      // 3. Unified Projects search
+      // 3–4. Projects and repositories: the signed-in user's own only.
       db
         .select({
           id: unifiedProjects.id,
@@ -73,11 +81,9 @@ export async function GET(req: Request) {
           technologies: unifiedProjects.technologies,
         })
         .from(unifiedProjects)
-        .where(ilike(unifiedProjects.canonicalTitle, pattern))
-        .limit(4)
-        .catch(() => []),
+        .where(and(eq(unifiedProjects.userId, viewer.id), ilike(unifiedProjects.canonicalTitle, pattern)))
+        .limit(4),
 
-      // 4. Code Repositories search
       db
         .select({
           id: codeRepositories.id,
@@ -85,9 +91,8 @@ export async function GET(req: Request) {
           url: codeRepositories.url,
         })
         .from(codeRepositories)
-        .where(ilike(codeRepositories.repoName, pattern))
-        .limit(4)
-        .catch(() => []),
+        .where(and(eq(codeRepositories.userId, viewer.id), ilike(codeRepositories.repoName, pattern)))
+        .limit(4),
     ]);
 
     // Format people

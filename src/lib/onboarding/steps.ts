@@ -45,7 +45,6 @@ export const flowSteps = (persona: Persona): StepView[] => FLOWS[persona].map((i
 
 export const stepLabel = (step: WizardStep) => STEP_DEFS[step].label;
 
-export const isWizardStep = (value: string): value is WizardStep => value in STEP_DEFS;
 
 /** Position in the persona's flow: -1 for "role" (or a step from another flow), FLOW_LENGTH for "done". */
 export function stepIndex(step: OnboardingStep, persona: Persona): number {

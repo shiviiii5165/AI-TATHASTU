@@ -7,27 +7,92 @@ import { useEffect, useState, useTransition } from "react";
 import { updateWidgetPref } from "@/app/(dashboard)/dashboard/actions";
 import type { WidgetId } from "@/lib/dashboard/widgets";
 
-const POLL_MS = 5_000;
-const MAX_POLLS = 36; // ~3 minutes
+const DELAYS_MS = [3_000, 4_000, 6_000, 8_000, 10_000];
+const GIVE_UP_AFTER_MS = 5 * 60_000;
 
-/** While profile_views hasn't been written yet, re-render the page every 5 s. */
+type PollState = "waiting" | "ready" | "failed" | "timeout" | "signed_out";
+
+/**
+ * While profile_views hasn't been written yet, polls the small
+ * /api/dashboard/status endpoint (not the whole page) with backoff, paused
+ * while the tab is hidden. Refreshes the page once, when it's ready.
+ */
 export function RefreshUntilReady() {
   const router = useRouter();
-  const [polls, setPolls] = useState(0);
-  useEffect(() => {
-    if (polls >= MAX_POLLS) return;
-    const t = setTimeout(() => {
-      router.refresh();
-      setPolls((n) => n + 1);
-    }, POLL_MS);
-    return () => clearTimeout(t);
-  }, [polls, router]);
+  const [state, setState] = useState<PollState>("waiting");
+  const [run, setRun] = useState(0); // bumped by "Check again"
 
-  return polls >= MAX_POLLS ? (
-    <p className="mt-3 text-sm text-muted-foreground">
-      This is taking longer than usual. Refresh the page in a few minutes.
-    </p>
-  ) : null;
+  useEffect(() => {
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let attempt = 0;
+    let etag: string | null = null;
+    const deadline = Date.now() + GIVE_UP_AFTER_MS;
+
+    const schedule = (ms = DELAYS_MS[Math.min(attempt++, DELAYS_MS.length - 1)]) => {
+      clearTimeout(timer);
+      if (!cancelled && !document.hidden) timer = setTimeout(check, ms);
+    };
+
+    async function check() {
+      if (cancelled) return;
+      if (Date.now() > deadline) return setState("timeout");
+      try {
+        const res = await fetch("/api/dashboard/status", { cache: "no-store", headers: etag ? { "If-None-Match": etag } : {} });
+        if (cancelled) return;
+        if (res.status === 401) return setState("signed_out");
+        if (res.status === 200) {
+          etag = res.headers.get("ETag");
+          const status = (await res.json()) as { ready: boolean; job: string | null };
+          if (status.ready) {
+            setState("ready");
+            router.refresh(); // the one full re-render, now that there's something to show
+            return;
+          }
+          if (status.job === "failed" || status.job === "needs_review") return setState("failed");
+        }
+      } catch {
+        // Offline or a blip: keep backing off until the deadline.
+      }
+      schedule();
+    }
+
+    // Pause while hidden (cancel the pending check); resume, checking at once, when visible.
+    const onVisibility = () => {
+      if (document.hidden) clearTimeout(timer);
+      else schedule(0);
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    schedule();
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [router, run]);
+
+  const retry = (
+    <button
+      type="button"
+      onClick={() => {
+        setState("waiting");
+        setRun((n) => n + 1);
+      }}
+      className="ml-1 rounded-sm font-medium text-foreground underline underline-offset-4 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+    >
+      Check again
+    </button>
+  );
+  if (state === "timeout")
+    return <p className="mt-3 text-sm text-muted-foreground">This is taking longer than usual.{retry}</p>;
+  if (state === "failed")
+    return (
+      <p className="mt-3 text-sm text-muted-foreground">
+        We couldn&apos;t finish personalizing your dashboard. Your profile is saved; it will be retried when your data changes.{retry}
+      </p>
+    );
+  if (state === "signed_out") return <p className="mt-3 text-sm text-muted-foreground">Your session ended. Sign in again to continue.</p>;
+  return null;
 }
 
 /** Dismissed widgets, with one-click restore. */

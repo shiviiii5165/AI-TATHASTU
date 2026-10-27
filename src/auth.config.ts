@@ -4,7 +4,8 @@ import { NextResponse } from "next/server";
 import { isAdminEmail } from "@/lib/admin-emails";
 import { MODULE_SLUGS } from "@/lib/dashboard/nav";
 
-const APP_PREFIXES = ["/dashboard", "/settings", ...MODULE_SLUGS.map((s) => `/${s}`)];
+// /learning (alias of /learn) and /connections are built pages outside the nav list.
+const APP_PREFIXES = ["/dashboard", "/settings", "/learning", "/connections", ...MODULE_SLUGS.map((s) => `/${s}`)];
 const isAppPath = (p: string) => APP_PREFIXES.some((prefix) => p === prefix || p.startsWith(`${prefix}/`));
 
 // Adapter-free config shared with src/proxy.ts. The proxy only decodes the JWT

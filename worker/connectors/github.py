@@ -23,7 +23,6 @@ import psycopg2.extras
 
 from crypto_box import open_credential
 from db import enqueue_compute_intelligence, fetch_one, jsonb
-from intelligence.repo_scorer import score_and_save_user_repos
 from jobs import Job, NeedsReview
 
 log = logging.getLogger("worker.github")
@@ -151,7 +150,8 @@ def _write(cur: Any, user_id: str, profile: Dict[str, Any], repos: List[Dict[str
                 for r in repos
             ],
         )
-        score_and_save_user_repos(cur, user_id)
+        # Repo scores are computed by the compute_intelligence job queued after
+        # this sync (outside any transaction, cached per repo + last push).
 
     # profile_facts: replace this source's facts wholesale on every sync.
     cur.execute("DELETE FROM profile_facts WHERE user_id = %s AND origin = 'github'", (user_id,))

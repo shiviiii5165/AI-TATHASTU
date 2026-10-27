@@ -345,4 +345,5 @@
 .btn-brand-gradient:active {
   transform: scale(0.99);
 }
-@import "../styles/landing.css";
+/* Only landing.css's global rules; the landing page imports the rest itself. */
+@import "../styles/landing-base.css";

@@ -52,22 +52,33 @@ export default function IntegrationsPage() {
 
 async function Cards() {
   const { user } = await requireOnboardedUser();
-  const projects = await db
-    .select({ title: unifiedProjects.canonicalTitle })
-    .from(unifiedProjects)
-    .where(eq(unifiedProjects.userId, user.id));
+  // Projects and the per-app reads are independent: one wave.
+  const [projects, cards] = await Promise.all([
+    db.select({ title: unifiedProjects.canonicalTitle }).from(unifiedProjects).where(eq(unifiedProjects.userId, user.id)),
+    loadCards(user.id),
+  ]);
   const projectList = [...new Map(projects.map((p) => [projectKey(p.title), p.title])).entries()].map(([key, title]) => ({ key, title }));
 
-  const cards: IntegrationCardView[] = await Promise.all(
+  return (
+    <div className="mt-10 space-y-6">
+      {cards.map((card) => (
+        <IntegrationCard key={card.id} card={card} projects={projectList} />
+      ))}
+    </div>
+  );
+}
+
+function loadCards(userId: string): Promise<IntegrationCardView[]> {
+  return Promise.all(
     INTEGRATION_CLIENTS.map(async (def) => {
       const client = clientById(def.id)!;
       const [consent, enabled, [lastDelivery]] = await Promise.all([
-        getConsent(user.id, client.id),
+        getConsent(userId, client.id),
         isFeatureEnabled(client.flag),
         db
           .select({ status: webhookOutbox.status, deliveredAt: webhookOutbox.deliveredAt, createdAt: webhookOutbox.createdAt })
           .from(webhookOutbox)
-          .where(and(eq(webhookOutbox.userId, user.id), eq(webhookOutbox.clientId, client.id)))
+          .where(and(eq(webhookOutbox.userId, userId), eq(webhookOutbox.clientId, client.id)))
           .orderBy(desc(webhookOutbox.createdAt))
           .limit(1),
       ]);
@@ -88,13 +99,5 @@ async function Cards() {
           : null,
       };
     }),
-  );
-
-  return (
-    <div className="mt-10 space-y-6">
-      {cards.map((card) => (
-        <IntegrationCard key={card.id} card={card} projects={projectList} />
-      ))}
-    </div>
   );
 }

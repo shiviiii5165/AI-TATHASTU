@@ -106,10 +106,8 @@ async function ProjectsContent() {
       {repos.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {repos.map((repo) => {
-            const scoreData = scoresMap.get(String(repo.id)) || scoresMap.get(repo.repoName.toLowerCase()) || {
-              impactScore: 82,
-              rationale: "82 - Solid modular architecture and engineering rigor.",
-            };
+            // Unscored repos show no score rather than an invented one.
+            const scoreData = scoresMap.get(String(repo.id)) || scoresMap.get(repo.repoName.toLowerCase()) || null;
 
             const langs = Object.keys((repo.languages as Record<string, number>) || {});
             const topics = (repo.topics as string[]) || [];
@@ -131,23 +129,27 @@ async function ProjectsContent() {
                       </h2>
                     </div>
 
-                    <span className="shrink-0 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-xs font-bold text-emerald-700">
-                      Impact {scoreData.impactScore}
-                    </span>
+                    {scoreData && (
+                      <span className="shrink-0 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-xs font-bold text-emerald-700">
+                        Impact {scoreData.impactScore}
+                      </span>
+                    )}
                   </div>
 
-                  <p className="mt-3 text-xs text-[#617493] line-clamp-2 leading-relaxed">
-                    {repo.description || "Verified GitHub repository with clean modular architecture."}
-                  </p>
+                  {repo.description && (
+                    <p className="mt-3 text-xs text-[#617493] line-clamp-2 leading-relaxed">{repo.description}</p>
+                  )}
 
-                  {/* AI Impact Rationale Callout */}
-                  <div className="mt-3.5 rounded-xl bg-slate-50 p-2.5 border border-slate-100 text-[11px] text-slate-600">
-                    <div className="flex items-center gap-1 font-semibold text-slate-900 mb-0.5">
-                      <Sparkles className="size-3 text-[#FF496D]" />
-                      <span>AI Impact Rationale</span>
+                  {/* Impact rationale (from the worker's scorer; absent until scored) */}
+                  {scoreData && (
+                    <div className="mt-3.5 rounded-xl bg-slate-50 p-2.5 border border-slate-100 text-[11px] text-slate-600">
+                      <div className="flex items-center gap-1 font-semibold text-slate-900 mb-0.5">
+                        <Sparkles className="size-3 text-[#FF496D]" />
+                        <span>Impact Rationale</span>
+                      </div>
+                      <p className="line-clamp-2">{scoreData.rationale}</p>
                     </div>
-                    <p className="line-clamp-2">{scoreData.rationale}</p>
-                  </div>
+                  )}
 
                   {/* Tags */}
                   {tags.length > 0 && (

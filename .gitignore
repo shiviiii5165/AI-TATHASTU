@@ -33,6 +33,7 @@
 *.pem
 .idea/
 /test-screenshots/
+/scripts/*.png
 
 # debug
 npm-debug.log*
