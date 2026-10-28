@@ -16,7 +16,7 @@ const SUGGESTED_PROMPTS = [
 const INITIAL_MESSAGES = [
   {
     sender: "yora",
-    text: "Hi! I'm Yora, your AI career companion ✨ I've analyzed your verified projects, publications, and skills. What would you like to explore today?",
+    text: "Hi! I'm Yora, your career guide. Ask me anything about your skills, roadmap milestones, or finding opportunities. How can I help today?",
     time: "Just now",
   },
 ];
@@ -83,7 +83,7 @@ export function YoraModal({
         ...prev,
         {
           sender: "yora",
-          text: "I experienced a brief connection blip, but based on your verified proof-of-work, you are on track! What milestone should we examine?",
+          text: "I had trouble connecting just now. Please try asking again in a moment, or explore your milestones on the dashboard.",
           time: "Just now",
         },
       ]);

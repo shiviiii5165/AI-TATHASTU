@@ -25,8 +25,8 @@ const scriptFont = Caveat({
 });
 
 export const metadata: Metadata = {
-  title: "Welcome to AI Tathastu · Sign in",
-  description: "Turn effort into opportunities. Sign in or create your verified AI Tathastu profile.",
+  title: "Sign In · AI Tathastu",
+  description: "Sign in, build your profile and take the next step.",
 };
 
 const ERRORS: Record<string, string> = {
@@ -87,16 +87,16 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
             className="font-sans text-[32px] lg:text-[34px] xl:text-[42px] 2xl:text-[46px] font-extrabold leading-[1.08] tracking-[-0.03em] text-[#0F172A]"
             style={{ textShadow: "0 1px 12px rgba(255,255,255,0.7), 0 0 20px rgba(255,255,255,0.4)" }}
           >
-            <span className="block">Turn effort</span>
+            <span className="block">Your next idea</span>
             <span className="block whitespace-nowrap">
-              into{" "}
+              starts{" "}
               <span className="bg-gradient-to-r from-[#FF2A85] via-[#FF4542] to-[#FF6B4A] bg-clip-text text-transparent">
-                opportunities.
+                here.
               </span>
             </span>
           </h1>
 
-          {/* Tathastu signature — aligned toward the right side beneath opportunities. */}
+          {/* Tathastu signature — aligned toward the right side beneath headline */}
           <div className="mt-1 flex justify-end pr-3 xl:pr-6">
             <div className="relative inline-block -rotate-2 select-none">
               <span
@@ -127,17 +127,17 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
             className="mt-2 xl:mt-3 text-[13px] lg:text-[13.5px] xl:text-[15px] font-medium leading-relaxed text-[#334155]"
             style={{ textShadow: "0 1px 8px rgba(255,255,255,0.8)" }}
           >
-            <span className="block whitespace-nowrap">Showcase your work, get discovered</span>
-            <span className="block whitespace-nowrap">and grow with the right people.</span>
+            <span className="block whitespace-nowrap">Sign in, build your profile</span>
+            <span className="block whitespace-nowrap">and take the next step.</span>
           </p>
         </div>
 
         {/* ── Mobile Hero Layout ── */}
         <div className="lg:hidden relative z-10 px-6 pt-4 pb-5 sm:px-8 sm:pt-6">
           <h1 className="font-sans text-2xl sm:text-3xl font-extrabold leading-[1.12] tracking-[-0.02em] text-[#0F172A]">
-            Turn effort into{" "}
+            Your next idea starts{" "}
             <span className="bg-gradient-to-r from-[#FF2A85] via-[#FF4542] to-[#FF6B4A] bg-clip-text text-transparent">
-              opportunities.
+              here.
             </span>
           </h1>
 
@@ -169,7 +169,7 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
 
           {/* Mobile supporting paragraph */}
           <p className="mt-2 text-xs sm:text-[13px] font-medium leading-relaxed text-[#334155] max-w-xs">
-            Showcase your work, get discovered and grow with the right people.
+            Sign in, build your profile and take the next step.
           </p>
         </div>
 
@@ -215,10 +215,10 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
           <div className="rounded-3xl border border-slate-200/85 bg-white p-5 sm:p-7 lg:p-6 xl:p-8 shadow-xl shadow-slate-200/50">
             <div className="mb-4 sm:mb-6">
               <h2 className="font-sans text-xl sm:text-[24px] xl:text-[27px] font-bold tracking-tight text-[#0F172A] leading-tight">
-                Welcome to AI Tathastu
+                Your next idea starts here.
               </h2>
               <p className="mt-1 text-xs sm:text-sm text-slate-500">
-                Sign in or create your profile to continue.
+                Sign in, build your profile and take the next step.
               </p>
             </div>
 

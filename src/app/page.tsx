@@ -4,9 +4,9 @@ import { LandingPage } from "@/components/landing/landing-page";
 import "@/styles/landing.css";
 
 export const metadata: Metadata = {
-  title: "AI Tathastu — The Mind Behind Your Work",
+  title: "AI Tathastu — You imagine. AI Tathastu makes it happen.",
   description:
-    "The AI/ML home of your campus. Repositories, notebooks, papers, hackathons — gathered into one verified profile.",
+    "Turn your skills, projects and ideas into meaningful next steps with AI Tathastu.",
 };
 
 // Fully static: no per-request session check on the server. The enhancer asks

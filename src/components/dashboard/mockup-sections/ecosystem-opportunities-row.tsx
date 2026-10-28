@@ -307,7 +307,7 @@ function NetworkInternshipsCard({ internships = [] }: { internships?: Opportunit
           </div>
           <p className="text-xs font-bold text-[#11182B]">No Active Internships</p>
           <p className="text-[11px] text-[#617493] mt-1 max-w-[200px]">
-            Sync your academic background to unlock referral networks and student internships.
+            Add your academic background to find student internships and campus opportunities.
           </p>
           <Link
             href="/internships"

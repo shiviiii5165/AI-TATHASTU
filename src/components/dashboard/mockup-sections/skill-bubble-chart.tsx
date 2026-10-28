@@ -213,8 +213,8 @@ export function SkillBubbleChart({
           confidence,
           isDirect: n.isDirect ?? true,
           category: n.category || categorizeSkill(n.name),
-          source: n.source || (n.isDirect ? "Verified Codebase & Profile Evidence" : "Inferred via Ontological Graph"),
-          reason: n.reason || (n.isDirect ? "Found in verified repository code & profile evidence." : "Inferred from foundational prerequisite competencies."),
+          source: n.source || (n.isDirect ? "Direct Evidence" : "AI-inferred"),
+          reason: n.reason || (n.isDirect ? "Found in verified repository code & profile evidence." : "Inferred from your related skills and projects."),
           inferredFrom: n.inferredFrom || [],
           radius,
           colorGrad: getNodeColorGradient(n.isDirect ?? true, isCore),
@@ -468,7 +468,7 @@ export function SkillBubbleChart({
           </div>
           <div>
             <h2 className="font-sans text-sm font-bold text-[#11182B]">Interactive Skill Graph</h2>
-            <p className="text-[10px] text-[#8A9BB5]">Force-directed ontological network</p>
+            <p className="text-[10px] text-[#8A9BB5]">See how your skills connect</p>
           </div>
         </div>
         <div className="flex items-center gap-1.5 sm:gap-2">
@@ -864,7 +864,7 @@ export function SkillBubbleChart({
               {/* Connected Skills in Graph */}
               {selectedNeighbors.length > 0 && (
                 <div>
-                  <p className="font-semibold text-slate-700 mb-2">Connected Ontological Neighbors:</p>
+                  <p className="font-semibold text-slate-700 mb-2">Related skills:</p>
                   <div className="flex flex-wrap gap-1.5">
                     {selectedNeighbors.map((nb) => (
                       <button

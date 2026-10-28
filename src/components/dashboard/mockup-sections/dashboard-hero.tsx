@@ -22,14 +22,13 @@ export function DashboardHero({ name, line, updated, onOpenYora }: DashboardHero
         {/* Left greeting, direction, and primary action */}
         <div className="max-w-xl">
           <h1 className="editorial-title text-2xl sm:text-3xl lg:text-[2.25rem] text-[#11182B] tracking-tight leading-[1.2] break-words">
-            Good to see you,{" "}
+            Let&apos;s make progress,{" "}
             <span className="bg-gradient-to-r from-[#FF496D] to-[#FF713D] bg-clip-text text-transparent font-normal italic">
               {name}.
             </span>
           </h1>
           <p className="mt-2 text-sm sm:text-[15px] font-medium text-[#64748B] leading-relaxed">
-            Your intelligence workspace connects verified skills, projects, and career opportunities.{" "}
-            <span className="text-[#FF496D] font-semibold">Tathastu.</span>
+            Your skills, projects and next steps — all in one place.
           </p>
 
           {line && (

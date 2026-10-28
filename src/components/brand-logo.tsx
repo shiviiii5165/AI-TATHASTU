@@ -49,7 +49,7 @@ export function BrandLogo({
               taglineClassName
             )}
           >
-            The mind behind your work
+            You imagine. AI Tathastu makes it happen.
           </span>
         )}
       </span>

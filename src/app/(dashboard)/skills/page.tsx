@@ -151,11 +151,11 @@ async function SkillsContent() {
                     <Cpu className="size-4" />
                   </div>
                   <h2 className="font-sans text-sm font-bold text-[#11182B]">
-                    AI-Inferred Ontological Tree
+                    AI-Inferred Skills
                   </h2>
                 </div>
                 <span className="text-[11px] font-semibold text-[#8554FF] bg-[#F4F1FD] px-2.5 py-0.5 rounded-full">
-                  Reasoning Engine
+                  Skills Analysis
                 </span>
               </div>
 
@@ -177,7 +177,7 @@ async function SkillsContent() {
                               : "bg-purple-50 text-purple-700 border border-purple-200"
                           }`}
                         >
-                          {s.isDirect ? "Direct Evidence" : "Graph Inferred"}
+                          {s.isDirect ? "Direct Evidence" : "AI-inferred"}
                         </span>
                       </div>
                       <div className="mt-2.5 flex items-center gap-2">
@@ -201,12 +201,12 @@ async function SkillsContent() {
                 </div>
               ) : (
                 <div className="py-12 text-center text-slate-400 text-xs">
-                  Ontological graph running inference across confirmed skills…
+                  Connecting related skills based on your profile…
                 </div>
               )}
 
               <p className="text-[11px] text-slate-500 pt-2 border-t border-[#F0F2F7]">
-                Parent skills are inferred using deep semantic mapping across foundational CS competencies.
+                We suggest broader skills based on the tools and technologies you use in your projects.
               </p>
             </div>
           </div>
