@@ -30,7 +30,7 @@ export function ContinueForm({
   hint: string;
   status?: React.ReactNode;
   label?: string;
-  variant?: "default" | "outline";
+  variant?: "default" | "outline" | "pink";
 }) {
   const [state, formAction, pending] = useActionState(continueFromStep, null);
 
@@ -110,7 +110,7 @@ export function ContinueButton({
   disabled?: boolean;
   hint?: string;
   label?: string;
-  variant?: "default" | "outline";
+  variant?: "default" | "outline" | "pink";
 }) {
   return (
     <div className="flex items-center gap-3">
@@ -134,6 +134,10 @@ export function ContinueButton({
             "border border-slate-200 bg-white text-slate-700 shadow-xs",
             "hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 active:scale-[0.99]",
             "disabled:opacity-40 disabled:cursor-not-allowed",
+          ],
+          variant === "pink" && [
+            "rounded-2xl bg-pink-50 text-[#FF2A85] hover:bg-pink-100/80 px-6 font-semibold shadow-2xs",
+            "active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed",
           ]
         )}
       >

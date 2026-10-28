@@ -12,20 +12,20 @@ export const PERSONA_COPY: Record<Persona, { title: string; label: string; blurb
   student: {
     title: "I am a Student",
     label: "Student",
-    blurb: "Building toward a career in AI: internships, first jobs, research or a startup.",
-    gets: ["Interview readiness (ERIS) for your target role", "Skill gaps and what to learn next", "Projects, jobs and mentors that fit"],
+    blurb: "Build my skills, find opportunities and grow my career.",
+    gets: ["Internships & jobs", "Learning resources", "Projects and mentors"],
   },
   faculty: {
-    title: "I am Faculty / Mentor",
-    label: "Faculty / Mentor",
-    blurb: "Teaching, researching or mentoring students in AI and related fields.",
-    gets: ["Students who match your expertise", "Mentee requests in one place", "Papers and events in your research areas"],
+    title: "I am a Faculty",
+    label: "Faculty",
+    blurb: "Teach, research and guide students.",
+    gets: ["Find and mentor students", "Collaborate on research", "Share opportunities"],
   },
   alumni: {
-    title: "I am an Alumnus",
+    title: "I am an Alumni",
     label: "Alumni",
-    blurb: "Graduated and working. Here to grow your network and give back.",
-    gets: ["Top student talent for your team", "Referral requests you can act on", "Your alumni network, by company and field"],
+    blurb: "Stay connected, support students and give back.",
+    gets: ["Mentor and recruit", "Share opportunities", "Grow the network"],
   },
 };
 

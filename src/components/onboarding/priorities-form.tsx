@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDown, ArrowUp, GripVertical, Sparkles, X } from "lucide-react";
+import { ArrowDown, ArrowUp, GripVertical, X } from "lucide-react";
 import { useState } from "react";
 
 import { savePriorities } from "@/app/onboarding/actions";
@@ -94,7 +94,7 @@ export function PrioritiesForm({ initialPriorities }: { initialPriorities: strin
 
                     <span className="min-w-0 flex-1">
                       <span className="flex items-center gap-2">
-                        <span className="font-heading text-base font-bold text-[#0F172A]">
+                        <span className="font-sans text-base font-bold text-[#0F172A]">
                           {p.label}
                         </span>
                         <span className="rounded-md bg-slate-100 px-2 py-0.5 font-mono text-[0.6875rem] font-semibold text-slate-600 uppercase">
@@ -122,29 +122,8 @@ export function PrioritiesForm({ initialPriorities }: { initialPriorities: strin
           </p>
         </section>
 
-        {/* Right: Value Callout + Reorder Panel */}
+        {/* Right: Reorder Panel */}
         <section aria-labelledby="ranking-heading" className="space-y-6 xl:sticky xl:top-24 xl:self-start">
-          {/* "Your selection helps us" callout box from reference */}
-          <div className="rounded-2xl border border-amber-200/80 bg-amber-50/50 p-6 shadow-xs">
-            <h3 className="font-heading text-sm font-bold text-amber-950 flex items-center gap-2">
-              <Sparkles className="size-4 text-[#FF2A85]" />
-              Your selection helps us:
-            </h3>
-            <ul className="mt-3.5 space-y-2 text-xs leading-relaxed text-amber-900 font-medium">
-              <li className="flex items-start gap-2">
-                <span className="text-[#FF2A85] font-bold">✦</span>
-                <span>Personalize relevant internship & job opportunities</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-[#FF2A85] font-bold">✦</span>
-                <span>Recommend curated learning resources and mentors</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-[#FF2A85] font-bold">✦</span>
-                <span>Connect you with researchers, founders and peers</span>
-              </li>
-            </ul>
-          </div>
 
           {/* Ranking Reorder Card */}
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">

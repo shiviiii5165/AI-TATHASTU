@@ -106,13 +106,13 @@ export function ResumeUploader({
         <AiConsent initial={initialAiConsent} uploaded={phase.kind === "processing"} />
 
         {/* Reassurance text */}
-        <p className="text-center text-xs text-slate-500">
-          Your file is stored securely in private storage and only used to build your profile.
+        <p className="text-center text-xs text-slate-400 font-normal">
+          Your file is used to build your profile.
         </p>
       </div>
 
       {isDone ? null : (
-        <ContinueForm step="resume" persona={persona} canContinue hint="" label="Skip for now" variant="outline" />
+        <ContinueForm step="resume" persona={persona} canContinue hint="" label="Skip for now" variant="pink" />
       )}
     </>
   );
@@ -140,12 +140,7 @@ function AiConsent({ initial, uploaded }: { initial: boolean; uploaded: boolean 
   }
 
   return (
-    <div
-      className={cn(
-        "flex items-start gap-4 rounded-2xl border bg-white p-5 shadow-xs transition-all duration-150",
-        granted ? "border-[#FF2A85] bg-rose-50/20 ring-1 ring-[#FF2A85]/20" : "border-slate-200"
-      )}
-    >
+    <div className="flex items-start gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-xs transition-all duration-150">
       <div className="pt-0.5">
         <Checkbox
           id="ai-consent"
@@ -157,14 +152,11 @@ function AiConsent({ initial, uploaded }: { initial: boolean; uploaded: boolean 
         />
       </div>
       <div className="min-w-0 flex-1 text-sm">
-        <label htmlFor="ai-consent" className="cursor-pointer font-bold text-[#0F172A] flex items-center gap-1.5">
-          <span>Use AI to read my resume</span>
-          <span className="font-semibold text-rose-700 text-xs bg-rose-100/80 px-2 py-0.5 rounded-full">
-            Recommended
-          </span>
+        <label htmlFor="ai-consent" className="cursor-pointer font-bold text-[#0F172A] block">
+          Use AI to read my resume
         </label>
         <p id="ai-consent-body" className="mt-1 text-xs leading-relaxed text-slate-500">
-          We extract information using AI and let you review and edit everything before saving. Experience, projects, and certifications are read in full.
+          We&apos;ll extract profile details for you to review before saving.
         </p>
         {note && (
           <p role="status" className="mt-2 text-xs font-semibold text-[#FF2A85]">
@@ -203,7 +195,7 @@ function Dropzone({ error, onFile }: { error?: string; onFile: (file: File) => v
         }}
         className={cn(
           "group flex cursor-pointer flex-col items-center justify-center gap-3.5 sm:gap-4 rounded-2xl sm:rounded-3xl border-2 border-dashed bg-white p-6 sm:p-12 text-center transition-all duration-200 touch-manipulation",
-          "hover:border-[#FF2A85] hover:bg-rose-50/10 shadow-xs focus-within:ring-2 focus-within:ring-[#FF2A85]/20",
+          "border-slate-200/90 hover:border-slate-300 shadow-xs focus-within:ring-2 focus-within:ring-[#FF2A85]/20",
           dragging && "border-[#FF2A85] bg-rose-50/40 scale-[1.01]",
           error && !dragging ? "border-red-300 bg-red-50/10" : "border-slate-200"
         )}
@@ -214,23 +206,23 @@ function Dropzone({ error, onFile }: { error?: string; onFile: (file: File) => v
             "grid size-14 place-items-center rounded-2xl transition-all duration-150 shadow-xs",
             dragging
               ? "bg-[#FF2A85] text-white scale-110"
-              : "bg-gradient-to-br from-[#FFE4E6] to-[#FCE7F3] text-[#FF2A85] group-hover:scale-105"
+              : "bg-pink-50 text-[#FF2A85] group-hover:scale-105"
           )}
         >
-          <Upload className="size-6 stroke-[2.2]" />
+          <Upload className="size-6 stroke-[2]" />
         </div>
 
         <div>
-          <span className="block font-heading text-xl font-bold tracking-tight text-[#0F172A] sm:text-2xl">
-            {dragging ? "Drop your file here" : "Drop your resume here"}
-          </span>
-          <span className="mt-1.5 block text-sm text-slate-500">
-            or <span className="font-bold text-[#FF2A85] underline underline-offset-4">choose a file</span> from your device
+          <span className="block font-sans text-sm sm:text-base font-bold tracking-tight text-[#0F172A]">
+            Drag your file here or{" "}
+            <span className="font-semibold text-[#FF2A85] underline underline-offset-4 cursor-pointer">
+              Browse files
+            </span>
           </span>
         </div>
 
-        <div className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3.5 py-1 text-xs font-semibold text-slate-600">
-          PDF · DOCX · JPG · PNG · WEBP · TXT (up to 10 MB)
+        <div className="inline-flex items-center rounded-full bg-slate-100 px-3.5 py-1 text-xs font-medium text-slate-500">
+          PDF or DOCX · Max 10 MB
         </div>
 
         <input

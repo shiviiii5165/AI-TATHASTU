@@ -19,7 +19,7 @@ export function StepHeader({
         <span className="font-bold text-[#FF2A85]">{pad(position)}</span> / {pad(FLOW_LENGTH)} · {stepLabel(step)}
       </p>
 
-      <h1 className="mt-2.5 font-heading text-2xl font-extrabold leading-[1.15] tracking-tight text-[#0F172A] sm:text-3xl lg:text-4xl">
+      <h1 className="mt-2.5 font-sans text-2xl font-extrabold leading-[1.15] tracking-tight text-[#0F172A] sm:text-3xl lg:text-4xl">
         {title}
       </h1>
 

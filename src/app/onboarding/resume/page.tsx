@@ -7,23 +7,16 @@ import { ResumeUploader } from "@/components/resume/resume-uploader";
 import { getCurrentConsents } from "@/lib/consent/store";
 import { getLatestResumeJob, requireOnboardingStep } from "@/lib/dal";
 
-export const metadata: Metadata = { title: "Resume · AI Tathastu" };
+export const metadata: Metadata = { title: "Upload your resume · AI Tathastu" };
 
 export default function ResumePage() {
   return (
     <>
       <StepHeader
         step="resume"
-        title={
-          <>
-            Import your{" "}
-            <span className="font-serif font-normal italic text-[#FF2A85]">
-              resume
-            </span>
-          </>
-        }
+        title="Upload your resume"
       >
-        We read it and pre-fill your education, experience, projects and skills. You can review and edit everything before saving.
+        Add a resume to fill in your profile. Review all details before saving.
       </StepHeader>
       <Suspense fallback={<StepSkeleton />}>
         <ResumeStep />
