@@ -1974,13 +1974,14 @@ initTourAndSubmission();
 /* ============================================================
    14. SCROLL CHOREOGRAPHY (Progress Bar, Quote Scrub, Timeline Spine)
 ============================================================ */
+const heroCopy = document.querySelector('.ref-hero-copy');
 const scrollBar = document.getElementById('scrollBar');
 const timelineBox = document.getElementById('timelineBox');
 const timelineFill = document.getElementById('timelineFill');
 const svgTimelineFill = document.getElementById('timelineSvgTrackFill');
 const tlItems = document.querySelectorAll('.tl-item');
 const stepNodes = document.querySelectorAll('.step-node');
-const stepTones = [392, 440, 493.88, 587.33];
+const stepTones = [392, 440, 493.88, 587.33, 659.25];
 
 function activateStep(stepNum) {
   stepNodes.forEach(node => {
