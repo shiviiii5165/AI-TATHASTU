@@ -25,7 +25,7 @@ LEETCODE_QUERY = """query($u: String!) {
 
 def fetch_leetcode(username: str) -> Dict[str, Any]:
     out = http_json("POST", "https://leetcode.com/graphql", {"Referer": "https://leetcode.com"},
-                    {"query": LEETCODE_QUERY, "variables": {"u": username}})
+                    {"query": LEETCODE_QUERY, "variables": {"u": username}}, timeout=15)
     data = (out or {}).get("data") or {}
     if not data.get("matchedUser"):
         raise NeedsReview(f"LeetCode user '{username}' not found")
@@ -36,17 +36,21 @@ def map_leetcode(data: Dict[str, Any], facts: Facts) -> Facts:
     user = data["matchedUser"]
     name = user["username"]
     ev = f"leetcode.com/u/{name}"
-    solved = {s["difficulty"].lower(): s["count"] for s in user["submitStatsGlobal"]["acSubmissionNum"]}
-    stats = {"easy": solved.get("easy", 0), "medium": solved.get("medium", 0), "hard": solved.get("hard", 0),
-             "total": solved.get("all", 0)}
+    # A count LeetCode didn't return is unknown (None), never 0: no fake zeros.
+    rows = ((user.get("submitStatsGlobal") or {}).get("acSubmissionNum")) or []
+    solved = {s["difficulty"].lower(): s["count"] for s in rows if s.get("difficulty") and s.get("count") is not None}
+    stats: Dict[str, Any] = {k: solved.get(src) for k, src in
+                             (("easy", "easy"), ("medium", "medium"), ("hard", "hard"), ("total", "all"))}
     contest = data.get("userContestRanking") or {}
     if contest.get("rating"):
         stats["contest_rating"] = round(contest["rating"])
         stats["contests"] = contest.get("attendedContestsCount")
         stats["top_percentage"] = contest.get("topPercentage")
-    title = (f"LeetCode: {stats['total']} problems solved (Easy {stats['easy']} · Medium {stats['medium']} · "
-             f"Hard {stats['hard']})")
-    facts.add("achievements", "title", title, ev, "leetcode:stats", extracted=stats)
+    if solved:
+        split = " · ".join(f"{k.title()} {stats[k]}" for k in ("easy", "medium", "hard") if stats[k] is not None)
+        total = f"{stats['total']} problems solved" if stats["total"] is not None else "Problems solved"
+        title = f"LeetCode: {total}" + (f" ({split})" if split else "")
+        facts.add("achievements", "title", title, ev, "leetcode:stats", extracted=stats)
     if stats.get("contest_rating"):
         facts.add("achievements", "description",
                   f"Contest rating {stats['contest_rating']} over {stats.get('contests')} contests"
@@ -56,7 +60,7 @@ def map_leetcode(data: Dict[str, Any], facts: Facts) -> Facts:
         if lang.get("problemsSolved"):
             facts.add("skills", "skill", lang["languageName"], f"{lang['problemsSolved']} LeetCode problems solved in {lang['languageName']}",
                       f"leetcode-lang:{lang['languageName']}")
-    if stats["total"] >= 50:
+    if (stats["total"] or 0) >= 50:
         facts.add("skills", "skill", "Data Structures and Algorithms", f"{stats['total']} problems solved on LeetCode", "leetcode-dsa")
     return facts
 
@@ -92,12 +96,11 @@ def _sync(conn: Any, job: Job, source: str, fetch, mapper) -> None:
     row, cred = loaded
     try:
         data = fetch(cred["username"])
-    except NeedsReview:
+    except Exception as exc:  # any failure (timeouts included) must not leave the card stuck on 'syncing'
         set_status(conn, row["id"], "failed")
-        raise
-    except HttpError:
-        set_status(conn, row["id"], "failed")
-        raise
+        if isinstance(exc, HttpError) and 400 <= exc.status < 500 and exc.status not in (408, 429):
+            raise NeedsReview(f"{source} returned HTTP {exc.status}") from exc  # permanent: retrying can't help
+        raise  # rate limited / server error / timeout: retried with backoff up to max_attempts
     finish_sync(conn, job, row["id"], source, mapper(data, Facts(job.user_id, source, f"api:{source}")))
 
 

@@ -66,6 +66,14 @@ class DeterministicTests(unittest.TestCase):
     def test_name_from_all_caps_header(self) -> None:
         self.assertEqual(self.by[("identity", "full_name")].value, "Priya Sharma")
 
+    def test_name_with_diacritics_or_caseless_script(self) -> None:
+        for name in ("Ånanya Rëddy Ñair", "शिवम कुमार", "Mary O'Brien-Iyer"):
+            found = deterministic.extract_name(f"{name}\nBengaluru, India | +91 98765 43210\n")
+            self.assertEqual([c.value for c in found], [name])
+
+    def test_name_rejects_non_name_lines(self) -> None:
+        self.assertEqual(deterministic.extract_name("Bengaluru, India\nB.Tech 2025\nsee resume below\n"), [])
+
     def test_education_entry(self) -> None:
         edu = [c for c in self.cands if c.group == "education"]
         fields = {c.field: c.value for c in edu}
@@ -443,6 +451,22 @@ class ConnectorMappingTests(unittest.TestCase):
         skills = [v for g, fld, _k, v in self.rows(f) if g == "skills"]
         self.assertEqual(skills, ["Python3", "Data Structures and Algorithms"])  # C++ (0 solved) skipped
 
+    def test_leetcode_missing_counts_are_unknown_not_zero(self) -> None:
+        from connectors.coding_profiles import map_leetcode
+        import json as _json
+
+        bare = {"matchedUser": {"username": "asha", "submitStatsGlobal": None, "languageProblemCount": None}}
+        self.assertFalse([r for r in map_leetcode(bare, self.facts("leetcode")).rows if r[3] == "leetcode:stats"])
+        partial = {"matchedUser": {"username": "asha", "submitStatsGlobal": {"acSubmissionNum": [{"difficulty": "Easy", "count": 4}]}}}
+        row = next(r for r in map_leetcode(partial, self.facts("leetcode")).rows if r[3] == "leetcode:stats")
+        self.assertEqual(_json.loads(row[4]), {"easy": 4, "medium": None, "hard": None, "total": None})
+        self.assertNotIn("0", _json.loads(row[5]))
+
+    def test_eris_skips_unknown_leetcode_counts(self) -> None:
+        unknown = [{"record_key": "leetcode:stats", "extracted_value": {"easy": None, "medium": None, "hard": None}}]
+        known = [{"record_key": "leetcode:stats", "extracted_value": {"easy": 10, "medium": None, "hard": None}}]
+        self.assertIsNone(eris.problem_solving_score(unknown))
+        self.assertGreater(eris.problem_solving_score(known) or 0, 0)
     def test_problem_solving_score(self) -> None:
         self.assertIsNone(eris.problem_solving_score([]))
         lc = {"record_key": "leetcode:stats", "extracted_value": {"easy": 90, "medium": 80, "hard": 10}}
@@ -471,6 +495,85 @@ class ConnectorMappingTests(unittest.TestCase):
         self.assertIn(("projects", "url", "kaggle-kernel:asha/eda", "https://www.kaggle.com/code/asha/eda"), values)
         self.assertIn(("achievements", "date", "kaggle-competition:titanic", "2030-01-07"), values)
         self.assertIn(("skills", "skill", "kaggle-lang:Python", "Python"), values)
+
+
+class ConnectorFailureTests(unittest.TestCase):
+    """Permanent provider errors stop (needs_review); transient ones are retried by the worker."""
+
+    def _run(self, exc):
+        from unittest import mock
+        from connectors import coding_profiles as cp
+        from jobs import Job
+
+        job = Job(id="j", type="connector_sync", user_id="u1", payload={"connection_id": "c"}, attempts=1, max_attempts=3)
+        with mock.patch.object(cp, "load_connection", return_value=({"id": "c"}, {"username": "asha"})), \
+             mock.patch.object(cp, "set_status") as status, mock.patch.object(cp, "finish_sync") as finish:
+            with self.assertRaises(Exception) as ctx:
+                cp._sync(None, job, "leetcode", mock.Mock(side_effect=exc), cp.map_leetcode)
+        status.assert_called_with(None, "c", "failed")
+        finish.assert_not_called()  # nothing stale is written as fresh
+        return ctx.exception
+
+    def test_not_found_and_forbidden_are_permanent(self) -> None:
+        from connectors.common import HttpError
+        from jobs import NeedsReview
+
+        for code in (400, 403, 404):
+            self.assertIsInstance(self._run(HttpError(code, "")), NeedsReview)
+
+    def test_rate_limit_server_error_and_timeout_are_retried(self) -> None:
+        import socket
+        from connectors.common import HttpError
+        from jobs import NeedsReview
+
+        for exc in (HttpError(429, "slow down"), HttpError(503, ""), socket.timeout("timed out")):
+            self.assertNotIsInstance(self._run(exc), NeedsReview)
+
+    def _finish(self, connected, consented, consent=None):
+        from unittest import mock
+        from connectors import common
+        from jobs import Job
+
+        conn, cur = mock.MagicMock(), mock.MagicMock()
+        conn.cursor.return_value.__enter__.return_value = cur
+        cur.fetchone.return_value = (1,) if connected else None
+        facts = mock.Mock()
+        job = Job(id="j", type="connector_sync", user_id="u1", payload={}, attempts=1, max_attempts=3)
+        with mock.patch.object(common, "has_consent", return_value=consented), \
+             mock.patch.object(common, "enqueue_compute_intelligence") as enqueue:
+            common.finish_sync(conn, job, "c", "linkedin", facts, consent=consent)
+        return facts.replace.called, enqueue.called
+
+    def test_disconnect_or_revoked_consent_mid_sync_discards_results(self) -> None:
+        self.assertEqual(self._finish(connected=False, consented=True), (False, False))
+        self.assertEqual(self._finish(connected=True, consented=False, consent="linkedin_scrape"), (False, False))
+        self.assertEqual(self._finish(connected=True, consented=True, consent="linkedin_scrape"), (True, True))
+
+    def test_github_renamed_repo_does_not_fail_sync(self) -> None:
+        import io, urllib.error
+        from unittest import mock
+        from connectors import github
+        from jobs import Job
+
+        class Client:
+            def __init__(self, _token): pass
+            def get(self, path):
+                if path == "/user":
+                    return {"login": "asha", "html_url": "https://github.com/asha"}, {}
+                raise urllib.error.HTTPError(path, 404, "Not Found", {}, io.BytesIO(b""))
+            def paginate(self, path, limit):
+                return [{"full_name": "asha/gone", "name": "gone", "language": "Go", "fork": False}]
+
+        conn, cur = mock.MagicMock(), mock.MagicMock()
+        conn.cursor.return_value.__enter__.return_value = cur
+        job = Job(id="j", type="connector_sync", user_id="u1", payload={"connection_id": "c"}, attempts=1, max_attempts=3)
+        with mock.patch.object(github, "fetch_one", return_value={"id": "c", "token_enc": "x"}), \
+             mock.patch.object(github, "open_credential", return_value={"access_token": "t"}), \
+             mock.patch.object(github, "_write") as write, mock.patch.object(github, "enqueue_compute_intelligence"):
+            github.sync_github(conn, job, client_factory=Client)
+        _, _, _, repos, languages = write.call_args.args
+        self.assertEqual([r["full_name"] for r in repos], ["asha/gone"])
+        self.assertEqual(languages, {})  # falls back to the repo's primary language in _write
 
 
 DENSE_RESUME = """Rohan Verma

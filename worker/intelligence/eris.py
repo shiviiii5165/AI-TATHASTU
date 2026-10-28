@@ -26,7 +26,10 @@ def problem_solving_score(facts: List[Dict[str, Any]]) -> Optional[float]:
         if not isinstance(stats, dict):
             continue
         if f.get("record_key") == "leetcode:stats":
-            weighted = stats.get("easy", 0) + 2 * stats.get("medium", 0) + 3 * stats.get("hard", 0)
+            counts = [(stats.get(k), w) for k, w in (("easy", 1), ("medium", 2), ("hard", 3))]
+            if all(c is None for c, _ in counts):
+                continue  # unknown, not zero
+            weighted = sum((c or 0) * w for c, w in counts)
             scores.append(min(1.0, weighted / LEETCODE_FULL_MARKS))
         elif f.get("record_key") == "hackerrank:stats":
             stars = (stats.get("badges") or {}).get("Problem Solving")

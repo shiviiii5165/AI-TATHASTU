@@ -31,6 +31,9 @@ const mono = Geist_Mono({
   variable: "--font-mono",
   subsets: ["latin"],
   display: "swap",
+  // Small metadata text only (never the LCP element): don't let its preload
+  // compete with the heading/body fonts on slow connections.
+  preload: false,
 });
 
 const display = Instrument_Serif({

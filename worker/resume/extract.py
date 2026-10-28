@@ -32,7 +32,7 @@ from typing import Any, Dict, List, Tuple
 
 import provider_router
 from db import fetch_one, has_consent
-from jobs import Job, NeedsReview
+from jobs import Job, NeedsReview, assert_still_owner
 from resume import deterministic, llm
 from resume.deterministic import Candidate
 from resume.intake import IntakeError, intake
@@ -66,6 +66,9 @@ def process_resume_extract(conn: Any, job: Job) -> None:
         raise NeedsReview(diag.get("reason") or "nothing could be extracted from this file")
 
     with conn, conn.cursor() as cur:  # Stage 6 — persist
+        assert_still_owner(cur, job)  # a reclaimed run must not replace the new owner's facts
+        if consent and not has_consent(cur, job.user_id, "external_ai"):  # revoked while AI ran: keep rules only
+            facts = [f for f in facts if f.method == "deterministic"]
         n = persist(cur, job.user_id, doc, facts)
     log.info("file %s: saved %d facts %s via %s; methods=%s", file_id, n,
              dict(Counter(f.group for f in facts)), diag["tier"], dict(Counter(f.method for f in facts)))

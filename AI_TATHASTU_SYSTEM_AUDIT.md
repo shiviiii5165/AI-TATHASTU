@@ -1234,3 +1234,227 @@ Targeted regression tests confirmed all privacy boundaries established in earlie
 | `Get-PnpDevice` / `Get-Disk` | Host System | Exit 0 | Diagnosed USB drive sleep and verified NTFS availability on host C: drive |
 | `npx tsx scripts/verify-pgvector.ts` | `d:\ai tathastu 3` | Exit 0 | 100% read-only real-SQL pgvector verification, mandatory error regex pattern enforcement, representative query embeddings, and production discovery predicate execution |
 
+
+---
+
+# Part 3 — Verification, fixes and load test (2026-10-29)
+
+Branch `perf/audit-and-scale` @ `1cafdd0`, clean tree at start. NTFS path `E:\dev\ai-tathastu`. No commits, pushes, deploys, migrations on any real database, or production writes. `.env.local` does not exist in this checkout, so no real DB was reachable; every write went to the throwaway e2e stack (PGlite on 127.0.0.1:55433, fake R2 on :9100). Evidence labels: **unit** (stubs), **integration** (PGlite / real app process), **live-verified** (authorised public API call), **not verified**.
+
+Corrections to earlier parts: Docker Desktop *does* run on this machine now (§29 rank 3 is stale). `vercel.json` has no `regions` and no `maxDuration`; Render is `plan: free`, `region: ohio`, one instance, one job at a time (`render.yaml`, `worker/worker.py`). Redis is **not used anywhere in `src/` or `worker/`**, so no Redis gains can be claimed.
+
+## 38. Baseline (A0)
+
+| Check | Baseline | Final |
+|---|---|---|
+| `npm ci` | `node_modules` absent; every check failed with "not recognized" | installed from lockfile, no dependency added |
+| typecheck (`next typegen && tsc`) | exit 0 | exit 0 |
+| lint (`eslint`) | exit 0 | exit 0 |
+| vitest | 18 files, 146 tests pass | 18 files, **149** pass |
+| worker unittest | 81 pass | **89** pass |
+| `next build` | exit 0 (15.9 s compile) | exit 0 (final build served the load test) |
+
+Next 16 no longer prints per-route JS sizes; per-route Lighthouse/bundle numbers were not re-measured in this phase (see §46).
+
+## 39. Resume pipeline (A1)
+
+Trace (source-verified): browser hashes file → `POST /api/upload/resume` (auth + step gate, zod: type ∈ PDF/DOCX/JPG/PNG/WebP/TXT, 1 B–10 MB, sha256) → presigned R2 PUT bound to type/size/checksum → `POST /api/upload/resume/complete` (HEAD verifies size/type/checksum) → `files` + `jobs` rows (idempotent on user+sha256 and job key) → worker intake (size, magic bytes, sha256) → text/OCR → rules → optional AI (consent) → `profile_facts` (`unconfirmed`, with evidence, location, method, confidence, validation status).
+
+**Labeled fixtures** (generated with the worker's own PyMuPDF/python-docx, run through the real `extract_facts`; `scratchpad/resume_eval.py`) — integration, AI provider stubbed:
+
+| Fixture | Outcome (rules-only, `external_ai=false`) | Name | Email | Phone | Skills | Edu/Exp/Proj/Cert/Ach | URLs |
+|---|---|---|---|---|---|---|---|
+| PDF text | 26 facts | correct | correct | correct (E.164) | 5/5 | all extracted | GitHub, LinkedIn ✓; LeetCode **unsupported field** |
+| PDF two-column | 26 facts | correct | correct | correct | 5/5 | all | same |
+| DOCX | 26 facts | correct | correct | correct | 5/5 | all | same |
+| TXT | 26 facts | correct | correct | correct | 5/5 | all | same |
+| Unicode name `Ånanya Rëddy Ñair` | before fix: **name missing**; after: correct | ✓ | ✓ | ✓ | 5/5 | all | same |
+| Prompt-injection line in resume | 27 facts; injected text never became a field or action | correct | ✓ | ✓ | 5/5 | all | — |
+| Scanned PDF | no facts → `needs_review` | **not verified**: Tesseract not installed on this machine | | | | | |
+| Encrypted PDF | `needs_review` "document closed or encrypted", not retried | | | | | | |
+| Corrupted PDF | `needs_review` "Failed to open stream", not retried | | | | | | |
+| DOCX declared as PDF | `needs_review` intake signature mismatch | | | | | | |
+| EXE declared as TXT | `needs_review` intake signature mismatch | | | | | | |
+| Empty file | `needs_review` "file is empty" (also rejected by zod min 1 B) | | | | | | |
+| 10 MB + 1 B | `needs_review` "exceeds 10 MB" (also rejected by zod at presign) | | | | | | |
+
+With `external_ai=true` the same fixtures route through the AI tiers (`sections`/`vision`) — routing verified with a stub provider; **AI extraction quality is not verified** (no live AI call made). Field status vocabulary in the DB: `validation_status` validated/unresolved, `confirmation` unconfirmed/confirmed/edited/rejected, `extraction_method` deterministic/ocr/llm…; values are never invented (LLM fields must quote verified evidence — existing `resume/verify.py`, unit-tested).
+
+**Conflict policy (existing, verified):** a new extraction deletes only the user's `origin='resume' AND confirmation='unconfirmed'` facts; anything the user confirmed/edited/rejected and every other source is untouched, so lower-confidence data never overwrites verified data.
+
+**Reliability (source + unit):** idempotent registration; duplicate upload returns the existing job; worker claim `FOR UPDATE SKIP LOCKED`; heartbeat; exponential retry 30 s·2ⁿ up to `max_attempts`; `NeedsReview` (permanent) never retried; final-attempt crash expires to `failed`; outcome writes fenced on `locked_by`. UI job states: queued/running/done/failed/needs_review (there is no separate "partial" state; partial extraction is `done` with fewer groups).
+
+## 40. Providers (A2–A5)
+
+**GitHub** — scope `read:user` → `/user/repos` returns public repos only (metadata only; no README/commits/source fetched by the connector). Live-verified with 2 unauthenticated public calls for `shiviiii5165` run through the worker's own `_write` mapping: 9 repos listed, 8 non-fork stored, **0 field mismatches** vs the API (description, URL, topics, stars, forks, pushed_at), 0 private repos.
+
+| Field | Supported | Extracted (live) | Correct | Authorized | Status |
+|---|---|---|---|---|---|
+| login / canonical URL | yes | `https://github.com/shiviiii5165` | yes | public | live-verified |
+| name | yes | "shivam kumar singh" | yes | public | live-verified |
+| bio / location / blog | yes | null on profile → no fact written (not fake) | yes | public | live-verified |
+| avatar | not stored by GitHub connector | — | — | — | unsupported |
+| repos: name, description, language, stars, forks, topics, pushed_at | yes | 8 rows | 0 mismatches | public | live-verified |
+| pagination | Link `rel=next`, cap 100 repos | — | — | — | unit |
+| rate limit (403 + remaining=0) | retried with backoff | — | — | — | source |
+| token revoked (401) | `reauth_needed` + needs_review | — | — | — | source |
+| renamed/deleted repo mid-sync (404 on languages) | **fixed**: no longer fails whole sync | — | — | — | unit |
+| private repos | not requested (scope) | 0 | — | — | live-verified |
+
+**LeetCode** — one live public GraphQL call via the worker's `fetch_leetcode`/`map_leetcode`:
+
+| Field | Supported | Live value | Correct | Status |
+|---|---|---|---|---|
+| solved total / easy / medium / hard | yes | 4 / 1 / 2 / 1 | matches raw response | live-verified |
+| contest rating | yes | null → **no fact** (not 0) | yes | live-verified |
+| badges | queried | 0; **never stored** by mapper | — | supported-in-query only |
+| language split → skills | yes | — | — | unit |
+| missing counts | **fixed**: unknown = `None`, no fake zeros; ERIS skips unknown | — | — | unit |
+| not found / 4xx | **fixed**: `needs_review`, no retry | — | — | unit |
+| 429 / 5xx / timeout | retried with backoff; status `failed` until next success | — | — | unit |
+
+**LinkedIn** — what exists: (1) Auth.js OIDC sign-in/link (scopes openid profile email) storing name, email, avatar, member `sub` as `linkedin_oidc` facts; (2) an Apify public-profile worker path gated on `linkedin_scrape` consent; (3) resume as alternative. Findings: OAuth state/PKCE/callback validation are Auth.js's; linking a LinkedIn account already linked to another user is rejected (`auth.ts` signIn callback); disconnect atomically deletes the connection, all `linkedin_oidc`/`linkedin_scrape` facts and the `accounts` row and cancels queued syncs. **No UI path accepts a pasted LinkedIn URL** (`parseLinkedInUrl` is only referenced in tests) and OIDC returns no vanity URL, so the scrape path is unreachable (dormant) — a URL is never treated as proof of ownership. Unavailable from LinkedIn OIDC: headline, experience, education, skills, connections, profile URL. Live LinkedIn sign-in: **BLOCKED** (needs owner login + LinkedIn app credentials; see §47).
+
+**SSRF (A5):** the only user-supplied fetch target is the portfolio URL: validated by `publicUrl()` (http/https only, dotted host, rejects IP literals, `localhost`, `.local/.internal/.localhost`) and fetched by **Firecrawl's** infrastructure, not ours, so DNS-to-private tricks cannot reach our network. LeetCode/HackerRank/Stack Exchange take handles parsed to fixed hosts. Webhook URLs come from operator env, use `redirect: "manual"` and a timeout. No change needed.
+
+**Isolation:** each provider syncs as its own job; one failing provider leaves others' facts intact (facts are replaced per origin). `connections.last_sync_at`/`stale_after` (7 days) exist for freshness display.
+
+## 41. Fixes made in this phase
+
+| # | File(s) | Problem (reproduced) | Fix | Evidence |
+|---|---|---|---|---|
+| 1 | `worker/resume/deterministic.py` | Names with diacritics or caseless scripts (Devanagari) silently dropped — ASCII-only regex | Unicode-aware `_is_name_token` (same rules: capitalised letters + `'.-`) | fixture before/after; 2 unit tests |
+| 2 | `worker/resume/extract.py`, `persist.py` | Resume persist not fenced: a reclaimed run could overwrite the new owner's facts; two concurrent persists for one user could both survive (duplicates) | `assert_still_owner` in the persist transaction + per-user `pg_advisory_xact_lock` | worker suite |
+| 3 | `worker/resume/extract.py` | `external_ai` revoked while AI ran → AI facts still saved | re-check consent at persist; keep rule-based facts only | source |
+| 4 | `worker/connectors/common.py`, `github.py`, `linkedin.py` | Disconnect during a running sync → sync finished and **re-inserted the deleted data**; `linkedin_scrape` revoked mid-run likewise | `still_connected()` row-lock check (and optional consent check) inside the write transaction; results discarded | unit test |
+| 5 | `worker/connectors/coding_profiles.py`, `intelligence/eris.py` | LeetCode missing counts became 0 (fake zeros); null stats crashed and were retried | unknown = `None`; no stats fact when none returned; ERIS ignores unknown | 2 unit tests |
+| 6 | `worker/connectors/coding_profiles.py` | Timeouts/non-HTTP errors left the card stuck on `syncing`; permanent 4xx retried | any failure sets `failed`; 4xx (≠408/429) → `needs_review` | 2 unit tests |
+| 7 | `worker/connectors/github.py` | Repo renamed between listing and `/languages` → 404 failed the whole sync | tolerate 404, fall back to primary language | unit test |
+| 8 | `src/lib/connectors/github.ts`, `orcid.ts` | OAuth token/user/revoke fetches had no timeout | `AbortSignal.timeout(10s)` | typecheck |
+| 9 | `src/lib/rate-limit.ts`, `src/db/schema.ts`, migration `0016_rate_limits.sql` + journal | `/api/contact` limiter was a process-local `Map` (resets per serverless instance) | Postgres fixed-window counter, one atomic upsert, shared by all instances; fails open (logged) if DB unreachable; IP stored only as sha256 prefix | integration test incl. fresh module instance |
+| 10 | `src/app/api/contact/route.ts` (+test) | Reported `ok: true` with a reference number when email was unconfigured or SMTP failed — message lost (false success; the old test asserted it) | 503 when not configured, 502 on delivery failure | integration tests |
+| 11 | `src/app/api/upload/resume/route.ts` | presign endpoint unthrottled | 30/hour/user via shared limiter | typecheck |
+| 12 | `src/hooks/use-job-poll.ts` | resume status kept polling in hidden tabs | paused while hidden, immediate check on return; backoff unchanged | **not verified by test** (no DOM test env; adding jsdom not justified) |
+| 13 | `tsconfig.json` | — | exclude standalone `load/` scripts (plain-Node `.ts` imports) | typecheck |
+
+**Migration to apply (owner action):** `src/db/migrations/0016_rate_limits.sql` must be applied (`npm run db:migrate`) before deploying fix 9/11; until then the limiter fails open (requests allowed, error logged) — no outage. Rollback: revert the commit; the table is unused by anything else and can be dropped.
+
+**Removals:** none. Every production dependency is imported (only `@types/d3-force` has no import, which is expected for a type package). `scripts/` and `scratch/` untouched.
+
+## 42. Security checks (C4) — integration, local app process
+
+| Probe | Result |
+|---|---|
+| no cookie → `/api/dashboard/status` | 401 |
+| tampered session cookie | 401 |
+| no cookie → `/dashboard` | 307 to login |
+| user A reads user B's job | **404** (no existence leak) |
+| user B reads own job | 200 |
+| `/api/internal/notify` without secret | 401 |
+| resume presign for a finished user | 403 (step-gated) |
+| rate limit across instances | 429 after 5/min/IP, persists across a fresh module instance (test) |
+| consent revoked / disconnect while job running | results discarded (fixes 3–4, unit) |
+| profile-update races | widget prefs use `ON CONFLICT` upsert; resume persist serialised per user (fix 2) |
+
+## 43. Load test (C2) — local machine, stubbed providers, synthetic users
+
+**Setup:** `node load/serve.mts` (production `next build` + `next start` on :3100 with e2e env only: every provider key blank, PGlite on :55433, fake R2) · `node load/seed.mts 1200 <tokens.json>` (1,200 onboarded synthetic users, ~10% faculty, half with `mentor_discovery` consent, session cookies minted like `e2e/support/fixtures.ts`; refuses non-local DBs) · k6 0.54 via Docker:
+`docker run --rm -v "$PWD/load:/load" -v "<dir>:/data" -e BASE=http://host.docker.internal:3100 -e PEAK=<n> -e HOLD=2m grafana/k6:0.54.0 run --summary-export /data/k6-<n>.json /load/journeys.js`
+Journey per session (3–8 s think time): dashboard + status → profile → widget-pref write → skills → projects → 50% People + search → 30% Yora (rule-based, no provider). Ramp 1 min, hold 2 min, ramp down 30 s.
+**Machine:** i5-13450HX, 16 logical cores, 23.7 GB RAM, Windows 11; app, DB and k6 on the same host. **The database is PGlite (single-threaded WASM Postgres), not Neon** — results show relative app behaviour and the limits of this stack, **not production capacity**.
+
+| Sessions | Requests | req/s | Read p50/p95/p99 ms | Write p50/p95/p99 ms | Journey check failures | Result |
+|---|---|---|---|---|---|---|
+| 100 | 4,222 | 19.2 | 110 / **583** / 807 | 45 / 294 / 423 | 4 / 3,695 (0.1%) | stable; read p95 just over the 500 ms target |
+| 250 | 9,689 | 44.0 | 28 / **3,521** / 7,995 | 11 / 851 / 1,994 | 45 / 8,481 (0.5%) | saturated (queueing on the DB) |
+| 500 | 20,278 | 92.2 | 37 / 124 / 199 | 18 / 66 / 92 | 480 / 17,767 (2.7%) | **FAIL**: PGlite threw `stack depth limit exceeded` on user lookups; failures were fast, so latency looks low |
+| 1000 | 7,667 | 34.9 | 402 / 59,998 / 59,999 | 175 / 59,998 / 59,999 | 3,199 / 6,397 (50%) | **collapse**: requests hit the 60 s timeout |
+
+Notes: k6's `http_req_failed` (12–63%) includes a script artifact: `/api/profile/v1/me` accepts only embed tokens, so it returned 401 to every session. For the same reason the `cross_user_leak` metric was **not exercised**; isolation is evidenced by the probes in §42. Under overload the app returned errors, never false success. **Highest demonstrated stable load: 100 concurrent sessions (~19 req/s) on this local stack.** Spike, soak, recovery and failure-injection runs were **not run**: the stand-in DB saturates first, so they would measure PGlite rather than the app. Do them on a staging Neon branch (§47). A per-process CPU attribution attempt was invalid (sampled the `npx` wrapper PID) and is not reported.
+
+## 44. Architecture and limits (C1/C6) — verified from config
+
+Browser → Vercel (Next 16 App Router; default region and function limits, no `regions`/`maxDuration` in `vercel.json`) → Neon Postgres over the HTTP driver (one round trip per query; no interactive transactions) · R2 via presigned PUT · Render free web service (Ohio, 1 instance, **one job at a time**, sleeps when idle; cold start not measured in this phase) polling the `jobs` table · providers: GitHub/ORCID OAuth, LeetCode/HackerRank/Stack Exchange public APIs, Firecrawl, Apify (dormant), Groq→Gemini→OpenRouter LLM router. No Redis. Synchronous request paths do not call providers except OAuth callbacks (now with 10 s timeouts); all syncs and extraction are queued, so a slow provider delays only that user's job, but **every user's jobs share one single-threaded worker**: queue wait grows linearly with bursts.
+
+**Upgrade plan (evidence-based, goals, not claims):**
+- **250 sessions:** apply migration 0016; set `vercel.json` `regions` to match the Neon region; move the worker to an always-on paid Render instance (removes cold start). Re-run `load/journeys.js` against a **staging Neon branch** to get real numbers.
+- **500 sessions:** run ≥2 worker instances (the queue is already safe for this: `SKIP LOCKED`, ownership fencing, heartbeat); check Neon compute size and connection limits for HTTP-driver concurrency; add per-route caching only where staging measurements show repeated identical reads.
+- **1000+ sessions:** scale Neon compute (autoscaling or a larger fixed size), add worker concurrency per instance, consider read replicas for dashboard reads. Autoscaling is **not** proven by anything in this phase.
+Rollback for every change in §41: revert the commit; 0016 is additive (drop `rate_limits` if desired).
+
+## 45. Scorecard
+
+| Area | Baseline | Final | Evidence | Status |
+|---|---|---|---|---|
+| Resume | Unicode names dropped; unfenced persist; consent not re-checked | fixed; 13 fixtures; invalid inputs rejected, never retried | integration fixtures + unit | PARTIAL (scanned/OCR and live AI not verified) |
+| GitHub | 404 mid-sync failed whole sync; disconnect race | fixed; 0 field mismatches vs live API | live-verified + unit | PASS |
+| LinkedIn | — | OIDC flow, duplicate-link rejection, disconnect cleanup verified in source; scrape dormant | source | PARTIAL (live sign-in BLOCKED) |
+| LeetCode | fake zeros, permanent errors retried, stuck `syncing` | fixed; live values match | live-verified + unit | PASS |
+| Frontend | resume poll ran in hidden tabs | paused when hidden | source | PARTIAL (no Lighthouse this phase) |
+| API latency | — | p95 583 ms at 100 sessions (target 500) | k6 local | PARTIAL |
+| DB | — | People query bounded and consent-filtered; pgvector plans untestable on PGlite | source | NOT TESTED (EXPLAIN on Neon) |
+| Worker | — | fencing/heartbeat/retry verified; disconnect/consent races fixed | unit | PARTIAL (queue wait under burst not measured) |
+| Security | per-instance rate limit; contact false success | shared limiter; honest 502/503; isolation probes pass | integration | PASS |
+| Build/tests | 146 web / 81 worker | 149 / 89; typecheck, lint, build pass | CLI | PASS |
+| 100 sessions | — | stable, 0.1% check failures | k6 local | PARTIAL (p95 over target) |
+| 250 sessions | — | saturated, p95 3.5 s | k6 local | FAIL (local DB) |
+| 500 / 1000 sessions | — | test DB errors / timeouts | k6 local | FAIL (local DB) |
+| Saturation | — | between 100 and 250 sessions on PGlite | k6 local | measured (local only) |
+
+## 46. Not verified, with exact blockers
+
+- **Lighthouse / per-route JS (B1):** not run in this phase; Next 16 build no longer prints sizes. Run Lighthouse mobile on `/`, `/login`, `/onboarding`, `/dashboard`, `/profile`, `/people` against `node load/serve.mts`.
+- **Scanned PDF / image OCR:** Tesseract not installed locally.
+- **AI extraction quality** (`external_ai=true`): no live provider call made.
+- **Hidden-tab polling:** no DOM test environment.
+- **pgvector EXPLAIN, Neon connection limits, cold start, production p95:** need a staging Neon branch and Vercel/Render dashboard access.
+- **Spike, soak, recovery, failure injection:** need a DB that doesn't saturate before the app (staging Neon).
+
+## 47. Owner actions
+
+1. Apply `0016_rate_limits.sql` (`npm run db:migrate`) before deploying.
+2. Provide a **staging Neon branch** URL (never prod) to re-run `load/` and EXPLAIN pgvector queries.
+3. LinkedIn live check (BLOCKED, needs your login): with `LINKEDIN_CLIENT_ID/SECRET` set locally, sign in → Connections → Connect LinkedIn → confirm name/email/avatar appear on /profile → Disconnect → confirm they are gone. Then try linking the same LinkedIn account to a second app user: it must be rejected.
+4. Decide on Render paid plan and the Vercel `regions` setting.
+
+## 48. Frontend speed — Lighthouse mobile (2026-10-29)
+
+**Method:** `node load/serve.mts` (production build, local PGlite + fake R2, no real keys). Lighthouse 12.2.1 via `npx`, mobile preset with default simulated throttling, headless Chrome. **3 runs per route, median.** Authenticated routes use a seeded synthetic session cookie (`--extra-headers`). INP needs real interaction, so it is reported via its lab proxy, TBT. JS = transferred script bytes. Lab numbers on one workstation: compare relatively, not as field data.
+
+| Route | Score | LCP ms | TBT ms | CLS | FCP ms | JS KB | Total KB |
+|---|---|---|---|---|---|---|---|
+| `/` | 85 → 85 | 3,967 → 3,754 | 57 → 91 | 0 → 0 | 2,104 → 2,038 | 166 → 166 | 561 → 538 |
+| `/login` | 85 → 84 | 4,228 → 4,512 | 29 → 57 | 0 → 0 | 1,356 → 1,357 | 169 → 169 | 524 → 501 |
+| `/onboarding/resume` | 83 → 87 | 3,918 → 3,923 | 63 → 56 | 0 → 0 | 1,378 → 1,739 | 178 → 178 | 434 → 434 |
+| `/dashboard` | 83 → 88 | 4,553 → 3,925 | 103 → 63 | 0 → 0 | 1,214 → 1,215 | 237 → 237 | 504 → 503 |
+| `/profile` | 88 → 91 | 3,867 → 3,431 | 23 → 29 | 0 → 0 | 1,209 → 1,215 | 232 → 232 | 471 → 471 |
+| `/people` | 90 → 89 | 3,400 → 3,275 | 154 → 206 | 0 → 0 | 1,255 → 1,209 | 191 → 191 | 396 → 373 |
+
+**What the numbers show:** CLS is 0 on every route, TBT stays near or under 200 ms, and there are no render-blocking resources. So layout shift and blocking JS are **not** problems, and none were "fixed". The weak metric is **LCP, 3.3–4.5 s**, with LCP landing 2–3 s after FCP. Every route preloaded five `next/font` files (~154 KB). With `display: swap`, the text re-render when a webfont arrives can become the LCP candidate. Lighthouse 12 did not report an LCP element for these pages, so the cause is **not proven**.
+
+**Change made (1):** `src/app/layout.tsx`: `Geist_Mono` gets `preload: false`. It is used only for small metadata text, so it cannot be the LCP element, and it still loads where used, with swap. **Result:** −23 KB transfer on `/`, `/login` and `/people`. LCP moved −16% to +7% per route, which is within run-to-run variance (`/login` worse), so **no LCP improvement is claimed**. Brand fonts and design are unchanged. Rollback: remove the `preload: false` line.
+
+**Not changed, needing evidence first:** the display serif (headings, likely LCP text) and Plus Jakarta (body, 73 KB file) stay preloaded; un-preloading them could make LCP worse. Next step: a Chrome DevTools performance trace on a throttled `/dashboard` and `/login` to identify the LCP node and its resource. That needs no new dependency.
+
+**Checks after the change:** lint 0, typecheck 0, vitest 149/149, `next build` compiled successfully (the build used for the "after" runs).
+
+### 48.1 LCP trace — `/dashboard` and `/login` (1 run each, local stack)
+
+Lighthouse 12.2.1 mobile with `--save-assets`. Its `largest-contentful-paint-element` audit **crashes with this Chrome** (`RootCauses … frame_sequence`), which is why §48 had no LCP element. The elements below come from the raw trace (`largestContentfulPaint::Candidate`). Times are **observed trace times**. Lighthouse's simulated LCP for the same runs was 4,728 ms (`/login`) and 5,529 ms (`/dashboard`).
+
+| | `/login` | `/dashboard` |
+|---|---|---|
+| LCP element | CSS background-image div `absolute inset-0 bg-cover pointer-events-none` (image, size 107,120) | text `<p class="text-[11px] text-[#617493] max-w-xs mt-1">` (size 10,200) |
+| LCP (observed) | 2,776 ms | 3,348 ms |
+| TTFB | ~610 ms (server-response-time 605 ms) | ~559 ms (550 ms) |
+| HTML stream finished | 1,882 ms | 1,911 ms |
+| Resource load delay | image discovered at 1,705 ms (~1.1 s after TTFB; a CSS background is found only after CSS parse) | n/a (text) |
+| Resource load time | 1,833 → 1,865 ms (~32 ms) | n/a |
+| **Render delay** | **~910 ms** (1,865 → 2,776); first paint of any content at 2,713 ms | **~1.4 s** after HTML end (1,911 → 3,348) |
+| Main-thread work in that window | long tasks 1,380–2,700 ms; app JS dominated by the shared React-DOM + Next client runtime chunk (489 ms eval), layout 152 ms | same runtime chunk 757 ms, layout 386 ms, style 240 ms; `motionSlideUp` entrance animations start at 1,943 ms |
+
+**Finding:** neither page is held back by a slow LCP resource. The dominant phases are (1) server streaming of the dynamic HTML until ~1.9 s, and (2) **render delay from main-thread work**: evaluating and hydrating the framework runtime, plus layout. The `/login` background image would gain at most ~1.1 s of discovery time from a preload, but it already finishes loading ~900 ms before it is painted, so a preload is **not proven** to move LCP. On `/dashboard` the LCP is a small caption, meaning the larger content renders later or is not a candidate (for example, still animating in). Confirming that needs an interaction-free trace with animations disabled.
+
+**Measurement caveats:** the headless trace includes Chrome-internal scripts (`mojo`, `lit`; ~1.3 s on `/dashboard`) and large `GPUTask` time that are not app code. Single run each. The database is PGlite.
+
+**Code changed:** none. The trace does not prove a cause that a small, design-neutral change would fix. **Candidates for a future measured experiment:** reduce dashboard server streaming time (§18 DB waves); test `/dashboard` with entrance animations disabled to see whether the hero becomes the LCP and how early.
