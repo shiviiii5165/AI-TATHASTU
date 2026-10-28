@@ -17,7 +17,7 @@ import {
   Zap,
 } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useId, useState, useSyncExternalStore } from "react";
 
 interface RoomDetail {
   id: "avasar" | "learn" | "collaborate" | "meet" | "iris";
@@ -252,6 +252,11 @@ export function AboutContent() {
   const [newsletterSubscribed, setNewsletterSubscribed] = useState(false);
   const [newsletterEmail, setNewsletterEmail] = useState("");
   const [newsletterConsent, setNewsletterConsent] = useState(true);
+  const currentYear = useSyncExternalStore(
+    () => () => {},
+    () => new Date().getFullYear(),
+    () => 2025
+  );
 
   // Active room is hovered (if pointer is hovering) or pinned (if card was clicked)
   const activeRoomId = hoveredRoom ?? pinnedRoom;
@@ -349,17 +354,14 @@ export function AboutContent() {
                 </Link>
               </li>
               <li>
-                <Link href="/team">Team</Link>
-              </li>
-              <li>
                 <Link href="/contact">Support</Link>
               </li>
             </ul>
           </nav>
 
           <div className="nav-right-actions">
-            <Link href="/login" className="nav-cta-btn">
-              Create profile <span aria-hidden="true">→</span>
+            <Link href="/dashboard" className="nav-cta-btn">
+              Open Dashboard <span aria-hidden="true">→</span>
             </Link>
             <button
               type="button"
@@ -388,14 +390,11 @@ export function AboutContent() {
               <Link href="/about" className="active" onClick={() => setMobileMenuOpen(false)}>
                 About
               </Link>
-              <Link href="/team" onClick={() => setMobileMenuOpen(false)}>
-                Team
-              </Link>
               <Link href="/contact" onClick={() => setMobileMenuOpen(false)}>
                 Support
               </Link>
-              <Link href="/login" className="mobile-cta-btn" onClick={() => setMobileMenuOpen(false)}>
-                Create profile →
+              <Link href="/dashboard" className="mobile-cta-btn" onClick={() => setMobileMenuOpen(false)}>
+                Open Dashboard →
               </Link>
             </nav>
           </div>
@@ -424,8 +423,8 @@ export function AboutContent() {
                 <Link href="/#ecosystem" className="btn-hero-primary" id="btnExplorePlatform">
                   Explore the platform <span aria-hidden="true">→</span>
                 </Link>
-                <Link href="/team" className="btn-hero-secondary" id="btnMeetTeam">
-                  Meet the team <span aria-hidden="true">→</span>
+                <Link href="/contact" className="btn-hero-secondary" id="btnContactUs">
+                  Contact us <span aria-hidden="true">→</span>
                 </Link>
               </div>
             </div>
@@ -815,29 +814,6 @@ export function AboutContent() {
 
         <div className="footer-content-wrap">
           <div className="wrap">
-            {/* CTA Hero Card */}
-            <div className="footer-cta-card" id="join">
-              <div className="cta-card-left">
-                <div className="cta-kicker">READY TO GET STARTED?</div>
-                <h2 className="cta-headline">
-                  Turn your work into <span className="cta-word-gradient">opportunities.</span>
-                </h2>
-                <p className="cta-desc">
-                  Create your profile and let your skills, projects and achievements reach the right opportunities.
-                </p>
-              </div>
-
-              <div className="cta-card-right">
-                <Link href="/login" className="cta-profile-pill-btn" id="ctaCardCreateBtn">
-                  <span>Create your profile</span>
-                  <span className="cta-arrow-circle" aria-hidden="true">
-                    <ArrowRight className="size-4" />
-                  </span>
-                </Link>
-                <span className="cta-subnote">It&apos;s free and takes less than 2 minutes.</span>
-              </div>
-            </div>
-
             {/* Main Navigation Grid */}
             <div className="footer-nav-grid">
               {/* Brand Column */}
@@ -852,7 +828,7 @@ export function AboutContent() {
                   </Link>
                 </div>
                 <p className="footer-brand-desc">
-                  We bring your skills, projects and goals together to help you find what to learn, build and explore next.
+                  Connect your skills, projects and resume. Discover what you&apos;re good at, what to learn next and where to go.
                 </p>
                 <div className="footer-social-row">
                   <a
@@ -933,38 +909,32 @@ export function AboutContent() {
                 <h4 className="footer-col-title">Product</h4>
                 <ul className="footer-nav-list">
                   <li>
-                    <Link href="/#ecosystem">Ecosystem</Link>
-                  </li>
-                  <li>
-                    <Link href="/#how">How it works</Link>
+                    <Link href="/#ecosystem">Platform</Link>
                   </li>
                 </ul>
               </div>
 
-              {/* Column 3: Company */}
+              {/* Column 3: Resources */}
+              <div className="footer-col">
+                <h4 className="footer-col-title">Resources</h4>
+                <ul className="footer-nav-list">
+                  <li>
+                    <Link href="/#docs">Documentation</Link>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Column 4: Company */}
               <div className="footer-col">
                 <h4 className="footer-col-title">Company</h4>
                 <ul className="footer-nav-list">
                   <li>
                     <Link href="/about" style={{ color: "#FF2B6D", fontWeight: 700 }}>
-                      About
+                      About Us
                     </Link>
                   </li>
                   <li>
-                    <Link href="/team">Team</Link>
-                  </li>
-                </ul>
-              </div>
-
-              {/* Column 4: Legal */}
-              <div className="footer-col">
-                <h4 className="footer-col-title">Legal</h4>
-                <ul className="footer-nav-list">
-                  <li>
-                    <Link href="/privacy">Privacy Policy</Link>
-                  </li>
-                  <li>
-                    <Link href="/terms">Terms of Service</Link>
+                    <Link href="/contact">Support &amp; Contact</Link>
                   </li>
                 </ul>
               </div>
@@ -973,7 +943,7 @@ export function AboutContent() {
               <div className="footer-col footer-col-newsletter">
                 <h4 className="footer-col-title">Newsletter</h4>
                 <p className="footer-newsletter-text">
-                  Get the latest updates, opportunities and product news.
+                  Get updates on opportunities and new features.
                 </p>
                 <form className="footer-newsletter-form" onSubmit={handleNewsletterSubmit} noValidate>
                   <div className="footer-input-row">
@@ -1016,7 +986,7 @@ export function AboutContent() {
             {/* Bottom Sub-Footer Bar */}
             <div className="footer-bottom-divider" />
             <div className="footer-bottom-bar">
-              <p className="footer-copyright">© 2025 AI Tathastu. All rights reserved.</p>
+              <p className="footer-copyright">© {currentYear} AI Tathastu. All rights reserved.</p>
 
               <div className="footer-bottom-links">
                 <Link href="/privacy" className="footer-legal-btn">
@@ -1027,6 +997,12 @@ export function AboutContent() {
                 </span>
                 <Link href="/terms" className="footer-legal-btn">
                   Terms of Service
+                </Link>
+                <span className="footer-pipe" aria-hidden="true">
+                  |
+                </span>
+                <Link href="/privacy#cookies" className="footer-legal-btn">
+                  Cookie Policy
                 </Link>
                 <span className="footer-pipe" aria-hidden="true">
                   |

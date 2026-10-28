@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 
 interface CategoryOption {
@@ -90,6 +90,12 @@ export function ContactContent() {
   const [currentLang, setCurrentLang] = useState("English");
   const [newsletterSubscribed, setNewsletterSubscribed] = useState(false);
   const [newsletterEmail, setNewsletterEmail] = useState("");
+  const [newsletterConsent, setNewsletterConsent] = useState(true);
+  const currentYear = useSyncExternalStore(
+    () => () => {},
+    () => new Date().getFullYear(),
+    () => 2025
+  );
 
   const validateEmail = (val: string) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim());
@@ -181,10 +187,16 @@ export function ContactContent() {
 
   const handleNewsletterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateEmail(newsletterEmail)) {
-      setNewsletterSubscribed(true);
-      setNewsletterEmail("");
+    if (!validateEmail(newsletterEmail)) {
+      alert("Please enter a valid email address.");
+      return;
     }
+    if (!newsletterConsent) {
+      alert("Please agree to receive updates from AI Tathastu.");
+      return;
+    }
+    setNewsletterSubscribed(true);
+    setNewsletterEmail("");
   };
 
   return (
@@ -230,16 +242,13 @@ export function ContactContent() {
           <nav className="desktop-main-nav" aria-label="Main Navigation">
             <ul className="nav-links-list">
               <li>
-                <Link href="/#ecosystem">Ecosystem</Link>
+                <Link href="/#ecosystem">Platform</Link>
               </li>
               <li>
                 <Link href="/#how">How it works</Link>
               </li>
               <li>
                 <Link href="/about">About</Link>
-              </li>
-              <li>
-                <Link href="/team">Team</Link>
               </li>
               <li>
                 <Link
@@ -254,8 +263,8 @@ export function ContactContent() {
           </nav>
 
           <div className="nav-right-actions">
-            <Link href="/login" className="nav-cta-btn" id="navCreateProfileBtn">
-              Create profile <span aria-hidden="true">→</span>
+            <Link href="/dashboard" className="nav-cta-btn" id="navCreateProfileBtn">
+              Open Dashboard <span aria-hidden="true">→</span>
             </Link>
             <button
               type="button"
@@ -278,7 +287,7 @@ export function ContactContent() {
                   href="/#ecosystem"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  Ecosystem
+                  Platform
                 </Link>
               </li>
               <li>
@@ -292,11 +301,6 @@ export function ContactContent() {
                 </Link>
               </li>
               <li>
-                <Link href="/team" onClick={() => setMobileMenuOpen(false)}>
-                  Team
-                </Link>
-              </li>
-              <li>
                 <Link
                   href="/contact"
                   className="active"
@@ -307,12 +311,12 @@ export function ContactContent() {
               </li>
               <li style={{ marginTop: "12px" }}>
                 <Link
-                  href="/login"
+                  href="/dashboard"
                   className="nav-cta-btn"
                   style={{ width: "100%", justifyContent: "center" }}
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  Create profile →
+                  Open Dashboard →
                 </Link>
               </li>
             </ul>
@@ -857,32 +861,6 @@ export function ContactContent() {
         </div>
 
         <div className="footer-content-wrap">
-          {/* Final CTA Card */}
-          <div className="footer-cta-card" id="join">
-            <div className="cta-card-left">
-              <div className="cta-kicker">READY TO GET STARTED?</div>
-              <h2 className="cta-headline">
-                Turn your work into{" "}
-                <span className="cta-word-gradient">opportunities.</span>
-              </h2>
-              <p className="cta-desc">
-                Create your profile and explore what&apos;s next.
-              </p>
-            </div>
-            <div className="cta-card-right">
-              <Link
-                href="/login"
-                className="cta-profile-pill-btn"
-                id="ctaCardCreateBtn"
-              >
-                <span>Create your profile</span>
-                <span className="cta-arrow-circle" aria-hidden="true">
-                  →
-                </span>
-              </Link>
-            </div>
-          </div>
-
           {/* Navigation Grid */}
           <div className="footer-nav-grid">
             {/* Brand Column */}
@@ -901,8 +879,7 @@ export function ContactContent() {
                 </Link>
               </div>
               <p className="footer-brand-desc">
-                Connect your skills, projects, and goals to verified
-                opportunities across campuses and beyond.
+                Connect your skills, projects and resume. Discover what you&apos;re good at, what to learn next and where to go.
               </p>
             </div>
 
@@ -911,10 +888,17 @@ export function ContactContent() {
               <h3 className="footer-col-title">Product</h3>
               <ul className="footer-nav-list">
                 <li>
-                  <Link href="/#ecosystem">Ecosystem</Link>
+                  <Link href="/#ecosystem">Platform</Link>
                 </li>
+              </ul>
+            </div>
+
+            {/* Resources Column */}
+            <div className="footer-col">
+              <h3 className="footer-col-title">Resources</h3>
+              <ul className="footer-nav-list">
                 <li>
-                  <Link href="/#how">How it works</Link>
+                  <Link href="/#docs">Documentation</Link>
                 </li>
               </ul>
             </div>
@@ -924,31 +908,15 @@ export function ContactContent() {
               <h3 className="footer-col-title">Company</h3>
               <ul className="footer-nav-list">
                 <li>
-                  <Link href="/about">About</Link>
-                </li>
-                <li>
-                  <Link href="/team">Team</Link>
+                  <Link href="/about">About Us</Link>
                 </li>
                 <li>
                   <Link
                     href="/contact"
                     style={{ color: "#FF2A85", fontWeight: 700 }}
                   >
-                    Support
+                    Support &amp; Contact
                   </Link>
-                </li>
-              </ul>
-            </div>
-
-            {/* Legal Column */}
-            <div className="footer-col">
-              <h3 className="footer-col-title">Legal</h3>
-              <ul className="footer-nav-list">
-                <li>
-                  <Link href="/privacy">Privacy Policy</Link>
-                </li>
-                <li>
-                  <Link href="/terms">Terms of Service</Link>
                 </li>
               </ul>
             </div>
@@ -957,7 +925,7 @@ export function ContactContent() {
             <div className="footer-col footer-col-newsletter">
               <h3 className="footer-col-title">Newsletter</h3>
               <p className="footer-newsletter-text">
-                Get the latest updates, opportunities and product news.
+                Get updates on opportunities and new features.
               </p>
               {newsletterSubscribed ? (
                 <p className="newsletter-success-note">
@@ -967,6 +935,7 @@ export function ContactContent() {
                 <form
                   className="footer-newsletter-form"
                   onSubmit={handleNewsletterSubmit}
+                  noValidate
                 >
                   <div className="footer-input-row">
                     <input
@@ -986,6 +955,22 @@ export function ContactContent() {
                       →
                     </button>
                   </div>
+                  <label className="footer-checkbox-label" htmlFor="contactFooterConsent">
+                    <input
+                      type="checkbox"
+                      className="footer-checkbox-input"
+                      id="contactFooterConsent"
+                      checked={newsletterConsent}
+                      onChange={(e) => setNewsletterConsent(e.target.checked)}
+                      required
+                    />
+                    <span className="footer-custom-check" aria-hidden="true">
+                      {newsletterConsent && "✓"}
+                    </span>
+                    <span className="footer-checkbox-text">
+                      I agree to receive updates from AI Tathastu.
+                    </span>
+                  </label>
                 </form>
               )}
             </div>
@@ -995,7 +980,7 @@ export function ContactContent() {
           <div className="footer-bottom-divider" />
           <div className="footer-bottom-bar">
             <p className="footer-copyright">
-              © 2025 AI Tathastu. All rights reserved.
+              © {currentYear} AI Tathastu. All rights reserved.
             </p>
 
             <div className="footer-bottom-links">
@@ -1007,6 +992,12 @@ export function ContactContent() {
               </span>
               <Link href="/terms" className="footer-legal-btn">
                 Terms of Service
+              </Link>
+              <span className="footer-pipe" aria-hidden="true">
+                |
+              </span>
+              <Link href="/privacy#cookies" className="footer-legal-btn">
+                Cookie Policy
               </Link>
               <span className="footer-pipe" aria-hidden="true">
                 |

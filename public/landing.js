@@ -2144,6 +2144,10 @@ function initFooterInteractions() {
     });
   }
 
+  // Dynamic copyright year
+  const yearEl = document.getElementById('footerCurrentYear');
+  if (yearEl) yearEl.textContent = String(new Date().getFullYear());
+
   // Language dropdown
   const langDropdown = document.getElementById('footerLangDropdown');
   const langBtn = document.getElementById('footerLangBtn');

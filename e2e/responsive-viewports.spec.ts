@@ -22,7 +22,7 @@ test.describe("Responsive Viewports Comprehensive Audit", () => {
       await page.setViewportSize({ width: vp.width, height: vp.height });
 
       // Test public unauthenticated pages first
-      const publicRoutes = ["/", "/about", "/contact", "/team", "/login"];
+      const publicRoutes = ["/", "/about", "/contact", "/login"];
       for (const route of publicRoutes) {
         await page.goto(route);
         await page.waitForLoadState("domcontentloaded");

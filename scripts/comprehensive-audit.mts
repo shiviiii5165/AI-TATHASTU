@@ -33,7 +33,6 @@ const ALL_ROUTES: RouteSpec[] = [
   { path: "/", category: "public", captureScreenshots: true },
   { path: "/about", category: "public", captureScreenshots: true },
   { path: "/contact", category: "public", captureScreenshots: true },
-  { path: "/team", category: "public", captureScreenshots: true },
   { path: "/login", category: "public", captureScreenshots: true },
   { path: "/login/check-email", category: "public", captureScreenshots: true },
 

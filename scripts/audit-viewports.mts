@@ -20,7 +20,6 @@ const ROUTES = [
   "/",
   "/about",
   "/contact",
-  "/team",
   "/login",
   // Onboarding
   "/onboarding/role",
@@ -66,7 +65,7 @@ async function runAudit() {
   await signIn(authContext, user, { onboarded: true });
   const authPage = await authContext.newPage();
 
-  const publicRoutes = ["/", "/about", "/contact", "/team", "/login"];
+  const publicRoutes = ["/", "/about", "/contact", "/login"];
 
   // Route by Route across viewports
   for (const route of ROUTES) {
