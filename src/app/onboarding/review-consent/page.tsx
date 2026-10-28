@@ -15,24 +15,16 @@ import type { OnboardingState, User } from "@/db/schema";
 import { CAREER_ROLES, PRIORITIES } from "@/lib/onboarding/catalog";
 import { stepHref } from "@/lib/onboarding/steps";
 
-export const metadata: Metadata = { title: "Review & consent" };
+export const metadata: Metadata = { title: "Review & consent · AI Tathastu" };
 
 export default function ReviewConsentPage() {
   return (
     <>
       <StepHeader
         step="review"
-        title={
-          <>
-            Last look, then we{" "}
-            <span className="font-serif font-normal italic text-[#FF2A85]">
-              build it
-            </span>
-          </>
-        }
+        title="Review and confirm"
       >
-        Check your answers and choose what we may do with your data. Your choices are saved as you make them, and you
-        can change them later in Settings.
+        Check your answers and privacy preferences before completing setup. You can adjust these anytime in Settings.
       </StepHeader>
       <Suspense fallback={<StepSkeleton />}>
         <ReviewConsentStep />

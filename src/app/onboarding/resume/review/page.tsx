@@ -14,24 +14,16 @@ import { getLatestResumeJob, requireOnboardingStep } from "@/lib/dal";
 import { factDisplayValue } from "@/lib/profile/display";
 import { FIELD_GROUPS, confidenceLevel, fieldLabel, type FieldGroupDef } from "@/lib/profile/field-groups";
 
-export const metadata: Metadata = { title: "Review your resume" };
+export const metadata: Metadata = { title: "Review extracted details · AI Tathastu" };
 
 export default function ResumeReviewPage() {
   return (
     <>
       <StepHeader
         step="resume"
-        title={
-          <>
-            Check what we{" "}
-            <span className="font-serif font-normal italic text-[#FF2A85]">
-              found
-            </span>
-          </>
-        }
+        title="Review extracted details"
       >
-        Nothing goes into your profile until you approve it. Edit anything that&apos;s wrong, reject what doesn&apos;t
-        belong, and add what we missed. The least certain fields are listed first.
+        Verify the information extracted from your resume. You can edit, approve, or discard any detail before saving.
       </StepHeader>
       <Suspense fallback={<StepSkeleton label="Loading extracted fields…" />}>
         <ReviewStep />

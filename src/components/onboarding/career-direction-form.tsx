@@ -1,22 +1,23 @@
 "use client";
 
 import {
-  Binary,
+  BarChart3,
   Bot,
+  Box,
   Brain,
   Check,
+  Code2,
   Compass,
-  Cpu,
-  Eye,
+  Database,
   FlaskConical,
-  Layers,
-  Lightbulb,
+  Image as ImageIcon,
+  MessageSquare,
   Network,
-  Rocket,
+  Pencil,
   Search,
-  Sparkles,
-  TriangleAlert,
+  Settings,
   X,
+  Zap,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -24,7 +25,6 @@ import { saveCareerDirection } from "@/app/onboarding/actions";
 import { ContinueForm } from "@/components/onboarding/continue-form";
 import { SaveStatusText } from "@/components/onboarding/save-status";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useAutosave } from "@/hooks/use-autosave";
 import { CAREER_ROLES } from "@/lib/onboarding/catalog";
 import { cn } from "@/lib/utils";
@@ -32,18 +32,18 @@ import { cn } from "@/lib/utils";
 const OTHER_DEBOUNCE_MS = 700;
 
 const ROLE_ICONS: Record<string, React.ElementType> = {
-  generative_ai_engineer: Sparkles,
-  ml_engineer: Brain,
-  ai_engineer: Bot,
+  generative_ai_engineer: Brain,
+  ml_engineer: BarChart3,
+  ai_engineer: Code2,
   ai_researcher: FlaskConical,
-  data_scientist: Binary,
+  data_scientist: Database,
   deep_learning_engineer: Network,
-  mlops_engineer: Layers,
-  nlp_engineer: Cpu,
-  computer_vision_engineer: Eye,
+  mlops_engineer: Settings,
+  nlp_engineer: MessageSquare,
+  computer_vision_engineer: ImageIcon,
   robotics_ai_engineer: Bot,
-  rl_engineer: Rocket,
-  ai_product_founder: Lightbulb,
+  rl_engineer: Zap,
+  ai_product_founder: Box,
   still_exploring: Compass,
 };
 
@@ -74,10 +74,6 @@ export function CareerDirectionForm({ initialRoles, initialOther }: { initialRol
     commit(selected.includes(id) ? selected.filter((r) => r !== id) : [...selected, id]);
   }
 
-  function makePrimary(id: string) {
-    commit([id, ...selected.filter((r) => r !== id)]);
-  }
-
   function changeOther(value: string) {
     setOther(value);
     clearTimeout(otherTimer.current);
@@ -94,26 +90,23 @@ export function CareerDirectionForm({ initialRoles, initialOther }: { initialRol
     commit(selected, value);
   }
 
-  const labelFor = (id: string) => CAREER_ROLES.find((r) => r.id === id)?.label ?? id;
   const canContinue = selected.length > 0 || other.trim().length > 0;
 
   return (
     <>
-      {/* Search Input */}
-      <div className="mt-7 max-w-xl">
-        <Label htmlFor="role-search" className="text-xs font-bold uppercase tracking-wider text-slate-700">
-          Search roles or domains
-        </Label>
-        <div className="relative mt-2">
+      {/* Search Input matching reference UI */}
+      <div className="mt-6 max-w-full">
+        <div className="relative">
           <Search aria-hidden="true" className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-slate-400" />
           <Input
             id="role-search"
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Try “vision”, “research”, or “LLM”"
+            placeholder="Search roles or skills"
+            aria-label="Search roles or skills"
             aria-describedby="role-search-count"
-            className="h-11 rounded-xl border-slate-200 pr-10 pl-10 text-base md:text-sm shadow-xs transition-colors focus-visible:border-[#FF2A85] focus-visible:ring-2 focus-visible:ring-[#FF2A85]/20 [&::-webkit-search-cancel-button]:hidden"
+            className="h-11 rounded-xl sm:rounded-2xl border-slate-200 bg-white pr-10 pl-10 text-sm shadow-xs transition-colors focus-visible:border-[#FF2A85] focus-visible:ring-2 focus-visible:ring-[#FF2A85]/20 [&::-webkit-search-cancel-button]:hidden"
             autoComplete="off"
           />
           {query && (
@@ -132,65 +125,60 @@ export function CareerDirectionForm({ initialRoles, initialOther }: { initialRol
         </p>
       </div>
 
-      {/* Roles Cards Grid */}
+      {/* 3-Column Roles Grid matching reference screenshot */}
       {visible.length > 0 ? (
-        <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="Career directions">
+        <ul className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5" aria-label="Career directions">
           {visible.map((role) => {
-            const rank = selected.indexOf(role.id);
-            const isSelected = rank !== -1;
-            const Icon = ROLE_ICONS[role.id] ?? Sparkles;
+            const isSelected = selected.includes(role.id);
+            const Icon = ROLE_ICONS[role.id] ?? Brain;
 
             return (
-              <li key={role.id} className="flex">
+              <li key={role.id}>
                 <button
                   type="button"
                   aria-pressed={isSelected}
                   onClick={() => toggle(role.id)}
                   className={cn(
-                    "group relative flex h-full w-full flex-col justify-between rounded-2xl border bg-white p-4.5 sm:p-5 pr-11 sm:pr-12 text-left transition-all duration-200 cursor-pointer touch-manipulation",
-                    "hover:border-slate-300 hover:shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.99]",
+                    "group relative flex w-full items-center justify-between gap-3.5 rounded-2xl bg-white p-3.5 sm:p-4 text-left transition-all duration-200 cursor-pointer touch-manipulation",
+                    "hover:border-slate-300 hover:shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF2A85] active:scale-[0.99]",
                     isSelected
-                      ? "border-[#FF2A85] bg-rose-50/30 shadow-xs ring-2 ring-[#FF2A85]/20"
-                      : "border-slate-200/90"
+                      ? "border-2 border-[#FF2A85] shadow-xs"
+                      : "border border-slate-200/90"
                   )}
                 >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={cn(
-                        "grid size-9 place-items-center rounded-xl transition-colors duration-150",
-                        isSelected
-                          ? "bg-gradient-to-br from-[#FF6B4A] to-[#FF2A85] text-white shadow-xs"
-                          : "bg-slate-100 text-slate-600 group-hover:bg-rose-50 group-hover:text-[#FF2A85]"
-                      )}
-                    >
-                      <Icon className="size-4.5" />
-                    </div>
-                    <span className="font-heading font-bold text-base text-[#0F172A] leading-snug">
+                  {/* Left: Icon Badge */}
+                  <div
+                    className={cn(
+                      "flex size-10 shrink-0 items-center justify-center rounded-xl border transition-colors",
+                      isSelected
+                        ? "border-slate-100 bg-slate-50 text-slate-900"
+                        : "border-slate-100 bg-slate-50 text-slate-700 group-hover:bg-slate-100/70"
+                    )}
+                  >
+                    <Icon className="size-5 stroke-[1.75]" />
+                  </div>
+
+                  {/* Center: Title + Subtitle */}
+                  <div className="min-w-0 flex-1">
+                    <span className="block font-sans font-bold text-sm sm:text-[0.9375rem] text-[#0F172A] leading-tight truncate">
                       {role.label}
+                    </span>
+                    <span className="mt-0.5 block text-xs text-slate-500 font-normal leading-tight truncate">
+                      {role.blurb}
                     </span>
                   </div>
 
-                  <span className="mt-2.5 text-xs leading-relaxed text-slate-500">
-                    {role.blurb}
-                  </span>
-
-                  {rank === 0 && selected.length > 1 && (
-                    <span className="mt-3 inline-flex items-center gap-1 rounded-md bg-rose-100/80 px-2 py-0.5 font-mono text-[0.6875rem] font-bold text-rose-800 uppercase">
-                      Primary direction
-                    </span>
-                  )}
-
-                  {/* Selection Checkmark Indicator */}
+                  {/* Right: Circular Checkbox Indicator */}
                   <span
                     aria-hidden="true"
                     className={cn(
-                      "absolute top-5 right-5 flex size-5.5 items-center justify-center rounded-full border transition-all duration-150",
+                      "flex size-5 shrink-0 items-center justify-center rounded-full transition-all duration-150",
                       isSelected
-                        ? "border-[#FF2A85] bg-gradient-to-br from-[#FF6B4A] to-[#FF2A85] text-white shadow-xs"
-                        : "border-slate-200 bg-white"
+                        ? "bg-[#FF2A85] text-white"
+                        : "border border-slate-300 bg-white group-hover:border-slate-400"
                     )}
                   >
-                    {isSelected && <Check className="size-3.5 stroke-[2.5]" />}
+                    {isSelected && <Check className="size-3 stroke-[3]" />}
                   </span>
                 </button>
               </li>
@@ -199,7 +187,7 @@ export function CareerDirectionForm({ initialRoles, initialOther }: { initialRol
         </ul>
       ) : (
         <div className="mt-6 max-w-xl rounded-2xl border border-dashed border-slate-300 bg-slate-50/50 p-7 text-center sm:text-left">
-          <p className="font-heading font-bold text-base text-[#0F172A]">No role matches “{query.trim()}”.</p>
+          <p className="font-sans font-bold text-base text-[#0F172A]">No role matches “{query.trim()}”.</p>
           <p className="mt-1 text-sm text-slate-500">
             You can use this as your custom direction. We&apos;ll tailor intelligence and opportunities around it.
           </p>
@@ -213,65 +201,33 @@ export function CareerDirectionForm({ initialRoles, initialOther }: { initialRol
         </div>
       )}
 
-      {/* Multiple selection primary chooser notice */}
-      {selected.length > 1 && (
-        <fieldset className="mt-7 max-w-2xl rounded-2xl border border-amber-200 bg-amber-50/70 p-5 text-amber-900 shadow-xs">
-          <legend className="sr-only">Choose your primary direction</legend>
-          <p className="flex items-start gap-2.5 text-sm leading-relaxed font-medium">
-            <TriangleAlert aria-hidden="true" className="mt-0.5 size-4.5 shrink-0 text-amber-700" />
-            <span>
-              You&apos;ve selected {selected.length} directions. Pick one as your <strong>primary</strong> focus for dashboard widgets; the others remain saved as secondary interests.
-            </span>
-          </p>
-          <div className="mt-3.5 flex flex-wrap gap-2 pl-7">
-            {selected.map((id, i) => (
-              <label
-                key={id}
-                className={cn(
-                  "flex min-h-[36px] cursor-pointer items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-all duration-150 select-none touch-manipulation",
-                  i === 0
-                    ? "border-[#FF2A85] bg-white text-[#0F172A] shadow-xs ring-1 ring-[#FF2A85]"
-                    : "border-amber-300/80 bg-white/80 text-amber-900 hover:bg-white"
-                )}
-              >
-                <input
-                  type="radio"
-                  name="primary-role"
-                  checked={i === 0}
-                  onChange={() => makePrimary(id)}
-                  className="size-4 accent-[#FF2A85]"
-                />
-                {labelFor(id)}
-              </label>
-            ))}
-          </div>
-        </fieldset>
-      )}
-
-      {/* Custom other input */}
-      <div className="mt-8 max-w-xl">
-        <Label htmlFor="career-other" className="text-xs font-bold uppercase tracking-wider text-slate-700">
-          Not listed? Describe your direction <span className="font-normal text-slate-400 lowercase">(optional)</span>
-        </Label>
-        <Input
-          id="career-other"
-          value={other}
-          maxLength={120}
-          onChange={(e) => changeOther(e.target.value)}
-          onBlur={() => {
-            if (otherTimer.current) commit(selected);
-          }}
-          placeholder="e.g. AI for drug discovery, LLM alignment"
-          className="mt-2 h-11 rounded-xl border-slate-200 text-base md:text-sm shadow-xs transition-colors focus-visible:border-[#FF2A85] focus-visible:ring-2 focus-visible:ring-[#FF2A85]/20"
-        />
+      {/* Custom other input matching reference with Pencil icon */}
+      <div className="mt-6 max-w-full">
+        <label htmlFor="career-other" className="block text-xs font-semibold text-slate-700">
+          Other direction (optional)
+        </label>
+        <div className="relative mt-2">
+          <Pencil aria-hidden="true" className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-slate-400" />
+          <Input
+            id="career-other"
+            value={other}
+            maxLength={120}
+            onChange={(e) => changeOther(e.target.value)}
+            onBlur={() => {
+              if (otherTimer.current) commit(selected);
+            }}
+            placeholder="Describe your goal"
+            className="h-11 rounded-xl sm:rounded-2xl border-slate-200 bg-white pl-10 text-sm shadow-xs transition-colors focus-visible:border-[#FF2A85] focus-visible:ring-2 focus-visible:ring-[#FF2A85]/20"
+          />
+        </div>
       </div>
 
-      {/* Sticky continue footer */}
+      {/* Sticky continue footer matching reference layout */}
       <ContinueForm
         persona="student"
         step="career_direction"
         canContinue={canContinue}
-        hint="Pick at least one direction to continue"
+        hint="Select at least one option"
         status={<SaveStatusText status={status} error={error} onRetry={retry} />}
       />
     </>

@@ -1,19 +1,19 @@
 // Client-safe catalogue data for the onboarding wizard.
 
 export const CAREER_ROLES = [
-  { id: "generative_ai_engineer", label: "Generative AI Engineer", blurb: "LLM apps, RAG, agents, fine-tuning" },
-  { id: "ml_engineer", label: "ML Engineer", blurb: "Training, serving and scaling models" },
-  { id: "ai_engineer", label: "AI Engineer", blurb: "Shipping AI features into products" },
-  { id: "ai_researcher", label: "AI Researcher", blurb: "Papers, experiments, new methods" },
-  { id: "data_scientist", label: "Data Scientist", blurb: "Statistics, analysis, modelling" },
-  { id: "deep_learning_engineer", label: "Deep Learning Engineer", blurb: "Architectures, training at scale" },
-  { id: "mlops_engineer", label: "MLOps Engineer", blurb: "Pipelines, infra, monitoring" },
-  { id: "nlp_engineer", label: "NLP Engineer", blurb: "Language models, text, speech" },
-  { id: "computer_vision_engineer", label: "Computer Vision Engineer", blurb: "Images, video, 3D perception" },
-  { id: "robotics_ai_engineer", label: "Robotics & AI Engineer", blurb: "Control, perception, embodied AI" },
-  { id: "rl_engineer", label: "RL Engineer", blurb: "Agents, rewards, simulation" },
-  { id: "ai_product_founder", label: "AI Product Builder / Founder", blurb: "Building an AI product or company" },
-  { id: "still_exploring", label: "Still Exploring", blurb: "Not sure yet, show me the options" },
+  { id: "generative_ai_engineer", label: "Generative AI", blurb: "LLMs and AI apps" },
+  { id: "ml_engineer", label: "ML Engineer", blurb: "Train and deploy models" },
+  { id: "ai_engineer", label: "AI Engineer", blurb: "Build AI features" },
+  { id: "ai_researcher", label: "AI Research", blurb: "Explore new methods" },
+  { id: "data_scientist", label: "Data Scientist", blurb: "Find insights in data" },
+  { id: "deep_learning_engineer", label: "Deep Learning", blurb: "Neural networks" },
+  { id: "mlops_engineer", label: "MLOps", blurb: "Deploy and monitor models" },
+  { id: "nlp_engineer", label: "NLP Engineer", blurb: "Language and text" },
+  { id: "computer_vision_engineer", label: "Computer Vision", blurb: "Images and video" },
+  { id: "robotics_ai_engineer", label: "Robotics", blurb: "AI in the physical world" },
+  { id: "rl_engineer", label: "RL Engineer", blurb: "Agents and rewards" },
+  { id: "ai_product_founder", label: "AI Product Builder", blurb: "Build AI products" },
+  { id: "still_exploring", label: "Still exploring", blurb: "Help me choose" },
 ] as const;
 
 export type CareerRoleId = (typeof CAREER_ROLES)[number]["id"];

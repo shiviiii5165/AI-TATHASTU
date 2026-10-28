@@ -6,23 +6,16 @@ import { StepHeader } from "@/components/onboarding/step-header";
 import { StepSkeleton } from "@/components/onboarding/step-skeleton";
 import { requireOnboardingStep } from "@/lib/dal";
 
-export const metadata: Metadata = { title: "Career direction · AI Tathastu" };
+export const metadata: Metadata = { title: "What do you want to do? · AI Tathastu" };
 
 export default function CareerDirectionPage() {
   return (
     <>
       <StepHeader
         step="career_direction"
-        title={
-          <>
-            Where are you{" "}
-            <span className="font-serif font-normal italic text-[#FF2A85]">
-              headed?
-            </span>
-          </>
-        }
+        title="What do you want to do?"
       >
-        Pick the direction you want AI Tathastu to help you with. Choose more than one if you&apos;re torn; you can change this anytime.
+        Choose one or more areas. You can change this later.
       </StepHeader>
       <Suspense fallback={<StepSkeleton />}>
         <CareerDirectionStep />

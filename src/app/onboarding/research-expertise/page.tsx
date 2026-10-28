@@ -24,14 +24,7 @@ export default function ResearchPage({ searchParams }: PageProps<"/onboarding/re
     <>
       <StepHeader
         step="research_expertise"
-        title={
-          <>
-            Your research and{" "}
-            <span className="font-serif font-normal italic text-[#FF2A85]">
-              expertise
-            </span>
-          </>
-        }
+        title="Your research and expertise"
       >
         What you work on and which students you can help. Students see your interests when they look for a mentor.
       </StepHeader>

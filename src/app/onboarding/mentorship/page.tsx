@@ -15,14 +15,7 @@ export default function Page() {
     <>
       <StepHeader
         step="mentorship"
-        title={
-          <>
-            How you&apos;d like to{" "}
-            <span className="font-serif font-normal italic text-[#FF2A85]">
-              mentor
-            </span>
-          </>
-        }
+        title="How you'd like to mentor"
       >
         Set how many students you can take on and what you can help with. Students only see you as available while you have room.
       </StepHeader>

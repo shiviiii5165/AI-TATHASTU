@@ -7,23 +7,16 @@ import { StepSkeleton } from "@/components/onboarding/step-skeleton";
 import { flashFrom, loadSourceCards } from "@/lib/connectors/cards";
 import { requireOnboardingStep } from "@/lib/dal";
 
-export const metadata: Metadata = { title: "Connect sources · AI Tathastu" };
+export const metadata: Metadata = { title: "Connect your work · AI Tathastu" };
 
 export default function ConnectSourcesPage({ searchParams }: PageProps<"/onboarding/connect-sources">) {
   return (
     <>
       <StepHeader
         step="connectors"
-        title={
-          <>
-            Connect your{" "}
-            <span className="font-serif font-normal italic text-[#FF2A85]">
-              work
-            </span>
-          </>
-        }
+        title="Connect your work"
       >
-        Link your accounts to enrich your profile with projects, achievements and code. You can skip any of these.
+        Link your accounts to showcase your code, projects, and achievements. You can skip any of these.
       </StepHeader>
       <Suspense fallback={<StepSkeleton />}>
         <ConnectSourcesStep searchParams={searchParams} />

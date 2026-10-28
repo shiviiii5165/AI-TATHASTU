@@ -8,7 +8,7 @@ import { StepSkeleton } from "@/components/onboarding/step-skeleton";
 import { academicPrefill } from "@/lib/academic/prefill";
 import { requireOnboardingStep } from "@/lib/dal";
 
-export const metadata: Metadata = { title: "Basic profile · AI Tathastu" };
+export const metadata: Metadata = { title: "Tell us about yourself · AI Tathastu" };
 
 const saveName = async (value: string) => {
   "use server";
@@ -20,16 +20,9 @@ export default function BasicProfilePage() {
     <>
       <StepHeader
         step="basic_profile"
-        title={
-          <>
-            Tell us about{" "}
-            <span className="font-serif font-normal italic text-[#FF2A85]">
-              yourself
-            </span>
-          </>
-        }
+        title="Tell us about yourself"
       >
-        This helps us personalize your dashboard and match you with the right opportunities.
+        Your academic background helps us personalize your dashboard and match you with opportunities.
       </StepHeader>
       <Suspense fallback={<StepSkeleton />}>
         <BasicProfileStep />
