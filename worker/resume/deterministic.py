@@ -5,6 +5,7 @@ substring as evidence and its char span in Document.text."""
 from __future__ import annotations
 
 import re
+import unicodedata
 import uuid
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
@@ -146,7 +147,11 @@ INSTITUTION = re.compile(
     r"(?:IIT|NIT|IIIT|BITS|IISc|IIM)\s*[A-Z][A-Za-z]*(?:\s+[A-Z][A-Za-z]+)?)"
 )
 GRADE = re.compile(r"((?:CGPA|GPA|CPI|SGPA)\s*[:\-]?\s*\d+(?:\.\d+)?\s*(?:/\s*\d+(?:\.\d+)?)?|\d{2}(?:\.\d+)?\s*%)", re.IGNORECASE)
-NAME_TOKEN = re.compile(r"^[A-Z][a-zA-Z'.-]*$|^[A-Z]{2,}$")
+def _is_name_token(token: str) -> bool:
+    """Capitalised word of letters (any script, so "Ånanya" and "शिवम" count) plus ' . -"""
+    first = token[0]
+    starts_ok = first.isalpha() and (first.isupper() or first.lower() == first.upper())  # caseless scripts
+    return starts_ok and all(ch.isalpha() or ch in "'.-" or unicodedata.category(ch).startswith("M") for ch in token)
 
 
 def _norm_phone(raw: str) -> Optional[str]:
@@ -209,7 +214,7 @@ def extract_name(text: str) -> List[Candidate]:
         tokens = line.strip().split()
         if (
             2 <= len(tokens) <= 4
-            and all(NAME_TOKEN.match(t) for t in tokens)
+            and all(_is_name_token(t) for t in tokens)
             and not HEADERS.get(_header_key(line))
         ):
             start = pos + line.index(tokens[0])

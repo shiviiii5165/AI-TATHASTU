@@ -13,7 +13,8 @@ export function isTerminal(status: JobView["status"]) {
 
 /**
  * Polls /api/jobs/:id with exponential backoff (2 s → 4 → 8 → 10 s cap),
- * sending If-None-Match so unchanged responses come back as 304s. Stops at a
+ * sending If-None-Match so unchanged responses come back as 304s. Paused while
+ * the tab is hidden (checks at once when it's shown again). Stops at a
  * terminal status. Mount with key={jobId}: state is seeded once from `initial`.
  */
 export function useJobPoll(jobId: string, initial: JobView) {
@@ -26,9 +27,11 @@ export function useJobPoll(jobId: string, initial: JobView) {
     let etag: string | null = null;
     let timer: ReturnType<typeof setTimeout>;
     let cancelled = false;
+    let stopped = false; // terminal status or unrecoverable response
 
-    const schedule = () => {
-      if (!cancelled) timer = setTimeout(tick, DELAYS_MS[Math.min(attempt++, DELAYS_MS.length - 1)]);
+    const schedule = (ms = DELAYS_MS[Math.min(attempt++, DELAYS_MS.length - 1)]) => {
+      clearTimeout(timer);
+      if (!cancelled && !stopped && !document.hidden) timer = setTimeout(tick, ms);
     };
 
     async function tick() {
@@ -43,12 +46,12 @@ export function useJobPoll(jobId: string, initial: JobView) {
           const next = (await res.json()) as JobView;
           setJob(next);
           setOffline(false);
-          if (isTerminal(next.status)) return;
+          if (isTerminal(next.status)) return void (stopped = true);
         } else if (res.status === 304) {
           setOffline(false);
         } else if (res.status === 401 || res.status === 404) {
           setOffline(true);
-          return; // Not recoverable by polling.
+          return void (stopped = true); // Not recoverable by polling.
         } else {
           setOffline(true);
         }
@@ -58,10 +61,16 @@ export function useJobPoll(jobId: string, initial: JobView) {
       schedule();
     }
 
+    const onVisibility = () => {
+      if (document.hidden) clearTimeout(timer);
+      else schedule(0);
+    };
+    document.addEventListener("visibilitychange", onVisibility);
     schedule();
     return () => {
       cancelled = true;
       clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [jobId, initial.status]);
 

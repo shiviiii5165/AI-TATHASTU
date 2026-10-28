@@ -1,25 +1,13 @@
+import { createHash } from "node:crypto";
+
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { isEmailConfigured, sendEmail, senderAddress } from "@/lib/email";
+import { clientIp, hitRateLimit } from "@/lib/rate-limit";
 
-// In-memory rate limiting map (IP -> timestamps array)
-// Restricts to 5 submissions per 60 seconds per IP address
-const rateLimitMap = new Map<string, number[]>();
-const RATE_LIMIT_WINDOW_MS = 60 * 1000;
-const MAX_REQUESTS_PER_WINDOW = 5;
-
-// Clean up old rate limit entries every 5 minutes to prevent memory growth
-setInterval(() => {
-  const now = Date.now();
-  for (const [ip, timestamps] of rateLimitMap.entries()) {
-    const valid = timestamps.filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
-    if (valid.length === 0) {
-      rateLimitMap.delete(ip);
-    } else {
-      rateLimitMap.set(ip, valid);
-    }
-  }
-}, 5 * 60 * 1000).unref?.();
+// 5 submissions per 60 seconds per IP, counted across all instances (the key
+// stores a hash, never the raw IP).
+const CONTACT_LIMIT = { limit: 5, windowSeconds: 60 };
 
 const contactSchema = z.object({
   name: z
@@ -53,25 +41,14 @@ function sanitize(input: string): string {
 }
 
 export async function POST(request: Request) {
-  // Rate limiting by client IP
-  const forwardedFor = request.headers.get("x-forwarded-for");
-  const realIp = request.headers.get("x-real-ip");
-  const ip = forwardedFor?.split(",")[0]?.trim() || realIp || "127.0.0.1";
-
-  const now = Date.now();
-  const timestamps = (rateLimitMap.get(ip) || []).filter(
-    (t) => now - t < RATE_LIMIT_WINDOW_MS
-  );
-
-  if (timestamps.length >= MAX_REQUESTS_PER_WINDOW) {
+  const ipHash = createHash("sha256").update(clientIp(request)).digest("hex").slice(0, 32);
+  const limited = await hitRateLimit(`contact:${ipHash}`, CONTACT_LIMIT);
+  if (!limited.ok) {
     return NextResponse.json(
       { error: "Too many requests. Please wait a moment before trying again." },
-      { status: 429 }
+      { status: 429, headers: { "Retry-After": String(limited.retryAfter) } }
     );
   }
-
-  timestamps.push(now);
-  rateLimitMap.set(ip, timestamps);
 
   let body: unknown;
   try {
@@ -100,34 +77,41 @@ export async function POST(request: Request) {
   // Generate unique confirmation reference code
   const referenceId = `#TAT-${Math.floor(1000 + Math.random() * 9000)}`;
 
-  // If support email delivery is configured, forward the message
-  if (isEmailConfigured("support")) {
-    const supportAddr = senderAddress("support");
-    if (supportAddr) {
-      try {
-        await sendEmail({
-          profile: "support",
-          to: supportAddr,
-          email: {
-            subject: `[Contact ${referenceId}] [${category.toUpperCase()}] ${cleanSubject}`,
-            html: `
-              <h2>New Contact Form Submission</h2>
-              <p><strong>Reference:</strong> ${referenceId}</p>
-              <p><strong>Name:</strong> ${cleanName}</p>
-              <p><strong>Email:</strong> ${email}</p>
-              <p><strong>Category:</strong> ${category}</p>
-              <p><strong>Subject:</strong> ${cleanSubject}</p>
-              <hr />
-              <p><strong>Message:</strong></p>
-              <p style="white-space: pre-wrap;">${cleanMessage}</p>
-            `,
-            text: `Reference: ${referenceId}\nName: ${cleanName}\nEmail: ${email}\nCategory: ${category}\nSubject: ${cleanSubject}\n\nMessage:\n${cleanMessage}`,
-          },
-        });
-      } catch (err) {
-        console.error("Failed to forward contact email via SMTP:", err);
-      }
-    }
+  // The message is only stored by being emailed, so "sent" means delivered to
+  // the support inbox: never report success for a message that went nowhere.
+  const supportAddr = isEmailConfigured("support") ? senderAddress("support") : null;
+  if (!supportAddr) {
+    return NextResponse.json(
+      { error: "Sending messages isn't available right now. Please email us directly." },
+      { status: 503 }
+    );
+  }
+  try {
+    await sendEmail({
+      profile: "support",
+      to: supportAddr,
+      email: {
+        subject: `[Contact ${referenceId}] [${category.toUpperCase()}] ${cleanSubject}`,
+        html: `
+          <h2>New Contact Form Submission</h2>
+          <p><strong>Reference:</strong> ${referenceId}</p>
+          <p><strong>Name:</strong> ${cleanName}</p>
+          <p><strong>Email:</strong> ${email}</p>
+          <p><strong>Category:</strong> ${category}</p>
+          <p><strong>Subject:</strong> ${cleanSubject}</p>
+          <hr />
+          <p><strong>Message:</strong></p>
+          <p style="white-space: pre-wrap;">${cleanMessage}</p>
+        `,
+        text: `Reference: ${referenceId}\nName: ${cleanName}\nEmail: ${email}\nCategory: ${category}\nSubject: ${cleanSubject}\n\nMessage:\n${cleanMessage}`,
+      },
+    });
+  } catch (err) {
+    console.error("Failed to forward contact email via SMTP:", err);
+    return NextResponse.json(
+      { error: "We couldn't send your message. Please try again in a moment." },
+      { status: 502 }
+    );
   }
 
   return NextResponse.json({

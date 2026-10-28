@@ -153,4 +153,5 @@ def sync_linkedin(conn: Any, job: Job) -> None:
     except (HttpError, RuntimeError):
         set_status(conn, row["id"], "failed")
         raise
-    finish_sync(conn, job, row["id"], "linkedin", map_linkedin(item, Facts(job.user_id, "linkedin_scrape", "apify:linkedin")))
+    finish_sync(conn, job, row["id"], "linkedin", map_linkedin(item, Facts(job.user_id, "linkedin_scrape", "apify:linkedin")),
+                consent="linkedin_scrape")

@@ -17,6 +17,9 @@ UNCERTAIN_OCR_PENALTY = 0.8
 
 
 def persist(cur: Any, user_id: str, doc: Document, candidates: List[Candidate]) -> int:
+    # Serialise persists per user: two overlapping delete+insert transactions
+    # (two resumes finishing together) would otherwise both survive as duplicates.
+    cur.execute("SELECT pg_advisory_xact_lock(hashtextextended('resume_persist:' || %s, 0))", (user_id,))
     # A new extraction replaces the previous one's *unreviewed* facts; anything
     # the user already confirmed, edited or rejected is left alone.
     cur.execute(

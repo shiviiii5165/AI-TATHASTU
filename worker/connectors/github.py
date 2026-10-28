@@ -21,6 +21,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import psycopg2.extras
 
+from connectors.common import still_connected
 from crypto_box import open_credential
 from db import enqueue_compute_intelligence, fetch_one, jsonb
 from jobs import Job, NeedsReview
@@ -102,7 +103,11 @@ def sync_github(conn: Any, job: Job, client_factory=GithubClient) -> None:
         ][:MAX_REPOS]
         languages: Dict[str, Dict[str, int]] = {}
         for repo in repos[:LANGUAGE_LOOKUPS]:
-            languages[repo["full_name"]], _ = client.get(f"/repos/{repo['full_name']}/languages")
+            try:
+                languages[repo["full_name"]], _ = client.get(f"/repos/{repo['full_name']}/languages")
+            except urllib.error.HTTPError as exc:
+                if exc.code != 404:  # renamed/deleted since listing: keep its primary language, sync the rest
+                    raise
     except GithubAuthError as exc:
         with conn, conn.cursor() as cur:
             cur.execute("UPDATE connections SET status = 'reauth_needed' WHERE id = %s", (connection_id,))
@@ -113,6 +118,9 @@ def sync_github(conn: Any, job: Job, client_factory=GithubClient) -> None:
         raise  # retried by the worker
 
     with conn, conn.cursor() as cur:
+        if not still_connected(cur, connection_id, job.user_id):
+            log.info("github connection %s was disconnected mid-sync; results discarded", connection_id)
+            return
         _write(cur, job.user_id, profile, repos, languages)
         now = datetime.now(timezone.utc)
         cur.execute(

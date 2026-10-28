@@ -807,4 +807,12 @@ export const opportunities = pgTable(
 
 export type Opportunity = typeof opportunities.$inferSelect;
 
+// Fixed-window request counters shared by every serverless instance (an
+// in-memory Map resets per instance). One row per limiter key.
+export const rateLimits = pgTable("rate_limits", {
+  key: text("key").primaryKey(),
+  windowStart: timestamp("window_start", { withTimezone: true }).notNull(),
+  count: integer("count").notNull(),
+});
+
 

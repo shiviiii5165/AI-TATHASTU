@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import psycopg2.extras
 
 from crypto_box import open_credential
-from db import enqueue_compute_intelligence, fetch_one, jsonb
+from db import enqueue_compute_intelligence, fetch_one, has_consent, jsonb
 from jobs import Job
 
 log = logging.getLogger("worker.connectors")
@@ -123,8 +123,21 @@ class Facts:
         return len(self.rows)
 
 
-def finish_sync(conn: Any, job: Job, connection_id: str, source: str, facts: Facts) -> None:
+def still_connected(cur: Any, connection_id: str, user_id: str) -> bool:
+    """Locks the connection row; False if the user disconnected while the sync ran
+    (disconnect deletes this source's facts, so writing now would revive them)."""
+    cur.execute("SELECT 1 FROM connections WHERE id = %s AND user_id = %s FOR UPDATE", (connection_id, user_id))
+    return cur.fetchone() is not None
+
+
+def finish_sync(conn: Any, job: Job, connection_id: str, source: str, facts: Facts, consent: Optional[str] = None) -> None:
     with conn, conn.cursor() as cur:
+        if not still_connected(cur, connection_id, job.user_id):
+            log.info("%s connection %s was disconnected mid-sync; results discarded", source, connection_id)
+            return
+        if consent and not has_consent(cur, job.user_id, consent):
+            log.info("%s: %s consent revoked mid-sync; results discarded", source, consent)
+            return
         n = facts.replace(cur)
         now = datetime.now(timezone.utc)
         cur.execute(

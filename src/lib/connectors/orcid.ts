@@ -35,6 +35,7 @@ export async function exchangeOrcidCode(code: string, redirectUri: string) {
       code,
       redirect_uri: redirectUri,
     }),
+    signal: AbortSignal.timeout(10_000), // a hung ORCID call fails the callback instead of holding it
   });
   const data = (await res.json().catch(() => ({}))) as { orcid?: string; name?: string; error?: string };
   if (!res.ok || !data.orcid || !ORCID_ID.test(data.orcid)) throw new Error(`ORCID token exchange failed: ${data.error ?? res.status}`);

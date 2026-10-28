@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getApiUserAtStep } from "@/lib/dal";
 import { isR2Configured, presignResumeUpload } from "@/lib/r2";
+import { hitRateLimit } from "@/lib/rate-limit";
 import { findExistingResume, registerResume, resumeUploadSchema } from "@/lib/uploads/register";
 import { hexToBase64, resumeStorageKey } from "@/lib/uploads/resume";
 
@@ -21,6 +22,15 @@ export async function POST(request: Request) {
   }
   const upload = parsed.data;
   const userId = authz.user.id;
+
+  // Each call can mint a storage write URL; cap it per user across all instances.
+  const limited = await hitRateLimit(`resume_presign:${userId}`, { limit: 30, windowSeconds: 3600 });
+  if (!limited.ok) {
+    return NextResponse.json(
+      { error: "Too many upload attempts. Try again later." },
+      { status: 429, headers: { "Retry-After": String(limited.retryAfter) } },
+    );
+  }
 
   if (await findExistingResume(userId, upload.sha256)) {
     const { jobId } = await registerResume(userId, upload);

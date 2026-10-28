@@ -1,22 +1,47 @@
-import { describe, expect, it, vi } from "vitest";
-import { POST } from "./route";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@/lib/email", () => ({
-  isEmailConfigured: vi.fn(() => false),
-  sendEmail: vi.fn(),
+const email = vi.hoisted(() => ({
+  isEmailConfigured: vi.fn(() => true),
+  sendEmail: vi.fn(async () => undefined),
   senderAddress: vi.fn(() => "support@aitathastu.test"),
 }));
+vi.mock("@/lib/email", () => email);
 
+// One database for every module instance, like two serverless instances sharing Neon.
+const shared = vi.hoisted(() => ({ db: null as unknown }));
+vi.mock("@/db", async () => {
+  const { createTestDb } = await import("@/test/db");
+  shared.db ??= await createTestDb();
+  return { db: shared.db };
+});
+
+const { db } = await import("@/db");
+const { rateLimits } = await import("@/db/schema");
+const { POST } = await import("./route");
+
+let ipSeq = 0;
 function createRequest(body: unknown, headers: Record<string, string> = {}) {
   return new Request("http://localhost:3000/api/contact", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...headers,
-    },
+    // A fresh IP per request unless the test pins one, so limits don't leak between tests.
+    headers: { "Content-Type": "application/json", "x-forwarded-for": `10.0.0.${++ipSeq}`, ...headers },
     body: typeof body === "string" ? body : JSON.stringify(body),
   });
 }
+
+const valid = {
+  name: "Priyanshu Sharma",
+  email: "priyanshu@campus.edu",
+  category: "general",
+  subject: "Questions regarding platform features",
+  message: "Hello team, I would like to learn more about the Tathastu modules.",
+  consent: true,
+};
+
+beforeEach(() => {
+  email.isEmailConfigured.mockReturnValue(true);
+  email.sendEmail.mockReset().mockResolvedValue(undefined);
+});
 
 describe("POST /api/contact", () => {
   it("rejects non-JSON payload", async () => {
@@ -28,60 +53,55 @@ describe("POST /api/contact", () => {
 
   it("validates required fields", async () => {
     const res = await POST(
-      createRequest({
-        name: "",
-        email: "not-an-email",
-        category: "invalid-category",
-        subject: "",
-        message: "too short",
-        consent: false,
-      })
+      createRequest({ name: "", email: "not-an-email", category: "invalid-category", subject: "", message: "too short", consent: false })
     );
     expect(res.status).toBe(400);
   });
 
-  it("accepts valid contact submission and returns referenceId", async () => {
-    const res = await POST(
-      createRequest({
-        name: "Priyanshu Sharma",
-        email: "priyanshu@campus.edu",
-        category: "general",
-        subject: "Questions regarding platform features",
-        message: "Hello team, I would like to learn more about the Tathastu modules.",
-        consent: true,
-      })
-    );
+  it("accepts a valid submission once it is delivered to support and returns referenceId", async () => {
+    const res = await POST(createRequest(valid));
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.ok).toBe(true);
     expect(data.referenceId).toMatch(/^#TAT-\d{4}$/);
     expect(data.timestamp).toBeDefined();
+    expect(email.sendEmail).toHaveBeenCalledTimes(1);
   });
 
-  it("enforces rate limiting after repeated requests from same IP", async () => {
-    const ip = "192.168.10.99";
-    const payload = {
-      name: "Priyanshu",
-      email: "priyanshu@campus.edu",
-      category: "support",
-      subject: "Help needed with connecting repository",
-      message: "Here are the steps to reproduce my issue with GitHub sync.",
-      consent: true,
-    };
+  it("never reports success when email isn't configured (the message would be lost)", async () => {
+    email.isEmailConfigured.mockReturnValue(false);
+    const res = await POST(createRequest(valid));
+    expect(res.status).toBe(503);
+    expect((await res.json()).ok).toBeUndefined();
+  });
 
-    // First request should succeed
-    const res1 = await POST(createRequest(payload, { "x-forwarded-for": ip }));
-    expect(res1.status).toBe(200);
+  it("never reports success when delivery fails", async () => {
+    email.sendEmail.mockRejectedValueOnce(new Error("smtp down"));
+    const res = await POST(createRequest(valid));
+    expect(res.status).toBe(502);
+    expect((await res.json()).ok).toBeUndefined();
+  });
 
-    // Rapid requests up to rate limit
-    for (let i = 0; i < 4; i++) {
-      await POST(createRequest(payload, { "x-forwarded-for": ip }));
-    }
+  it("enforces the limit per IP from a shared store, not process memory", async () => {
+    const ip = { "x-forwarded-for": "192.168.10.99" };
+    for (let i = 0; i < 5; i++) expect((await POST(createRequest(valid, ip))).status).toBe(200);
 
-    // 6th request should hit rate limit (status 429)
-    const resOverLimit = await POST(createRequest(payload, { "x-forwarded-for": ip }));
-    expect(resOverLimit.status).toBe(429);
-    const data = await resOverLimit.json();
-    expect(data.error).toMatch(/too many requests/i);
+    const over = await POST(createRequest(valid, ip));
+    expect(over.status).toBe(429);
+    expect(Number(over.headers.get("Retry-After"))).toBeGreaterThan(0);
+    expect((await over.json()).error).toMatch(/too many requests/i);
+
+    // A different IP is unaffected; the raw IP is never stored.
+    expect((await POST(createRequest(valid, { "x-forwarded-for": "192.168.10.100" }))).status).toBe(200);
+    const keys = (await db.select({ key: rateLimits.key }).from(rateLimits)).map((r) => r.key);
+    expect(keys.some((k) => k.includes("192.168"))).toBe(false);
+  });
+
+  it("keeps counting across a fresh module instance (another serverless instance)", async () => {
+    const ip = { "x-forwarded-for": "172.16.0.5" };
+    for (let i = 0; i < 5; i++) await POST(createRequest(valid, ip));
+    vi.resetModules();
+    const { POST: freshPost } = await import("./route");
+    expect((await freshPost(createRequest(valid, ip))).status).toBe(429);
   });
 });
