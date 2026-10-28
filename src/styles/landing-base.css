@@ -36,6 +36,29 @@
   --ease: cubic-bezier(.22, 1, .36, 1);
 }
 
+.dark,
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #101116;
+  --bg-2: #151720;
+  --bg-3: #13141C;
+  --surface: #191B24;
+  --surface-glass: rgba(25, 27, 36, 0.90);
+  --ink: #F7F8FC;
+  --ink-soft: #C4CAD8;
+  --mute: #AEB6C8;
+  --line: #383C4B;
+
+  --yellow-bg: #2B230B;      --yellow-ink: #FDE047;
+  --amber-bg: #2C210C;       --amber-ink: #FCD34D;
+  --purple-bg: #231C38;      --purple-ink: #C4B5FD;
+  --red-bg: #2D1418;         --red-ink: #FDA4AF;
+  --pinkred-bg: #2E141C;     --pinkred-ink: #FDA4AF;
+  --pink-bg: #2D1424;        --pink-ink: #F9A8D4;
+  --green-bg: #0F2818;       --green-ink: #86EFAC;
+  --sky-bg: #0C2333;         --sky-ink: #7DD3FC;
+}
+
 @layer base {
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html { scroll-behavior: smooth; scroll-padding-top: 100px; -webkit-text-size-adjust: 100%; }

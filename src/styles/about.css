@@ -31,6 +31,20 @@
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+.dark,
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #101116;
+  --bg-cream: #13141C;
+  --bg-alt: #151720;
+  --surface: #191B24;
+  --ink: #F7F8FC;
+  --ink-soft: #C4CAD8;
+  --ink-muted: #AEB6C8;
+  --line: rgba(56, 60, 75, 0.85);
+  --line-subtle: rgba(56, 60, 75, 0.6);
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;

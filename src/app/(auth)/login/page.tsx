@@ -11,6 +11,7 @@ import { signInWithProvider } from "@/app/(auth)/login/actions";
 import { auth } from "@/auth";
 import { EmailSignInButton, GoogleSignInButton, LinkedInSignInButton } from "@/components/auth/auth-buttons";
 import { BrandLogo } from "@/components/brand-logo";
+import { ThemeToggleButton } from "@/components/theme-toggle-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { db } from "@/db";
@@ -38,7 +39,7 @@ const ERRORS: Record<string, string> = {
 
 export default function LoginPage({ searchParams }: PageProps<"/login">) {
   return (
-    <main className="relative flex min-h-dvh flex-col overflow-x-hidden bg-[#FAFAFD] text-[#0F172A] lg:grid lg:grid-cols-[57%_43%]">
+    <main className="relative flex min-h-dvh flex-col overflow-x-hidden bg-background text-foreground lg:grid lg:grid-cols-[57%_43%]">
       {/* ============================================================
           LEFT PANEL: RICH EDITORIAL WORKSPACE COMPOSITION (~57%)
       ============================================================ */}
@@ -180,7 +181,7 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
       {/* ============================================================
           RIGHT PANEL: CLEAN FOCUSED AUTHENTICATION CARD (~43%)
       ============================================================ */}
-      <section className="relative z-10 flex flex-col justify-between p-4 sm:p-8 lg:p-8 xl:p-14 bg-[#FAFAFD] border-t border-slate-100 lg:border-t-0 lg:border-l lg:border-slate-200/60 min-h-[480px] lg:min-h-dvh">
+      <section className="relative z-10 flex flex-col justify-between p-4 sm:p-8 lg:p-8 xl:p-14 bg-background border-t border-border lg:border-t-0 lg:border-l lg:border-border min-h-[480px] lg:min-h-dvh">
         {/* Ambient flowing pastel wave decoration in bottom-right corner */}
         <div className="pointer-events-none absolute bottom-0 right-0 size-[440px] overflow-hidden" aria-hidden="true">
           <div className="absolute -bottom-24 -right-24 size-[400px] rounded-full bg-gradient-to-tl from-[#FF2A85]/14 via-[#8B5CF6]/10 to-transparent blur-3xl" />
@@ -199,11 +200,12 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
           </svg>
         </div>
 
-        {/* Top-Right "Back to website" Link */}
-        <div className="hidden lg:flex items-center justify-end w-full">
+        {/* Top-Right Navigation & Theme Controls */}
+        <div className="flex items-center justify-between w-full">
+          <ThemeToggleButton size="sm" />
           <Link
             href="/"
-            className="group inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-slate-500 hover:text-[#0F172A] transition-colors py-1 px-2.5 rounded-lg hover:bg-slate-100/70"
+            className="group inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors py-1 px-2.5 rounded-lg hover:bg-accent"
           >
             <ArrowLeft className="size-4 transition-transform group-hover:-translate-x-1" />
             <span>Back to website</span>
@@ -212,12 +214,12 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
 
         {/* Center Authentication Card */}
         <div className="my-auto w-full max-w-[440px] mx-auto py-1 sm:py-3 lg:py-2 xl:py-6">
-          <div className="rounded-3xl border border-slate-200/85 bg-white p-5 sm:p-7 lg:p-6 xl:p-8 shadow-xl shadow-slate-200/50">
+          <div className="rounded-3xl border border-border bg-card p-5 sm:p-7 lg:p-6 xl:p-8 shadow-xl shadow-black/5 dark:shadow-black/40 text-card-foreground">
             <div className="mb-4 sm:mb-6">
-              <h2 className="font-sans text-xl sm:text-[24px] xl:text-[27px] font-bold tracking-tight text-[#0F172A] leading-tight">
+              <h2 className="font-sans text-xl sm:text-[24px] xl:text-[27px] font-bold tracking-tight text-foreground leading-tight">
                 Start building your profile.
               </h2>
-              <p className="mt-1 text-xs sm:text-sm text-slate-500">
+              <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
                 Sign in, build your profile and take the next step.
               </p>
             </div>
@@ -226,13 +228,13 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
               <SignInWithParams searchParams={searchParams} />
             </Suspense>
 
-            <p className="mt-5 xl:mt-6 text-center text-[11px] sm:text-[11.5px] leading-relaxed text-slate-500 whitespace-nowrap">
+            <p className="mt-5 xl:mt-6 text-center text-[11px] sm:text-[11.5px] leading-relaxed text-muted-foreground whitespace-nowrap">
               By continuing, you agree to AI Tathastu&apos;s{" "}
-              <Link href="/terms" className="font-medium text-slate-700 underline underline-offset-2 hover:text-[#0F172A] transition-colors">
+              <Link href="/terms" className="font-medium text-foreground underline underline-offset-2 hover:text-primary transition-colors">
                 Terms
               </Link>{" "}
               and{" "}
-              <Link href="/privacy" className="font-medium text-slate-700 underline underline-offset-2 hover:text-[#0F172A] transition-colors">
+              <Link href="/privacy" className="font-medium text-foreground underline underline-offset-2 hover:text-primary transition-colors">
                 Privacy Policy
               </Link>
               .
@@ -240,7 +242,7 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
           </div>
 
           {/* Compact Reassurance Row */}
-          <div className="mt-6 sm:mt-7 flex flex-wrap sm:flex-nowrap items-center justify-center sm:justify-between gap-x-4 gap-y-2 text-[11px] sm:text-xs font-medium text-slate-600 px-1">
+          <div className="mt-6 sm:mt-7 flex flex-wrap sm:flex-nowrap items-center justify-center sm:justify-between gap-x-4 gap-y-2 text-[11px] sm:text-xs font-medium text-muted-foreground px-1">
             <div className="flex items-center gap-1.5 whitespace-nowrap">
               <ShieldCheck className="size-3.5 sm:size-4 text-[#10B981] shrink-0" />
               <span>Your data stays private.</span>

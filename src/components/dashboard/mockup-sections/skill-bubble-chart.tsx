@@ -458,17 +458,17 @@ export function SkillBubbleChart({
   return (
     <div
       ref={containerRef}
-      className={`relative flex h-full flex-col justify-between overflow-hidden rounded-2xl border border-[#E7EAF3] bg-white p-5 shadow-2xs ${className}`}
+      className={`relative flex h-full flex-col justify-between overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-2xs text-card-foreground ${className}`}
     >
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-[#F0F2F7] pb-3">
+      <div className="flex items-center justify-between border-b border-border pb-3">
         <div className="flex items-center gap-2">
-          <div className="flex size-7 items-center justify-center rounded-lg bg-[#F4F1FD] text-[#8554FF]">
+          <div className="flex size-7 items-center justify-center rounded-lg bg-[#F4F1FD] dark:bg-purple-950/40 text-[#8554FF]">
             <Network className="size-4" />
           </div>
           <div>
-            <h2 className="font-sans text-sm font-bold text-[#11182B]">Interactive Skill Graph</h2>
-            <p className="text-[10px] text-[#8A9BB5]">See how your skills connect</p>
+            <h2 className="font-sans text-sm font-bold text-foreground">Interactive Skill Graph</h2>
+            <p className="text-[10px] text-muted-foreground">See how your skills connect</p>
           </div>
         </div>
         <div className="flex items-center gap-1.5 sm:gap-2">
@@ -607,10 +607,10 @@ export function SkillBubbleChart({
                       y1={y1}
                       x2={x2}
                       y2={y2}
-                      stroke={active ? "#8554FF" : "#CBD5E1"}
+                      stroke={active ? "#8554FF" : "var(--border, #383C4B)"}
                       strokeWidth={active ? 2.2 : 1.2}
                       strokeDasharray={rel === "requires" ? "none" : "4 3"}
-                      strokeOpacity={active ? 0.95 : 0.5}
+                      strokeOpacity={active ? 0.95 : 0.6}
                       className="transition-colors duration-200"
                     />
                     {/* Relationship Badge on Hover/Active */}
@@ -622,7 +622,7 @@ export function SkillBubbleChart({
                           width={56}
                           height={16}
                           rx={8}
-                          fill="#FFFFFF"
+                          fill="var(--card, #191B24)"
                           stroke="#8554FF"
                           strokeWidth={1}
                           className="shadow-xs"
@@ -682,7 +682,7 @@ export function SkillBubbleChart({
                     <circle
                       r={node.radius}
                       fill={fillGrad}
-                      stroke="#FFFFFF"
+                      stroke="var(--card, #191B24)"
                       strokeWidth={2}
                       filter={isSelected ? "url(#glow-active)" : undefined}
                       className="transition-transform duration-200 group-hover:scale-110"
@@ -706,7 +706,7 @@ export function SkillBubbleChart({
                       cy={-node.radius * 0.72}
                       r={3.5}
                       fill={node.isDirect ? "#10B981" : "#A855F7"}
-                      stroke="#FFFFFF"
+                      stroke="var(--card, #191B24)"
                       strokeWidth={1}
                     />
                   </g>
@@ -770,22 +770,22 @@ export function SkillBubbleChart({
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150"
           onClick={() => setSelectedNode(null)}
         >
           <div
-            className="w-[calc(100vw-2rem)] max-w-md max-h-[88vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-2xl transition-all duration-200 animate-in zoom-in-95"
+            className="w-[calc(100vw-2rem)] max-w-md max-h-[88vh] overflow-y-auto rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-2xl transition-all duration-200 animate-in zoom-in-95 text-card-foreground"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="flex items-start justify-between pb-3 border-b border-slate-100">
+            <div className="flex items-start justify-between pb-3 border-b border-border">
               <div className="flex items-center gap-2.5">
                 <div className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#8554FF] to-[#2878F0] text-white shadow-xs">
                   <Cpu className="size-5" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="font-sans text-base font-bold text-slate-900">{selectedNode.name}</h3>
+                    <h3 className="font-sans text-base font-bold text-foreground">{selectedNode.name}</h3>
                     <span
                       className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                         selectedNode.isDirect

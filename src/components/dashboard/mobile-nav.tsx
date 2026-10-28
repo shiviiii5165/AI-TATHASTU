@@ -15,9 +15,11 @@ import {
   Home,
   LogOut,
   Menu,
+  Moon,
   Plug,
   ShieldCheck,
   Sparkles,
+  Sun,
   Trophy,
   User,
   UserRoundCheck,
@@ -27,6 +29,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { BrandLogo } from "@/components/brand-logo";
 import { cn } from "@/lib/utils";
 import { YoraModal } from "@/components/dashboard/yora-modal";
+import { useTheme } from "@/components/theme-provider";
 
 interface MobileNavProps {
   user?: {
@@ -41,6 +44,7 @@ interface MobileNavProps {
 
 export function MobileNav({ user, onSignOut }: MobileNavProps) {
   const pathname = usePathname();
+  const { resolvedTheme, toggleTheme } = useTheme();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [yoraOpen, setYoraOpen] = useState(false);
 
@@ -82,7 +86,7 @@ export function MobileNav({ user, onSignOut }: MobileNavProps) {
       ========================================================================= */}
       <nav
         aria-label="Mobile primary navigation"
-        className="fixed bottom-0 inset-x-0 z-40 border-t border-slate-200/90 bg-white/95 backdrop-blur-lg lg:hidden"
+        className="fixed bottom-0 inset-x-0 z-40 border-t border-border bg-card/95 backdrop-blur-lg lg:hidden"
       >
         <div className="mx-auto flex h-16 max-w-md items-center justify-around px-2 pb-[env(safe-area-inset-bottom,0px)]">
           {primaryTabs.map((tab) => {
@@ -341,22 +345,40 @@ export function MobileNav({ user, onSignOut }: MobileNavProps) {
                 <Link
                   href="/settings/integrations"
                   onClick={() => setDrawerOpen(false)}
-                  className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 min-h-[44px]"
+                  className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-700 dark:text-muted-foreground hover:bg-slate-50 dark:hover:bg-accent min-h-[44px]"
                 >
                   <Plug className="size-4 text-slate-400 shrink-0" />
                   <span>Connected Sources</span>
                 </Link>
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-700 dark:text-muted-foreground hover:bg-slate-50 dark:hover:bg-accent min-h-[44px] cursor-pointer"
+                  aria-label="Toggle light and dark mode"
+                >
+                  <div className="flex items-center gap-3">
+                    {resolvedTheme === "dark" ? (
+                      <Moon className="size-4 text-[#B69CFF] shrink-0" />
+                    ) : (
+                      <Sun className="size-4 text-[#F59E0B] shrink-0" />
+                    )}
+                    <span>Appearance: {resolvedTheme === "dark" ? "Dark Mode" : "Light Mode"}</span>
+                  </div>
+                  <span className="text-[11px] font-mono font-medium text-slate-400">
+                    Switch →
+                  </span>
+                </button>
               </div>
             </div>
           </div>
 
           {/* Drawer Footer with Sign Out */}
-          <div className="p-4 border-t border-slate-100 bg-slate-50/60 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <div className="p-4 border-t border-border bg-card pb-[max(1rem,env(safe-area-inset-bottom))]">
             {onSignOut ? (
               <button
                 type="button"
                 onClick={onSignOut}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors shadow-2xs min-h-[44px] cursor-pointer"
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-rose-200 dark:border-rose-900/40 bg-white dark:bg-card px-4 py-2.5 text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors shadow-2xs min-h-[44px] cursor-pointer"
               >
                 <LogOut className="size-4" />
                 <span>Sign out</span>

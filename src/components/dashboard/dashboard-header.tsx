@@ -6,6 +6,7 @@ import Link from "next/link";
 import {
   Bell,
   ChevronDown,
+  Moon,
   Plug,
   Search,
   ShieldCheck,
@@ -15,6 +16,7 @@ import {
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { BrandLogo } from "@/components/brand-logo";
+import { useTheme } from "@/components/theme-provider";
 
 const YoraModal = dynamic(
   () => import("@/components/dashboard/yora-modal").then((m) => m.YoraModal),
@@ -32,6 +34,7 @@ export function DashboardHeader({
     role?: string | null;
   };
 }) {
+  const { resolvedTheme, toggleTheme } = useTheme();
   const [yoraOpen, setYoraOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [notifMenuOpen, setNotifMenuOpen] = useState(false);
@@ -107,7 +110,7 @@ export function DashboardHeader({
 
   return (
     <>
-      <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between border-b border-[#E7EAF3] bg-white/95 px-3 sm:px-6 lg:px-8 pl-safe pr-safe backdrop-blur-md">
+      <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between border-b border-border bg-card/95 px-3 sm:px-6 lg:px-8 pl-safe pr-safe backdrop-blur-md">
         {/* Left: Brand area */}
         <div className="flex items-center gap-3 sm:gap-6 min-w-0">
           <Link
@@ -122,14 +125,14 @@ export function DashboardHeader({
         {/* Center: Large search bar with Categorized Dropdown */}
         <div className="hidden md:flex flex-1 max-w-lg mx-6 relative">
           <div className="relative w-full">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[#8A9BB5]" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <input
               type="text"
               value={searchQuery}
               onFocus={() => setIsSearchFocused(true)}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search for people, projects, skills, opportunities..."
-              className="w-full h-10.5 pl-11 pr-4 rounded-full border border-[#E7EAF3] bg-[#F8FAFD] text-base md:text-sm text-[#11182B] placeholder:text-[#8A9BB5] transition-all focus:bg-white focus:outline-none focus:border-[#FF496D] focus:ring-2 focus:ring-[#FF496D]/15"
+              className="w-full h-10.5 pl-11 pr-4 rounded-full border border-border bg-background text-base md:text-sm text-foreground placeholder:text-muted-foreground transition-all focus:bg-card focus:outline-none focus:border-[#FF496D] focus:ring-2 focus:ring-[#FF496D]/15"
             />
             {isSearching && (
               <div className="absolute right-3.5 top-1/2 -translate-y-1/2">
@@ -145,7 +148,7 @@ export function DashboardHeader({
                 className="fixed inset-0 z-40"
                 onClick={() => setIsSearchFocused(false)}
               />
-              <div className="absolute top-12 left-0 right-0 z-50 rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl max-h-[440px] overflow-y-auto">
+              <div className="absolute top-12 left-0 right-0 z-50 rounded-2xl border border-border bg-card p-3 shadow-2xl max-h-[440px] overflow-y-auto text-card-foreground">
                 {activeSearchResults &&
                 (activeSearchResults.people.length > 0 ||
                   activeSearchResults.skills.length > 0 ||
@@ -279,20 +282,26 @@ export function DashboardHeader({
           <button
             type="button"
             onClick={() => setMobileSearchOpen(!mobileSearchOpen)}
-            className="md:hidden flex size-10 items-center justify-center rounded-full border border-[#E7EAF3] bg-white text-[#617493] shadow-xs hover:bg-slate-50 transition-colors cursor-pointer min-h-[44px] min-w-[44px]"
+            className="md:hidden flex size-9 sm:size-10 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-xs hover:bg-accent transition-colors cursor-pointer min-h-[44px] min-w-[44px]"
             aria-label="Toggle search"
             aria-expanded={mobileSearchOpen}
           >
             <Search className="size-4" />
           </button>
 
-          {/* Light/Theme toggle button */}
+          {/* Theme toggle button */}
           <button
             type="button"
-            className="hidden sm:flex size-10 items-center justify-center rounded-full border border-[#E7EAF3] bg-white text-[#F59E0B] shadow-xs hover:bg-slate-50 transition-colors cursor-pointer"
-            aria-label="Toggle theme mode"
+            onClick={toggleTheme}
+            className="flex size-9 sm:size-10 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-xs hover:bg-accent transition-colors cursor-pointer min-h-[44px] min-w-[44px]"
+            aria-label={resolvedTheme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            aria-pressed={resolvedTheme === "dark"}
           >
-            <Sun className="size-4.5" />
+            {resolvedTheme === "dark" ? (
+              <Moon className="size-4 sm:size-4.5 text-[#B69CFF]" />
+            ) : (
+              <Sun className="size-4 sm:size-4.5 text-[#F59E0B]" />
+            )}
           </button>
 
           {/* Notifications button with unread indicator */}
@@ -303,11 +312,11 @@ export function DashboardHeader({
                 setNotifMenuOpen(!notifMenuOpen);
                 setProfileMenuOpen(false);
               }}
-              className="relative flex size-10 items-center justify-center rounded-full border border-[#E7EAF3] bg-white text-[#617493] shadow-xs hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer min-h-[44px] min-w-[44px]"
+              className="relative flex size-9 sm:size-10 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-xs hover:bg-accent hover:text-foreground transition-colors cursor-pointer min-h-[44px] min-w-[44px]"
               aria-label="View notifications"
               aria-expanded={notifMenuOpen}
             >
-              <Bell className="size-4.5" />
+              <Bell className="size-4 sm:size-4.5" />
             </button>
 
             {notifMenuOpen && (
@@ -316,12 +325,12 @@ export function DashboardHeader({
                   className="fixed inset-0 z-40 bg-transparent"
                   onClick={() => setNotifMenuOpen(false)}
                 />
-                <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-xs sm:w-80 rounded-2xl border border-slate-200 bg-white p-4 shadow-xl z-50 text-sm animate-in fade-in zoom-in-95 duration-150">
-                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                    <span className="font-bold text-slate-900">Notifications</span>
+                <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-xs sm:w-80 rounded-2xl border border-border bg-card p-4 shadow-xl z-50 text-sm animate-in fade-in zoom-in-95 duration-150 text-card-foreground">
+                  <div className="flex items-center justify-between pb-3 border-b border-border">
+                    <span className="font-bold text-foreground">Notifications</span>
                   </div>
                   {/* No notification feed exists yet; the previous entries were placeholders, not real events. */}
-                  <p className="mt-3 text-xs text-slate-500">You&apos;re all caught up. Updates about your profile will appear here.</p>
+                  <p className="mt-3 text-xs text-muted-foreground">You&apos;re all caught up. Updates about your profile will appear here.</p>
                 </div>
               </>
             )}
@@ -335,11 +344,11 @@ export function DashboardHeader({
                 setProfileMenuOpen(!profileMenuOpen);
                 setNotifMenuOpen(false);
               }}
-              className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2 hover:bg-slate-100/70 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF496D]/30"
+              className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2 hover:bg-accent transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF496D]/30"
               aria-label="User account menu"
               aria-expanded={profileMenuOpen}
             >
-              <div className="relative size-8 rounded-full overflow-hidden border border-slate-200 shadow-xs shrink-0">
+              <div className="relative size-8 rounded-full overflow-hidden border border-border shadow-xs shrink-0">
                 {avatarUrl ? (
                   <Image
                     src={avatarUrl}
@@ -355,14 +364,14 @@ export function DashboardHeader({
                 )}
               </div>
               <div className="hidden sm:block text-left">
-                <p className="text-xs font-bold text-[#11182B] leading-tight truncate max-w-[120px]">
+                <p className="text-xs font-bold text-foreground leading-tight truncate max-w-[120px]">
                   {displayName}
                 </p>
-                <p className="text-[0.6875rem] font-medium text-[#617493] leading-none">
+                <p className="text-[0.6875rem] font-medium text-muted-foreground leading-none">
                   {displayRole}
                 </p>
               </div>
-              <ChevronDown className="size-3.5 text-slate-400" />
+              <ChevronDown className="size-3.5 text-muted-foreground" />
             </button>
 
             {profileMenuOpen && (
@@ -371,33 +380,33 @@ export function DashboardHeader({
                   className="fixed inset-0 z-40 bg-transparent"
                   onClick={() => setProfileMenuOpen(false)}
                 />
-                <div className="absolute right-0 mt-2 w-56 max-w-[calc(100vw-2rem)] rounded-2xl border border-slate-200 bg-white py-2 shadow-xl z-50 text-xs font-semibold text-slate-700 animate-in fade-in zoom-in-95 duration-150">
-                  <div className="px-4 py-2 border-b border-slate-100">
-                    <p className="font-bold text-slate-900 text-sm truncate">{displayName}</p>
-                    <p className="text-slate-400 font-normal truncate">{user?.email || "verified@aitathastu.com"}</p>
+                <div className="absolute right-0 mt-2 w-56 max-w-[calc(100vw-2rem)] rounded-2xl border border-border bg-card py-2 shadow-xl z-50 text-xs font-semibold text-card-foreground animate-in fade-in zoom-in-95 duration-150">
+                  <div className="px-4 py-2 border-b border-border">
+                    <p className="font-bold text-foreground text-sm truncate">{displayName}</p>
+                    <p className="text-muted-foreground font-normal truncate">{user?.email || "verified@aitathastu.com"}</p>
                   </div>
                   <Link
                     href="/profile"
                     onClick={() => setProfileMenuOpen(false)}
-                    className="flex items-center gap-2.5 px-4 py-2.5 hover:bg-slate-50 transition-colors text-slate-700 hover:text-slate-900 min-h-[40px]"
+                    className="flex items-center gap-2.5 px-4 py-2.5 hover:bg-accent transition-colors text-muted-foreground hover:text-foreground min-h-[40px]"
                   >
-                    <User className="size-4 text-slate-400" />
+                    <User className="size-4 text-muted-foreground" />
                     My Profile
                   </Link>
                   <Link
                     href="/settings/privacy"
                     onClick={() => setProfileMenuOpen(false)}
-                    className="flex items-center gap-2.5 px-4 py-2.5 hover:bg-slate-50 transition-colors text-slate-700 hover:text-slate-900 min-h-[40px]"
+                    className="flex items-center gap-2.5 px-4 py-2.5 hover:bg-accent transition-colors text-muted-foreground hover:text-foreground min-h-[40px]"
                   >
-                    <ShieldCheck className="size-4 text-slate-400" />
+                    <ShieldCheck className="size-4 text-muted-foreground" />
                     Privacy Settings
                   </Link>
                   <Link
                     href="/settings/integrations"
                     onClick={() => setProfileMenuOpen(false)}
-                    className="flex items-center gap-2.5 px-4 py-2.5 hover:bg-slate-50 transition-colors text-slate-700 hover:text-slate-900 min-h-[40px]"
+                    className="flex items-center gap-2.5 px-4 py-2.5 hover:bg-accent transition-colors text-muted-foreground hover:text-foreground min-h-[40px]"
                   >
-                    <Plug className="size-4 text-slate-400" />
+                    <Plug className="size-4 text-muted-foreground" />
                     Connected Integrations
                   </Link>
                 </div>
@@ -421,20 +430,20 @@ export function DashboardHeader({
 
       {/* Mobile Search Overlay Bar */}
       {mobileSearchOpen && (
-        <div className="md:hidden sticky top-16 z-30 bg-white border-b border-[#E7EAF3] p-3 shadow-sm animate-in slide-in-from-top-2 duration-150">
+        <div className="md:hidden sticky top-16 z-30 bg-card border-b border-border p-3 shadow-sm animate-in slide-in-from-top-2 duration-150">
           <div className="relative w-full">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-[#8A9BB5]" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <input
               type="text"
               value={searchQuery}
               autoFocus
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search people, projects, skills…"
-              className="w-full h-10 pl-10 pr-4 rounded-xl border border-[#E7EAF3] bg-[#F8FAFD] text-base md:text-xs text-[#11182B] placeholder:text-[#8A9BB5] focus:bg-white focus:outline-none focus:border-[#FF496D]"
+              className="w-full h-10 pl-10 pr-4 rounded-xl border border-border bg-background text-base md:text-xs text-foreground placeholder:text-muted-foreground focus:bg-card focus:outline-none focus:border-[#FF496D]"
             />
           </div>
           {activeSearchResults && (
-            <div className="mt-2 rounded-xl border border-slate-200 bg-white p-2 shadow-lg max-h-60 overflow-y-auto text-xs space-y-2">
+            <div className="mt-2 rounded-xl border border-border bg-card p-2 shadow-lg max-h-60 overflow-y-auto text-xs space-y-2 text-card-foreground">
               {activeSearchResults.people.length > 0 && (
                 <div>
                   <p className="px-2 font-bold uppercase text-[10px] text-slate-400">People</p>

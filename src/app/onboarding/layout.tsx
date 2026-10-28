@@ -5,11 +5,12 @@ import { Suspense } from "react";
 import { signOut } from "@/auth";
 import { BrandLogo } from "@/components/brand-logo";
 import { StepRail } from "@/components/onboarding/step-rail";
+import { ThemeToggleButton } from "@/components/theme-toggle-button";
 import { getCurrentUser, getOnboardingState } from "@/lib/dal";
 
 export default function OnboardingLayout({ children }: LayoutProps<"/onboarding">) {
   return (
-    <div className="flex min-h-dvh flex-col bg-[#FAFAFC] text-[#0F172A]">
+    <div className="flex min-h-dvh flex-col bg-background text-foreground">
       <a
         href="#step-content"
         className="sr-only z-50 rounded-md bg-primary px-3 py-2 text-primary-foreground focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
@@ -18,23 +19,25 @@ export default function OnboardingLayout({ children }: LayoutProps<"/onboarding"
       </a>
 
       {/* Top Navigation Header */}
-      <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between border-b border-slate-200/80 bg-white/95 px-4 backdrop-blur-md sm:px-8 lg:px-10 lg:h-18">
+      <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between border-b border-border bg-card/95 px-4 backdrop-blur-md sm:px-8 lg:px-10 lg:h-18">
         <div className="flex items-center gap-8">
           <BrandLogo href="/" withTagline size="sm" />
-          <nav className="hidden items-center gap-6 text-sm font-semibold text-slate-600 md:flex" aria-label="Main navigation">
-            <Link href="/#ecosystem" className="transition-colors hover:text-[#0F172A]">
+          <nav className="hidden items-center gap-6 text-sm font-semibold text-muted-foreground md:flex" aria-label="Main navigation">
+            <Link href="/#ecosystem" className="transition-colors hover:text-foreground">
               Platform
             </Link>
-            <Link href="/#how" className="transition-colors hover:text-[#0F172A]">
+            <Link href="/#how" className="transition-colors hover:text-foreground">
               Career Lab
             </Link>
-            <Link href="/about" className="transition-colors hover:text-[#0F172A]">
+            <Link href="/about" className="transition-colors hover:text-foreground">
               About
             </Link>
           </nav>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 sm:gap-4">
+          <ThemeToggleButton size="sm" />
+
           <form
             action={async () => {
               "use server";
@@ -43,7 +46,7 @@ export default function OnboardingLayout({ children }: LayoutProps<"/onboarding"
           >
             <button
               type="submit"
-              className="inline-flex min-h-[38px] items-center gap-2 rounded-xl border border-slate-200 px-3.5 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+              className="inline-flex min-h-[38px] items-center gap-2 rounded-xl border border-border px-3.5 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
             >
               <LogOut aria-hidden="true" className="size-3.5" />
               Sign out
@@ -60,7 +63,7 @@ export default function OnboardingLayout({ children }: LayoutProps<"/onboarding"
 
       {/* Main body: Sidebar + Step Content */}
       <div className="mx-auto grid w-full flex-1 grid-cols-1 lg:grid-cols-[18rem_minmax(0,1fr)]">
-        <aside className="border-b border-slate-200/70 bg-white px-4 py-3 sm:px-8 lg:sticky lg:top-18 lg:h-[calc(100dvh-4.5rem)] lg:border-r lg:border-b-0 lg:px-8 lg:py-10">
+        <aside className="border-b border-border bg-card px-4 py-3 sm:px-8 lg:sticky lg:top-18 lg:h-[calc(100dvh-4.5rem)] lg:border-r lg:border-b-0 lg:px-8 lg:py-10">
           <Suspense fallback={<StepRail currentStep={null} persona={null} />}>
             <RailWithProgress />
           </Suspense>

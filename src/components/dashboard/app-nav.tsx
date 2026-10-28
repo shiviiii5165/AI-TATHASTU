@@ -78,7 +78,7 @@ export function AppNav() {
                     "focus-visible:ring-2 focus-visible:ring-[#FF496D]/30 focus-visible:outline-none",
                     active
                       ? "bg-gradient-to-r from-[#FF496D] to-[#FF713D] text-white font-bold shadow-xs shadow-rose-500/20"
-                      : "text-[#5A6E8C] hover:bg-slate-100/70 hover:text-[#11182B]"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
                   )}
                 >
                   <Icon aria-hidden className="size-4 shrink-0" />
@@ -90,9 +90,9 @@ export function AppNav() {
         </ul>
 
         {/* Compact Yora Assistant Companion Card at bottom of sidebar on desktop */}
-        <div className="hidden lg:flex flex-col mt-4 p-3 rounded-2xl bg-gradient-to-b from-[#FFF5F7] via-[#FAF5FF] to-white border border-[#F5D0DC] shadow-2xs">
+        <div className="hidden lg:flex flex-col mt-4 p-3 rounded-2xl bg-gradient-to-b from-[#FFF5F7] via-[#FAF5FF] to-white dark:from-[#201520] dark:via-[#1A1828] dark:to-[#161822] border border-[#F5D0DC] dark:border-[#3E2D3B] shadow-2xs">
           <div className="flex items-center gap-2.5">
-            <div className="relative size-9 rounded-full overflow-hidden shrink-0 border border-white shadow-2xs">
+            <div className="relative size-9 rounded-full overflow-hidden shrink-0 border border-border shadow-2xs">
               <Image
                 src="/brand/yora-avatar.jpg"
                 alt="Yora AI Assistant"
@@ -103,10 +103,10 @@ export function AppNav() {
             </div>
             <div className="min-w-0 text-left">
               <div className="flex items-center gap-1.5">
-                <span className="text-xs font-bold text-slate-900 leading-none">Yora AI</span>
+                <span className="text-xs font-bold text-foreground leading-none">Yora AI</span>
                 <span className="size-1.5 rounded-full bg-[#19C58A] animate-pulse" />
               </div>
-              <p className="text-[10px] text-slate-500 truncate mt-0.5">Career companion</p>
+              <p className="text-[10px] text-muted-foreground truncate mt-0.5">Career companion</p>
             </div>
           </div>
           <button
