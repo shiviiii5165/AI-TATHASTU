@@ -23,7 +23,7 @@ export default function OnboardingLayout({ children }: LayoutProps<"/onboarding"
           <BrandLogo href="/" withTagline size="sm" />
           <nav className="hidden items-center gap-6 text-sm font-semibold text-slate-600 md:flex" aria-label="Main navigation">
             <Link href="/#ecosystem" className="transition-colors hover:text-[#0F172A]">
-              Ecosystem
+              Platform
             </Link>
             <Link href="/#how" className="transition-colors hover:text-[#0F172A]">
               Career Lab

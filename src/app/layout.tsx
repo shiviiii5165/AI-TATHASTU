@@ -26,7 +26,7 @@ export const metadata: Metadata = {
   // Absolute URLs for the Open Graph image (src/app/opengraph-image.png).
   metadataBase: new URL(process.env.AUTH_URL ?? "https://www.aitathastu.com"),
   title: { default: "AI Tathastu", template: "%s · AI Tathastu" },
-  description: "Turn your skills, projects and ideas into meaningful next steps with AI Tathastu.",
+  description: "Connect your GitHub, LinkedIn, LeetCode and resume. See what skills you have, what is missing, and what to learn next.",
   applicationName: "AI Tathastu",
   appleWebApp: { title: "AI Tathastu", statusBarStyle: "black-translucent" },
   openGraph: { siteName: "AI Tathastu", type: "website" },

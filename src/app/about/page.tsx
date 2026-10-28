@@ -6,9 +6,9 @@ import { ABOUT_HTML } from "@/components/landing/about-markup";
 import { InteractiveMarkup } from "@/components/landing/interactive-markup";
 
 export const metadata: Metadata = {
-  title: "About Us · AI Tathastu — You imagine. AI Tathastu makes it happen.",
+  title: "About Us · AI Tathastu: Career growth platform for students",
   description:
-    "Turn your skills, projects and ideas into meaningful next steps with AI Tathastu.",
+    "Connect your GitHub, LinkedIn, LeetCode and resume. See what skills you have, what is missing, and what to learn next.",
 };
 
 export default function AboutPage() {

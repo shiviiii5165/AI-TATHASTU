@@ -27,6 +27,8 @@ const eslintConfig = defineConfig([
     "landing page*/**",
     "logo and app icon*/**",
     "public/**",
+    "scripts/**",
+    "scratch/**",
   ]),
 ]);
 

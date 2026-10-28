@@ -16,6 +16,7 @@ import { nextStep, stepHref, type WizardStep } from "@/lib/onboarding/steps";
 import { factDisplayValue } from "@/lib/profile/display";
 import { FIELD_GROUPS } from "@/lib/profile/field-groups";
 import { dispatchWebhooks, enqueueProfileUpdated } from "@/lib/integrations/webhooks";
+import { appendConsent, getCurrentConsents } from "@/lib/consent/store";
 import { enqueueComputeIntelligence } from "@/lib/jobs-queue";
 
 export type SaveResult = { ok: true } | { ok: false; error: string };
@@ -157,6 +158,12 @@ export async function saveResumeReview(input: ResumeReviewInput): Promise<SaveRe
     );
   }
 
+  // Ensure an explicit consent choice exists for external_ai when leaving Step 4.
+  const consents = await getCurrentConsents(user.id);
+  if (!consents.external_ai) {
+    await appendConsent(user.id, "external_ai", false);
+  }
+
   try {
     await db.batch([advanceStepQuery(user, state, "resume"), ...writes]);
   } catch (error) {
@@ -167,7 +174,7 @@ export async function saveResumeReview(input: ResumeReviewInput): Promise<SaveRe
   if ((await enqueueProfileUpdated(user.id, "facts_confirmed")).length) {
     after(() => dispatchWebhooks().catch((e) => console.error("webhook dispatch failed", e)));
   }
-  // Gated on finished onboarding (a no-op mid-wizard; "Generate my profile" queues the first run).
+  // Gated on finished onboarding (a no-op mid-wizard; "Create my profile" queues the first run).
   after(() => enqueueComputeIntelligence(user.id, "resume_facts_confirmed"));
   refreshOnboardingShell();
   redirect(stepHref(nextStep("resume", user.role)));
@@ -203,6 +210,13 @@ export async function continueFromStep(_prev: ContinueState, formData: FormData)
   const { user, state } = await requireOnboardingStep(step);
   const error = stepError(step, state);
   if (error) return { error };
+
+  if (step === "resume") {
+    const consents = await getCurrentConsents(user.id);
+    if (!consents.external_ai) {
+      await appendConsent(user.id, "external_ai", false);
+    }
+  }
 
   await advanceStepQuery(user, state, step);
   refreshOnboardingShell();

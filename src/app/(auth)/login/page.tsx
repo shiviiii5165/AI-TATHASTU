@@ -87,11 +87,11 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
             className="font-sans text-[32px] lg:text-[34px] xl:text-[42px] 2xl:text-[46px] font-extrabold leading-[1.08] tracking-[-0.03em] text-[#0F172A]"
             style={{ textShadow: "0 1px 12px rgba(255,255,255,0.7), 0 0 20px rgba(255,255,255,0.4)" }}
           >
-            <span className="block">Your next idea</span>
+            <span className="block">Start building</span>
             <span className="block whitespace-nowrap">
-              starts{" "}
+              your{" "}
               <span className="bg-gradient-to-r from-[#FF2A85] via-[#FF4542] to-[#FF6B4A] bg-clip-text text-transparent">
-                here.
+                profile.
               </span>
             </span>
           </h1>
@@ -135,9 +135,9 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
         {/* ── Mobile Hero Layout ── */}
         <div className="lg:hidden relative z-10 px-6 pt-4 pb-5 sm:px-8 sm:pt-6">
           <h1 className="font-sans text-2xl sm:text-3xl font-extrabold leading-[1.12] tracking-[-0.02em] text-[#0F172A]">
-            Your next idea starts{" "}
+            Start building your{" "}
             <span className="bg-gradient-to-r from-[#FF2A85] via-[#FF4542] to-[#FF6B4A] bg-clip-text text-transparent">
-              here.
+              profile.
             </span>
           </h1>
 
@@ -215,7 +215,7 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
           <div className="rounded-3xl border border-slate-200/85 bg-white p-5 sm:p-7 lg:p-6 xl:p-8 shadow-xl shadow-slate-200/50">
             <div className="mb-4 sm:mb-6">
               <h2 className="font-sans text-xl sm:text-[24px] xl:text-[27px] font-bold tracking-tight text-[#0F172A] leading-tight">
-                Your next idea starts here.
+                Start building your profile.
               </h2>
               <p className="mt-1 text-xs sm:text-sm text-slate-500">
                 Sign in, build your profile and take the next step.

@@ -10,7 +10,7 @@ import { CONSENT_POLICY_VERSION, CONSENT_PURPOSES, type ConsentChoices } from "@
 import { wakeWorker } from "@/lib/worker-ping";
 
 export const consentChoicesSchema = z.object({
-  external_ai: z.boolean(),
+  external_ai: z.boolean().default(false),
   linkedin_scrape: z.boolean(),
   analytics: z.boolean(),
   // Added after launch: a page loaded before it existed omits it.

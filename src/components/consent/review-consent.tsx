@@ -171,7 +171,7 @@ export function ReviewConsent({ summary, initialChoices }: { summary: ProgressSu
 
           <fieldset className="space-y-3">
             <legend className="sr-only">Choose what AI Tathastu may do with your data</legend>
-            {CONSENT_ITEMS.map((item) => {
+            {CONSENT_ITEMS.filter((item) => item.purpose !== "external_ai").map((item) => {
               const id = `consent-${item.purpose}`;
               const checked = choices[item.purpose];
               return (
@@ -228,7 +228,7 @@ export function ReviewConsent({ summary, initialChoices }: { summary: ProgressSu
             className="h-11 px-7 rounded-full font-semibold bg-gradient-to-r from-[#FF5A5F] via-[#F43F5E] to-[#EA580C] text-white shadow-md shadow-rose-500/20 hover:opacity-95 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center gap-2"
           >
             {generating ? <LoaderCircle data-icon="inline-start" aria-hidden className="size-4 animate-spin" /> : null}
-            {generating ? "Generating your profile…" : "Generate my profile"}
+            {generating ? "Creating your profile…" : "Create my profile"}
             {!generating && <ArrowRight data-icon="inline-end" aria-hidden className="size-4" />}
           </Button>
         </form>

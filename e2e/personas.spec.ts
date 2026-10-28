@@ -113,7 +113,7 @@ test("faculty: Step 0 → faculty flow → faculty dashboard", async ({ page, co
     await expect(page.getByText("Multimodal learning, Federated learning")).toBeVisible();
     await expect(page.getByText("Up to 3 students")).toBeVisible();
     await expect(page.getByText("Also reviews resumes")).toBeVisible();
-    await page.getByRole("button", { name: "Generate my profile" }).click();
+    await page.getByRole("button", { name: "Create my profile" }).click();
     await expect(page).toHaveURL(/\/dashboard$/);
   });
 
@@ -226,7 +226,7 @@ test("alumni: switch persona from Student, then the alumni flow and dashboard", 
     await page.getByRole("button", { name: "Skip for now" }).click();
     await expect(page.getByText("Staff ML Engineer · Acme AI")).toBeVisible();
     await expect(page.getByText("Job referrals")).toBeVisible();
-    await page.getByRole("button", { name: "Generate my profile" }).click();
+    await page.getByRole("button", { name: "Create my profile" }).click();
     await expect(page).toHaveURL(/\/dashboard$/);
     await completeIntelligenceWithView(u.id, view("alumni", [
       widget("top_talent", "Top student talent", 0.9),

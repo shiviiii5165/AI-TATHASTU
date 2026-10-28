@@ -95,15 +95,15 @@ export function ResumeUploader({
   return (
     <>
       <div className="mt-8 max-w-2xl space-y-6">
+        {/* AI Consent Card — shown before upload area */}
+        <AiConsent initial={initialAiConsent} uploaded={phase.kind === "processing"} />
+
         {/* Dropzone Area */}
         {phase.kind === "select" && <Dropzone error={phase.error} onFile={send} />}
         {phase.kind === "sending" && <SendingPanel phase={phase} />}
         {phase.kind === "processing" && (
           <ProcessingPanel key={phase.job.id} fileName={phase.fileName} initial={phase.job} onReplace={reset} />
         )}
-
-        {/* AI Consent Card */}
-        <AiConsent initial={initialAiConsent} uploaded={phase.kind === "processing"} />
 
         {/* Reassurance text */}
         <p className="text-center text-xs text-slate-400 font-normal">
@@ -122,6 +122,7 @@ export function ResumeUploader({
 
 function AiConsent({ initial, uploaded }: { initial: boolean; uploaded: boolean }) {
   const [granted, setGranted] = useState(initial);
+  const [expanded, setExpanded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [note, setNote] = useState<string | null>(null);
 
@@ -140,29 +141,61 @@ function AiConsent({ initial, uploaded }: { initial: boolean; uploaded: boolean 
   }
 
   return (
-    <div className="flex items-start gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-xs transition-all duration-150">
-      <div className="pt-0.5">
-        <Checkbox
-          id="ai-consent"
-          checked={granted}
-          disabled={saving}
-          onCheckedChange={(v) => change(v === true)}
-          aria-describedby="ai-consent-body"
-          className="size-5 rounded-md border-slate-300 data-[state=checked]:bg-[#FF2A85] data-[state=checked]:border-[#FF2A85]"
-        />
-      </div>
-      <div className="min-w-0 flex-1 text-sm">
-        <label htmlFor="ai-consent" className="cursor-pointer font-bold text-[#0F172A] block">
-          Use AI to read my resume
-        </label>
-        <p id="ai-consent-body" className="mt-1 text-xs leading-relaxed text-slate-500">
-          We&apos;ll extract profile details for you to review before saving.
-        </p>
-        {note && (
-          <p role="status" className="mt-2 text-xs font-semibold text-[#FF2A85]">
-            {note}
+    <div
+      className={cn(
+        "rounded-2xl border bg-white p-5 shadow-xs transition-all duration-150",
+        granted
+          ? "border-[#FF2A85]/40 bg-[#FFF5F7]/20 ring-1 ring-[#FF2A85]/20"
+          : "border-slate-200 hover:border-slate-300"
+      )}
+    >
+      <div className="flex items-start gap-4">
+        <div className="pt-0.5">
+          <Checkbox
+            id="ai-consent"
+            checked={granted}
+            disabled={saving}
+            onCheckedChange={(v) => change(v === true)}
+            aria-describedby="ai-consent-body"
+            className="size-5 rounded-md border-slate-300 data-[state=checked]:bg-[#FF2A85] data-[state=checked]:border-[#FF2A85]"
+          />
+        </div>
+        <div className="min-w-0 flex-1 text-sm">
+          <div className="flex items-baseline justify-between gap-2 flex-wrap">
+            <label htmlFor="ai-consent" className="cursor-pointer font-bold text-[#0F172A] block">
+              Use AI services to read my resume
+            </label>
+            <button
+              type="button"
+              onClick={() => setExpanded((prev) => !prev)}
+              className="text-xs font-semibold text-[#FF2A85] hover:underline cursor-pointer inline-flex items-center"
+              aria-expanded={expanded}
+              aria-controls="ai-consent-details"
+            >
+              {expanded ? "Show less" : "Read more"}
+            </button>
+          </div>
+          <p id="ai-consent-body" className="mt-1 text-xs leading-relaxed text-slate-500">
+            We extract profile details for you to review before saving.
           </p>
-        )}
+
+          {expanded && (
+            <div id="ai-consent-details" className="mt-3 pt-3 border-t border-slate-100 text-xs text-slate-600 space-y-2.5">
+              <p className="leading-relaxed">
+                When our own parser can&apos;t find a field, we send the relevant section of your resume text to AI providers (Groq, Google Gemini or OpenRouter) to recover it. If the file can&apos;t be read as text (a scan, a photo, or unusual fonts), we send images of its pages instead. You review every result before it&apos;s saved to your profile.
+              </p>
+              <p className="font-medium text-slate-700 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                Without this, we use rule-based extraction only, which can miss fields you&apos;ll then add by hand.
+              </p>
+            </div>
+          )}
+
+          {note && (
+            <p role="status" className="mt-2 text-xs font-semibold text-[#FF2A85]">
+              {note}
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

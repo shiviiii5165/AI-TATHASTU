@@ -131,7 +131,7 @@ test("Phase 1–3 journey: onboarding to a personalized dashboard", async ({ pag
   });
 
   await test.step("Step 6: review and generate", async () => {
-    await page.getByRole("button", { name: "Generate my profile" }).click();
+    await page.getByRole("button", { name: "Create my profile" }).click();
     await expect(page).toHaveURL(/\/dashboard$/);
     await expect(page.getByText("Personalizing your dashboard…")).toBeVisible();
     expect((await onboarding(user.id))?.current_step).toBe("done");
