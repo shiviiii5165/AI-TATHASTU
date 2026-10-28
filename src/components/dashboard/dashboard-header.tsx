@@ -294,14 +294,10 @@ export function DashboardHeader({
             type="button"
             onClick={toggleTheme}
             className="flex size-9 sm:size-10 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-xs hover:bg-accent transition-colors cursor-pointer min-h-[44px] min-w-[44px]"
-            aria-label={resolvedTheme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-            aria-pressed={resolvedTheme === "dark"}
+            aria-label="Toggle color theme"
           >
-            {resolvedTheme === "dark" ? (
-              <Moon className="size-4 sm:size-4.5 text-[#B69CFF]" />
-            ) : (
-              <Sun className="size-4 sm:size-4.5 text-[#F59E0B]" />
-            )}
+            <Sun className="size-4 sm:size-4.5 text-[#F59E0B] dark:hidden" />
+            <Moon className="size-4 sm:size-4.5 text-[#B69CFF] hidden dark:block" />
           </button>
 
           {/* Notifications button with unread indicator */}

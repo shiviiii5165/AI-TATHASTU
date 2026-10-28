@@ -21,14 +21,10 @@ export function ThemeToggleButton({ className, size = "md" }: ThemeToggleButtonP
         size === "sm" ? "size-9 min-h-[36px] min-w-[36px]" : "size-10 min-h-[44px] min-w-[44px]",
         className
       )}
-      aria-label={resolvedTheme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-      aria-pressed={resolvedTheme === "dark"}
+      aria-label="Toggle color theme"
     >
-      {resolvedTheme === "dark" ? (
-        <Moon className="size-4 text-[#B69CFF]" />
-      ) : (
-        <Sun className="size-4 text-[#F59E0B]" />
-      )}
+      <Sun className="size-4 text-[#F59E0B] dark:hidden" />
+      <Moon className="size-4 text-[#B69CFF] hidden dark:block" />
     </button>
   );
 }
