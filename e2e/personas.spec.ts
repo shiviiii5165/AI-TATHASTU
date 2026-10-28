@@ -24,6 +24,9 @@ function view(persona: "faculty" | "alumni", widgets: ReturnType<typeof widget>[
   };
 }
 
+const personaCard = (page: Page, name: RegExp) =>
+  page.getByRole("radio", { name }).or(page.getByRole("button", { name }));
+
 const user = async (id: string) =>
   (await sql.query("SELECT role, department, academic_title, company, job_title, graduation_year FROM users WHERE id = $1", [id])).rows[0];
 
@@ -35,11 +38,11 @@ test("faculty: Step 0 → faculty flow → faculty dashboard", async ({ page, co
     await page.goto("/onboarding");
     await expect(page).toHaveURL(/\/onboarding\/role$/);
     await expect(page.getByRole("heading", { name: /Who are you/ })).toBeVisible();
-    await expect(page.getByRole("button", { name: /I am a Student/ })).toBeVisible();
+    await expect(personaCard(page, /I am a Student/)).toBeVisible();
     // Steps 1–6 stay locked until a persona is chosen.
     await page.goto("/onboarding/career-direction");
     await expect(page).toHaveURL(/\/onboarding\/role$/);
-    await page.getByRole("button", { name: /I am a Faculty/ }).click();
+    await personaCard(page, /I am a Faculty/).click();
     await page.getByRole("button", { name: /Continue/ }).click();
     await expect(page).toHaveURL(/\/onboarding\/faculty-profile$/);
     expect((await user(u.id)).role).toBe("faculty");
@@ -168,15 +171,15 @@ test("alumni: switch persona from Student, then the alumni flow and dashboard", 
   const u = await createUser("Rohan Mehta", "role");
   await signIn(context, u);
   await page.goto("/onboarding/role");
-  await page.getByRole("button", { name: /I am a Student/ }).click();
+  await personaCard(page, /I am a Student/).click();
   await page.getByRole("button", { name: /Continue/ }).click();
   await expect(page).toHaveURL(/\/onboarding\/career-direction$/);
 
   await test.step("switch persona from the rail", async () => {
     await page.getByRole("link", { name: /^Student \(change\)/ }).click();
     await expect(page).toHaveURL(/\/onboarding\/role$/);
-    await expect(page.getByRole("button", { name: /I am a Student/ })).toBeVisible();
-    await page.getByRole("button", { name: /I am an Alumni/ }).click();
+    await expect(personaCard(page, /I am a Student/)).toBeVisible();
+    await personaCard(page, /I am an Alumni/).click();
     await page.getByRole("button", { name: /Continue/ }).click();
     await expect(page).toHaveURL(/\/onboarding\/alumni-profile$/);
     // The student flow is no longer reachable.

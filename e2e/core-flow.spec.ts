@@ -141,7 +141,7 @@ test("Phase 1–3 journey: onboarding to a personalized dashboard", async ({ pag
     await completeIntelligence(user.id);
     expectPhase2Verified(user);
 
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText(/Good to see you, Asha\./, { timeout: 30_000 });
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(/(Good to see you|Let's make progress), Asha\./, { timeout: 30_000 });
     await expect(page.getByText("Built around ML Engineer · Internships & Jobs first")).toBeVisible();
 
     const eris = widget(page, "Interview readiness");

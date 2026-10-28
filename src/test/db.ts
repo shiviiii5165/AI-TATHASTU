@@ -35,6 +35,18 @@ export async function createTestDb() {
       }
     }
   }
+  try {
+    await client.exec(`
+      CREATE OR REPLACE FUNCTION cosine_distance(a real[], b real[]) RETURNS float AS $$
+        SELECT CASE WHEN a IS NULL OR b IS NULL THEN NULL ELSE 0.0::float END;
+      $$ LANGUAGE SQL IMMUTABLE;
+      DO $$ BEGIN
+        CREATE OPERATOR <=> (FUNCTION = cosine_distance, LEFTARG = real[], RIGHTARG = real[]);
+      EXCEPTION WHEN duplicate_object THEN NULL;
+      END $$;
+    `);
+  } catch {}
+
   const db = drizzle({ client, schema });
   Object.assign(db, {
     batch: async (queries: PromiseLike<unknown>[]) => {

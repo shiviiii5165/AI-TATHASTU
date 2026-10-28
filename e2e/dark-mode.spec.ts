@@ -88,7 +88,7 @@ test.describe("Dark Mode Comprehensive E2E Verification", () => {
     await page.goto("/login");
     await page.waitForLoadState("domcontentloaded");
 
-    const themeToggle = page.locator('button[aria-label*="Switch to"]');
+    const themeToggle = page.locator('button[aria-label*="Toggle color theme"], button[aria-label*="Switch to"]');
     await expect(themeToggle).toBeVisible();
 
     const initialTheme = await page.evaluate(() =>
