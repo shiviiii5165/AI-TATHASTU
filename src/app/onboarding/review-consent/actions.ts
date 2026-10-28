@@ -23,8 +23,9 @@ export async function generateProfile(choices: ConsentChoices): Promise<SaveResu
   if (!parsed.success) return { ok: false, error: "Invalid consent choices. Refresh and try again." };
 
   try {
-    // Usually a no-op: choices autosave as they change. This covers a save
-    // still in flight when the button was pressed.
+    // Records every purpose under the current policy version: purposes the
+    // user never answered (mentor discovery and analytics are only in
+    // Settings now) are saved as false, an explicit opt-out.
     await appendConsents(user.id, parsed.data);
     await db.batch([
       db

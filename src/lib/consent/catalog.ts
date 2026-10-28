@@ -4,7 +4,7 @@
 
 import type { ConsentPurpose } from "@/db/schema";
 
-export const CONSENT_POLICY_VERSION = "2026-10-23";
+export const CONSENT_POLICY_VERSION = "2026-10-29";
 
 export const CONSENT_ITEMS: {
   purpose: ConsentPurpose;
@@ -40,3 +40,27 @@ export const CONSENT_ITEMS: {
 
 export type ConsentChoices = Record<ConsentPurpose, boolean>;
 export const CONSENT_PURPOSES = CONSENT_ITEMS.map((c) => c.purpose);
+
+/**
+ * Resume step (Step 4): the external_ai checkbox and its "Read more" lines.
+ * The lines restate the external_ai item above; keep them in step with it.
+ */
+export const RESUME_AI_CONSENT = {
+  label: "I agree to let AI Tathastu use AI services to read my resume.",
+  details: [
+    {
+      term: "What is shared",
+      text: "The relevant section of your resume text. If the file can't be read as text (a scan, a photo, or unusual fonts), we send images of its pages instead.",
+    },
+    { term: "Who receives it", text: "AI providers (Groq, Google Gemini or OpenRouter)." },
+    {
+      term: "Why",
+      text: "When our own parser can't find a field, to recover it. You review every result before it's saved to your profile.",
+    },
+    {
+      term: "What if you do not agree",
+      text: "Without this, we use rule-based extraction only, which can miss fields you'll then add by hand.",
+    },
+    { term: "How to withdraw", text: "You can update your permissions anytime in Settings." },
+  ],
+} as const;

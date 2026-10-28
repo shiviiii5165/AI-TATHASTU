@@ -21,7 +21,6 @@ import { revokeGithubGrant } from "@/lib/connectors/github";
 import {
   connectorReturnPath,
   parseCodingHandle,
-  parseLinkedInUrl,
   parseStackExchangeUrl,
   sourceById,
   type ConnectorContext,
@@ -62,10 +61,6 @@ const forms = {
   portfolio: z.object({
     url: z.string().trim().max(500),
   }),
-  linkedin: z.object({
-    profileUrl: z.string().trim().max(300),
-    consent: z.literal("on", { error: "Tick the box to let us read your public profile." }),
-  }),
   leetcode: z.object({ username: z.string().trim().max(200) }),
   hackerrank: z.object({ username: z.string().trim().max(200) }),
 };
@@ -91,13 +86,6 @@ export async function connectWithForm(sourceId: FormSource, values: Record<strin
       return { ok: false, error: "Paste your profile URL, like https://stackoverflow.com/users/12345/your-name." };
     }
     credential = profile;
-  } else if (sourceId === "linkedin") {
-    const url = parseLinkedInUrl((parsed.data as z.infer<typeof forms.linkedin>).profileUrl);
-    if (!url) return { ok: false, error: "Paste your profile link, like https://www.linkedin.com/in/your-name." };
-    credential = { url };
-    // Asked here, where it's used, so the import doesn't park until Step 6.
-    // connectSource() queues the sync, so don't requeue from the consent too.
-    await appendConsent(user.id, "linkedin_scrape", true, { requeue: false });
   } else if (sourceId === "leetcode" || sourceId === "hackerrank") {
     const username = parseCodingHandle(
       (parsed.data as z.infer<typeof forms.leetcode>).username,
@@ -143,9 +131,14 @@ export async function allowLinkedInImport(): Promise<SaveResult> {
   return { ok: true };
 }
 
-/** Links LinkedIn to the signed-in user via Auth.js; events.linkAccount records the connection. */
-export async function connectLinkedIn(from: ConnectorContext) {
-  await requireConnectorUser();
+/**
+ * Links LinkedIn to the signed-in user via Auth.js; events.linkAccount records the connection.
+ * `readPublicProfile` is the card's inline linkedin_scrape checkbox, recorded either way
+ * (unticked is an explicit opt-out) before leaving for LinkedIn.
+ */
+export async function connectLinkedIn(from: ConnectorContext, readPublicProfile: boolean) {
+  const { user } = await requireConnectorUser();
+  await appendConsent(user.id, "linkedin_scrape", readPublicProfile === true);
   if (!configuredProviders().linkedin) {
     redirect(`${connectorReturnPath(from)}?source=linkedin&error=not_configured`);
   }

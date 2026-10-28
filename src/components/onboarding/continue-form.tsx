@@ -62,10 +62,11 @@ export function StepFooter({
   children: React.ReactNode;
 }) {
   return (
-    <div className="sticky bottom-0 z-30 -mx-4 mt-12 border-t border-slate-200/80 bg-white/95 px-4 py-3.5 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md sm:-mx-8 sm:px-8 sm:py-4.5 lg:-mx-12 lg:px-12">
+    <div className="sticky bottom-0 z-30 mt-12 -ml-(--onb-gutter-l) -mr-(--onb-gutter-r) border-t border-slate-200/80 bg-white/95 pl-(--onb-gutter-l) pr-(--onb-gutter-r) pt-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))] backdrop-blur-md sm:pt-4.5 sm:pb-[max(1.125rem,env(safe-area-inset-bottom))]">
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4">
         {/* Mobile buttons row */}
-        <div className="flex items-center justify-between gap-3 order-2 sm:order-1 sm:w-auto">
+        {/* Wraps below ~360px so three actions (Back, Skip, Continue) never overflow. */}
+        <div className="flex flex-wrap items-center justify-between gap-3 order-2 sm:order-1 sm:w-auto">
           {backStep ? (
             <Link
               href={stepHref(backStep)}
@@ -78,7 +79,7 @@ export function StepFooter({
             <div className="hidden sm:block" />
           )}
 
-          <div className="sm:hidden flex-1 flex justify-end">
+          <div className="sm:hidden flex flex-1 justify-end">
             {children}
           </div>
         </div>

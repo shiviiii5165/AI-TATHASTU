@@ -34,7 +34,7 @@ export function DashboardHeader({
     role?: string | null;
   };
 }) {
-  const { resolvedTheme, toggleTheme } = useTheme();
+  const { toggleTheme } = useTheme();
   const [yoraOpen, setYoraOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [notifMenuOpen, setNotifMenuOpen] = useState(false);

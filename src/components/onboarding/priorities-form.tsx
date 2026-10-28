@@ -108,7 +108,7 @@ export function PrioritiesForm({ initialPriorities }: { initialPriorities: strin
 
   return (
     <>
-      <div className="mt-6 sm:mt-8 grid gap-8 xl:grid-cols-[minmax(0,1.3fr)_20rem]">
+      <div className="mt-6 sm:mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_17rem] xl:grid-cols-[minmax(0,1.3fr)_20rem]">
         {/* Left: Priority Options Cards */}
         <section aria-labelledby="priority-options">
           <h2 id="priority-options" className="sr-only">
@@ -158,7 +158,7 @@ export function PrioritiesForm({ initialPriorities }: { initialPriorities: strin
 
                     {/* Middle: Title, Tag, and Subtitle */}
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                         <span className="font-sans text-sm sm:text-base font-bold text-[#0F172A]">
                           {p.label}
                         </span>
@@ -199,7 +199,7 @@ export function PrioritiesForm({ initialPriorities }: { initialPriorities: strin
         </section>
 
         {/* Right: Reorder Panel */}
-        <section aria-labelledby="ranking-heading" className="space-y-6 xl:sticky xl:top-24 xl:self-start">
+        <section aria-labelledby="ranking-heading" className="space-y-6 lg:sticky lg:top-24 lg:self-start">
           {/* Ranking Reorder Card */}
           <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
@@ -256,7 +256,7 @@ export function PrioritiesForm({ initialPriorities }: { initialPriorities: strin
                         onClick={() => move(i, i - 1)}
                         disabled={i === 0}
                         aria-label={`Move ${label} up`}
-                        className="size-8 sm:size-7 min-h-[32px] min-w-[32px] text-slate-400 hover:text-slate-700 touch-manipulation"
+                        className="size-8 sm:size-7 min-h-[32px] min-w-[32px] pointer-coarse:min-h-11 pointer-coarse:min-w-11 text-slate-400 hover:text-slate-700 touch-manipulation"
                       >
                         <ArrowUp aria-hidden="true" className="size-4 sm:size-3.5" />
                       </Button>
@@ -267,7 +267,7 @@ export function PrioritiesForm({ initialPriorities }: { initialPriorities: strin
                         onClick={() => move(i, i + 1)}
                         disabled={i === ranked.length - 1}
                         aria-label={`Move ${label} down`}
-                        className="size-8 sm:size-7 min-h-[32px] min-w-[32px] text-slate-400 hover:text-slate-700 touch-manipulation"
+                        className="size-8 sm:size-7 min-h-[32px] min-w-[32px] pointer-coarse:min-h-11 pointer-coarse:min-w-11 text-slate-400 hover:text-slate-700 touch-manipulation"
                       >
                         <ArrowDown aria-hidden="true" className="size-4 sm:size-3.5" />
                       </Button>
@@ -277,7 +277,7 @@ export function PrioritiesForm({ initialPriorities }: { initialPriorities: strin
                         size="icon-sm"
                         onClick={() => toggle(id)}
                         aria-label={`Remove ${label}`}
-                        className="size-8 sm:size-7 min-h-[32px] min-w-[32px] text-slate-400 hover:text-red-600 touch-manipulation"
+                        className="size-8 sm:size-7 min-h-[32px] min-w-[32px] pointer-coarse:min-h-11 pointer-coarse:min-w-11 text-slate-400 hover:text-red-600 touch-manipulation"
                       >
                         <X aria-hidden="true" className="size-4 sm:size-3.5" />
                       </Button>

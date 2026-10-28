@@ -23,8 +23,9 @@ export default function ReviewConsentPage() {
       <StepHeader
         step="review"
         title="Review and confirm"
+        className="mx-auto w-full max-w-[880px]"
       >
-        Check your answers and privacy preferences before completing setup. You can adjust these anytime in Settings.
+        Check your answers. You can edit anything before creating your profile.
       </StepHeader>
       <Suspense fallback={<StepSkeleton />}>
         <ReviewConsentStep />

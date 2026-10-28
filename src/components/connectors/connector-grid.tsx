@@ -27,6 +27,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { SourceId } from "@/db/schema";
+import { CONSENT_ITEMS } from "@/lib/consent/catalog";
 import { sourceById, type ConnectorContext } from "@/lib/connectors/sources";
 import { timeAgo } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -57,7 +58,7 @@ function flashMessage(sourceName: string, error: string) {
 
 const FORM_FIELDS: Record<
   FormSource,
-  { title: string; description: React.ReactNode; fields: FieldDef[]; consent?: string }
+  { title: string; description: React.ReactNode; fields: FieldDef[] }
 > = {
   kaggle: {
     title: "Connect Kaggle",
@@ -85,15 +86,6 @@ const FORM_FIELDS: Record<
         placeholder: "https://stackoverflow.com/users/12345/your-name",
       },
     ],
-  },
-  linkedin: {
-    title: "Connect LinkedIn",
-    description:
-      "We read your public profile page (experience, education, skills) through our scraping providers. We never log in as you or use your cookies.",
-    fields: [
-      { name: "profileUrl", label: "Profile URL", type: "url", placeholder: "https://www.linkedin.com/in/your-name" },
-    ],
-    consent: "Read my public LinkedIn profile through Apify or Firecrawl. You can withdraw this on the last step.",
   },
   leetcode: {
     title: "Connect LeetCode",
@@ -172,7 +164,7 @@ export function ConnectorCards({ cards, flash, context }: { cards: CardView[]; f
 
   return (
     <>
-      <ul className="mt-6 sm:mt-8 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3 items-stretch">
+      <ul className="mt-6 sm:mt-8 grid grid-cols-[repeat(auto-fit,minmax(min(100%,17rem),1fr))] gap-5 items-stretch">
         {cards.map((card) => (
           <li key={card.sourceId} className="h-full">
             <SourceCard
@@ -205,6 +197,8 @@ export function ConnectorCards({ cards, flash, context }: { cards: CardView[]; f
   );
 }
 
+const LINKEDIN_CONSENT = CONSENT_ITEMS.find((c) => c.purpose === "linkedin_scrape");
+
 const REFRESH_MS = 4_000;
 const REFRESH_MAX_POLLS = 45;
 
@@ -236,6 +230,9 @@ function SourceCard({
   const [connecting, setConnecting] = useState(false);
   const [pending, startTransition] = useTransition();
   const [actionError, setActionError] = useState<string | null>(null);
+  // LinkedIn: the first Connect reveals the linkedin_scrape checkbox; the second goes to LinkedIn.
+  const [askingConsent, setAskingConsent] = useState(false);
+  const [readPublicProfile, setReadPublicProfile] = useState(false);
 
   const status: CardStatus | "connecting" = connecting ? "connecting" : flashError ? "error" : card.status;
   const error = actionError ?? flashError ?? (card.status === "error" ? errorText(card) : null);
@@ -249,8 +246,9 @@ function SourceCard({
       const provider = source.connect === "github_oauth" ? "github" : "orcid";
       window.location.assign(new URL(`/api/connectors/${provider}/start?from=${context}`, window.location.origin).href);
     } else if (source.connect === "linkedin_signin") {
+      if (!askingConsent) return setAskingConsent(true);
       setConnecting(true);
-      startTransition(() => connectLinkedIn(context));
+      startTransition(() => connectLinkedIn(context, readPublicProfile));
     } else {
       onOpenForm();
     }
@@ -338,6 +336,25 @@ function SourceCard({
             {error}
           </p>
         )}
+
+        {askingConsent && LINKEDIN_CONSENT && (
+          <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/60 px-3.5 py-1">
+            <label htmlFor={`${headingId}-consent`} className="flex min-h-11 cursor-pointer items-start gap-3 py-2.5">
+              <Checkbox
+                id={`${headingId}-consent`}
+                checked={readPublicProfile}
+                onCheckedChange={(v) => setReadPublicProfile(v === true)}
+                disabled={connecting || pending}
+                aria-describedby={`${headingId}-consent-body`}
+                className="mt-0.5 size-5 shrink-0"
+              />
+              <span className="text-base font-semibold leading-snug text-[#0F172A]">{LINKEDIN_CONSENT.title}</span>
+            </label>
+            <p id={`${headingId}-consent-body`} className="pb-2.5 pl-8 text-sm leading-relaxed text-slate-600">
+              {LINKEDIN_CONSENT.body}
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="mt-6 flex flex-wrap items-center gap-2 pt-4 border-t border-slate-100/80">
@@ -349,7 +366,7 @@ function SourceCard({
             onClick={connect}
             disabled={connecting || pending}
             className={cn(
-              "w-full sm:w-auto min-h-[38px] h-9 px-4 rounded-xl text-xs font-semibold shadow-xs transition-all touch-manipulation",
+              "w-full sm:w-auto min-h-[38px] h-9 pointer-coarse:min-h-11 px-4 rounded-xl text-xs font-semibold shadow-xs transition-all touch-manipulation",
               status === "error"
                 ? "bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100"
                 : "bg-slate-900 hover:bg-slate-800 text-white hover:shadow"
@@ -364,12 +381,26 @@ function SourceCard({
             <span className="sr-only"> {source.name}</span>
           </Button>
         ) : null}
+        {askingConsent && !connecting && (
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => {
+              setAskingConsent(false);
+              setReadPublicProfile(false);
+            }}
+            disabled={pending}
+            className="w-full sm:w-auto min-h-[38px] h-9 pointer-coarse:min-h-11 px-4 rounded-xl text-xs font-medium text-slate-600 hover:text-slate-900 touch-manipulation"
+          >
+            Cancel
+          </Button>
+        )}
         {card.status === "waiting_consent" && (
           <Button
             type="button"
             onClick={allow}
             disabled={pending}
-            className="w-full sm:w-auto min-h-[38px] h-9 px-4 rounded-xl text-xs font-semibold bg-gradient-to-r from-[#FF5A5F] via-[#F43F5E] to-[#EA580C] text-white shadow-xs hover:opacity-95 touch-manipulation"
+            className="w-full sm:w-auto min-h-[38px] h-9 pointer-coarse:min-h-11 px-4 rounded-xl text-xs font-semibold bg-gradient-to-r from-[#FF5A5F] via-[#F43F5E] to-[#EA580C] text-white shadow-xs hover:opacity-95 touch-manipulation"
           >
             {pending && <LoaderCircle data-icon="inline-start" aria-hidden className="animate-spin size-3 mr-1" />}
             Allow and import
@@ -381,7 +412,7 @@ function SourceCard({
             variant="ghost"
             onClick={remove}
             disabled={pending}
-            className="min-h-[36px] h-9 px-3 rounded-xl text-xs text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors font-medium ml-auto touch-manipulation"
+            className="min-h-[36px] h-9 pointer-coarse:min-h-11 px-3 rounded-xl text-xs text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors font-medium ml-auto touch-manipulation"
           >
             {pending ? (
               <LoaderCircle data-icon="inline-start" aria-hidden className="animate-spin size-3 mr-1" />
@@ -438,7 +469,6 @@ function CredentialDialog({
   function submit(formData: FormData) {
     setError(null);
     const values = Object.fromEntries(config.fields.map((f) => [f.name, String(formData.get(f.name) ?? "")]));
-    if (config.consent) values.consent = formData.get("consent") === "on" ? "on" : "";
     startTransition(async () => {
       try {
         const result = await connectWithForm(source, values);
@@ -485,12 +515,6 @@ function CredentialDialog({
                 />
               </div>
             ))}
-            {config.consent && (
-              <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50/60 p-3.5 text-xs text-slate-600 leading-relaxed hover:bg-slate-100/60 transition-colors">
-                <Checkbox name="consent" value="on" required className="mt-0.5" />
-                <span>{config.consent}</span>
-              </label>
-            )}
             {error && (
               <p id="cred-error" role="alert" className="text-xs font-medium text-rose-600 bg-rose-50 p-2.5 rounded-lg border border-rose-200">
                 {error}

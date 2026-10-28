@@ -46,7 +46,7 @@ export default function OnboardingLayout({ children }: LayoutProps<"/onboarding"
           >
             <button
               type="submit"
-              className="inline-flex min-h-[38px] items-center gap-2 rounded-xl border border-border px-3.5 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+              className="inline-flex min-h-[38px] pointer-coarse:min-h-11 items-center gap-2 rounded-xl border border-border px-3.5 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
             >
               <LogOut aria-hidden="true" className="size-3.5" />
               Sign out
@@ -62,15 +62,15 @@ export default function OnboardingLayout({ children }: LayoutProps<"/onboarding"
       </header>
 
       {/* Main body: Sidebar + Step Content */}
-      <div className="mx-auto grid w-full flex-1 grid-cols-1 lg:grid-cols-[18rem_minmax(0,1fr)]">
-        <aside className="border-b border-border bg-card px-4 py-3 sm:px-8 lg:sticky lg:top-18 lg:h-[calc(100dvh-4.5rem)] lg:border-r lg:border-b-0 lg:px-8 lg:py-10">
+      <div className="mx-auto grid w-full flex-1 grid-cols-1 content-start lg:content-stretch lg:grid-cols-[15rem_minmax(0,1fr)] xl:grid-cols-[18rem_minmax(0,1fr)]">
+        <aside className="border-b border-border bg-card px-(--onb-gutter) py-3 lg:sticky lg:top-18 lg:h-[calc(100dvh-4.5rem)] lg:border-r lg:border-b-0 lg:px-6 lg:py-10 xl:px-8">
           <Suspense fallback={<StepRail currentStep={null} persona={null} />}>
             <RailWithProgress />
           </Suspense>
         </aside>
 
-        <main id="step-content" className="flex flex-col justify-between px-4 pt-6 pb-0 sm:px-8 lg:px-12 lg:pt-10">
-          <div className="mx-auto w-full max-w-5xl xl:max-w-6xl motion-fade-in">{children}</div>
+        <main id="step-content" className="flex min-w-0 flex-col justify-between pt-6 pb-0 pl-(--onb-gutter-l) pr-(--onb-gutter-r) lg:pt-10">
+          <div className="mx-auto w-full max-w-6xl motion-fade-in">{children}</div>
         </main>
 
       </div>

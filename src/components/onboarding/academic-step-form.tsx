@@ -55,7 +55,7 @@ export function AcademicStepForm({
 
   return (
     <form ref={formRef} action={formAction} noValidate className="mt-8">
-      <div className="grid gap-8 xl:grid-cols-[minmax(0,1.4fr)_18rem]">
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_16rem] xl:grid-cols-[minmax(0,1.4fr)_18rem]">
         {/* Left: Form Fields */}
         <div className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
           <Field label="Full name" field="fullName" error={state.errors?.fullName} className="sm:col-span-2">

@@ -65,6 +65,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const initialTheme = getStoredTheme();
     const initialSystem = getSystemTheme();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setThemeState(initialTheme);
     setSystemTheme(initialSystem);
     setMounted(true);

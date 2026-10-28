@@ -102,11 +102,14 @@ input[type=range]::-moz-range-thumb {
   box-shadow: 0 3px 0 rgba(25,29,43,.18);
 }
 
-@media (max-width: 960px) {
-  section { padding: 80px 0; }
-}
-@media (max-width: 720px) {
-  h1 { font-size: 2.55rem; }
+/* Not copied: landing.css's `section { padding: 80px 0 }` below 960px. Here it
+   padded every app <section> (onboarding steps included); the landing, about and
+   contact pages still get it from landing.css. Layered so text-* utilities beat
+   this h1 size on app pages. */
+@layer base {
+  @media (max-width: 720px) {
+    h1 { font-size: 2.55rem; }
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

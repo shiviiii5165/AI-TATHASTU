@@ -127,7 +127,7 @@ export function CareerDirectionForm({ initialRoles, initialOther }: { initialRol
 
       {/* 3-Column Roles Grid matching reference screenshot */}
       {visible.length > 0 ? (
-        <ul className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5" aria-label="Career directions">
+        <ul className="mt-5 grid grid-cols-[repeat(auto-fit,minmax(min(100%,15rem),1fr))] gap-3.5" aria-label="Career directions">
           {visible.map((role) => {
             const isSelected = selected.includes(role.id);
             const Icon = ROLE_ICONS[role.id] ?? Brain;

@@ -169,6 +169,23 @@
   html {
     @apply font-sans;
   }
+  h1, h2, h3 {
+    text-wrap: balance;
+  }
+}
+
+:root {
+  /* Onboarding page gutter: main column padding and the sticky footer's bleed. */
+  --onb-gutter: clamp(1rem, 4vw, 3rem);
+  --onb-gutter-l: max(var(--onb-gutter), env(safe-area-inset-left, 0px));
+  --onb-gutter-r: max(var(--onb-gutter), env(safe-area-inset-right, 0px));
+}
+
+/* iOS Safari zooms into any field under 16px; unlayered so it beats text-sm utilities. */
+@media (pointer: coarse) {
+  input:not([type="checkbox"], [type="radio"], [type="range"]), select, textarea {
+    font-size: max(16px, 1em);
+  }
 }
 
 /* Motion Design Utilities */

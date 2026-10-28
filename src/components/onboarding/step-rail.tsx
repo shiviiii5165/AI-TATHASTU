@@ -51,7 +51,11 @@ export function StepRail({
             </span>
           )}
         </div>
-        <ol className="mt-2.5 grid grid-cols-6 gap-1.5" aria-hidden="true">
+        <ol
+          className="mt-2.5 grid gap-1.5"
+          style={{ gridTemplateColumns: `repeat(${ONBOARDING_STEPS.length}, minmax(0, 1fr))` }}
+          aria-hidden="true"
+        >
           {ONBOARDING_STEPS.map((s, i) => (
             <li
               key={s.id}
