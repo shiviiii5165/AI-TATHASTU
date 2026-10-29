@@ -68,12 +68,12 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
 
         {/* Soft, localized light treatment behind logo — desktop only */}
         <div
-          className="absolute top-0 left-0 w-96 h-32 bg-gradient-to-br from-white/70 via-white/30 to-transparent pointer-events-none hidden lg:block"
+          className="absolute top-0 left-0 w-[440px] h-36 bg-gradient-to-br from-white/80 via-white/40 to-transparent pointer-events-none hidden lg:block"
           aria-hidden="true"
         />
 
         {/* Brand Logo in Upper-Left Corner */}
-        <div className="relative z-10 flex items-center justify-between px-6 pt-6 sm:px-10 sm:pt-8 lg:px-0 lg:pl-[24%] xl:pl-[27%] lg:pt-6 xl:pt-8">
+        <div className="relative z-10 flex items-center justify-between px-6 pt-6 sm:px-10 sm:pt-8 lg:px-8 xl:px-12 lg:pt-8 xl:pt-10">
           <BrandLogo href="/" withTagline size="md" taglineClassName="text-slate-600 font-semibold" />
           <Link
             href="/"
@@ -88,12 +88,20 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
         <div className="hidden lg:block relative z-10 ml-[42%] xl:ml-[44%] pr-4 xl:pr-8 mt-5 xl:mt-8 2xl:mt-12 max-w-[480px]">
           <h1
             className="font-sans text-[32px] lg:text-[34px] xl:text-[42px] 2xl:text-[46px] font-extrabold leading-[1.08] tracking-[-0.03em] text-[#0F172A]"
-            style={{ textShadow: "0 1px 12px rgba(255,255,255,0.7), 0 0 20px rgba(255,255,255,0.4)" }}
           >
-            <span className="block">Start building</span>
+            <span
+              className="block"
+              style={{ textShadow: "0 1px 12px rgba(255,255,255,0.85), 0 0 20px rgba(255,255,255,0.5)" }}
+            >
+              Start building
+            </span>
             <span className="block whitespace-nowrap">
-              your{" "}
-              <span className="profile-shimmer-highlight">
+              <span
+                style={{ textShadow: "0 1px 12px rgba(255,255,255,0.85), 0 0 20px rgba(255,255,255,0.5)" }}
+              >
+                your{" "}
+              </span>
+              <span className="profile-shimmer-highlight font-black">
                 profile.
               </span>
             </span>
@@ -130,7 +138,7 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
         <div className="lg:hidden relative z-10 px-6 pt-4 pb-5 sm:px-8 sm:pt-6">
           <h1 className="font-sans text-2xl sm:text-3xl font-extrabold leading-[1.12] tracking-[-0.02em] text-[#0F172A]">
             Start building your{" "}
-            <span className="profile-shimmer-highlight">
+            <span className="profile-shimmer-highlight font-black">
               profile.
             </span>
           </h1>
@@ -203,7 +211,7 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
             <div className="mb-5 sm:mb-6">
               <h2 className="font-sans text-xl sm:text-[24px] xl:text-[27px] font-bold tracking-tight text-foreground leading-tight">
                 Start building your{" "}
-                <span className="profile-shimmer-highlight inline-block">
+                <span className="profile-shimmer-highlight font-black inline-block">
                   profile.
                 </span>
               </h2>

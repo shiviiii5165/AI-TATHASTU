@@ -472,22 +472,26 @@
   animation: textShimmerFlow 6s ease-in-out infinite;
 }
 .profile-shimmer-highlight {
-  background: linear-gradient(135deg, #FF2A85 0%, #FF6B4A 30%, #9333EA 65%, #FF2A85 100%);
-  background-size: 220% 100%;
+  background: linear-gradient(135deg, #E11D48 0%, #FF007A 25%, #7928CA 50%, #FF4500 75%, #E11D48 100%);
+  background-size: 240% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   animation: textShimmerFlow 4.5s ease-in-out infinite;
+  text-shadow: none !important;
+  filter: drop-shadow(0 2px 8px rgba(225, 29, 72, 0.35));
 }
 
 .dark .profile-shimmer-highlight,
 [data-theme="dark"] .profile-shimmer-highlight {
-  background: linear-gradient(135deg, #FF2A85 0%, #FF6B4A 30%, #C084FC 65%, #FF2A85 100%);
-  background-size: 220% 100%;
+  background: linear-gradient(135deg, #FF1493 0%, #FF3366 25%, #A855F7 50%, #FF6B00 75%, #FF1493 100%);
+  background-size: 240% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   animation: textShimmerFlow 4.5s ease-in-out infinite;
+  text-shadow: none !important;
+  filter: drop-shadow(0 0 12px rgba(255, 20, 147, 0.45));
 }
 
 
