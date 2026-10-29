@@ -1,5 +1,6 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
 
@@ -16,16 +17,43 @@ export async function signInWithProvider(formData: FormData) {
   }
 
   const rawRedirect = formData.get("redirectTo");
-  const redirectTo = toLocalPath(typeof rawRedirect === "string" ? rawRedirect : null);
+  const safeRedirect = toLocalPath(typeof rawRedirect === "string" ? rawRedirect : null, "/dashboard");
+
+  // Email magic-link: land on the dedicated verification transition screen
+  // (/login/verify?callbackUrl=...), which confirms verification and routes smoothly
+  const redirectTo = requested === "email"
+    ? `/login/verify?callbackUrl=${encodeURIComponent(safeRedirect)}`
+    : safeRedirect;
+
+  const rawEmail = formData.get("email");
+  const email = typeof rawEmail === "string" ? rawEmail.trim().toLowerCase() : "";
+
+  if (requested === "email") {
+    if (!email || !email.includes("@") || email.length < 5) {
+      redirect("/login?error=InvalidEmail");
+    }
+
+    // Retain target email in cookie for check-email page UX & resend cooldown without exposing to 3rd parties
+    const cookieStore = await cookies();
+    cookieStore.set("tat_auth_email", email, {
+      path: "/",
+      httpOnly: true,
+      sameSite: "lax",
+      maxAge: 60 * 15, // 15 minutes
+      secure: process.env.NODE_ENV === "production",
+    });
+  }
 
   try {
     await signIn(provider, {
       redirectTo,
-      ...(requested === "email" ? { email: String(formData.get("email") ?? "").trim() } : {}),
+      ...(requested === "email" ? { email } : {}),
     });
   } catch (error) {
     // signIn() redirects by throwing; only Auth.js errors are ours to handle.
-    if (error instanceof AuthError) redirect(`/login?error=${error.type}`);
+    if (error instanceof AuthError) {
+      redirect(`/login?error=${error.type}`);
+    }
     throw error;
   }
 }

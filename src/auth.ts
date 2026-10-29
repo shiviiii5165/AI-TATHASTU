@@ -29,8 +29,13 @@ const drizzleAdapter = DrizzleAdapter(db, {
 // providers that return mixed-case addresses resolve to the same account.
 const adapter: Adapter = {
   ...drizzleAdapter,
-  createUser: (user) => drizzleAdapter.createUser!({ ...user, email: user.email.toLowerCase() }),
-  getUserByEmail: (email) => drizzleAdapter.getUserByEmail!(email.toLowerCase()),
+  createUser: (user) => drizzleAdapter.createUser!({ ...user, email: user.email.toLowerCase().trim() }),
+  getUserByEmail: (email) => drizzleAdapter.getUserByEmail!(email.toLowerCase().trim()),
+  updateUser: (user) =>
+    drizzleAdapter.updateUser!({
+      ...user,
+      ...(user.email ? { email: user.email.toLowerCase().trim() } : {}),
+    }),
 };
 
 /** Magic link: Resend if RESEND_API_KEY is set, else SMTP (Gmail app password) via Nodemailer. */
@@ -78,18 +83,31 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
   adapter,
   callbacks: {
     ...authConfig.callbacks,
-    async signIn({ user, account }) {
-      if (account?.provider === "linkedin" && account.providerAccountId) {
-        // Prevent collision / duplicate linking: if already linked to a DIFFERENT user, reject
+    async signIn({ user, account, profile }) {
+      // Universal collision prevention across all OAuth providers:
+      // If the provider account ID is already associated in database, enforce that
+      // the authenticating identity matches that exact existing user.
+      if (account?.provider && account.providerAccountId) {
         const [existing] = await db
           .select({ userId: accounts.userId })
           .from(accounts)
-          .where(and(eq(accounts.provider, "linkedin"), eq(accounts.providerAccountId, account.providerAccountId)));
-        if (existing && user?.id && existing.userId !== user.id) {
-          // Account already linked to another AI Tathastu user
+          .where(and(eq(accounts.provider, account.provider), eq(accounts.providerAccountId, account.providerAccountId)));
+        if (existing) {
+          if (!user?.id || existing.userId !== user.id) {
+            return false;
+          }
+        }
+      }
+
+      // Google email verification safeguard:
+      // Only permit authentication and account linking if Google cryptographically asserts email_verified is true.
+      if (account?.provider === "google") {
+        const p = profile as { email_verified?: boolean } | undefined;
+        if (p?.email_verified !== true) {
           return false;
         }
       }
+
       return true;
     },
     // Runs only here (Node, with DB), never in the proxy: refreshes the
@@ -97,10 +115,12 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
     // and when "Generate my profile" calls unstable_update().
     async jwt(params) {
       const token = authConfig.callbacks.jwt(params);
-      if (params.trigger && token.sub) {
-        // users.is_admin, as a claim the proxy can check without the database.
-        // Independent reads: one round trip instead of two.
-        [token.onboarded, token.admin] = await Promise.all([isOnboarded(token.sub), isAdminUser(token.sub)]);
+      if (token.sub) {
+        if (params.trigger || token.onboarded === undefined || token.admin === undefined) {
+          // users.is_admin and onboardingState.current_step as claims the proxy can check without the database.
+          // Independent reads: one round trip instead of two.
+          [token.onboarded, token.admin] = await Promise.all([isOnboarded(token.sub), isAdminUser(token.sub)]);
+        }
       }
       return token;
     },
@@ -108,7 +128,13 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
   // Only providers with credentials are registered; the login page shows the same set.
   providers: [
     ...(configuredProviders().google
-      ? [Google({ clientId: process.env.GOOGLE_CLIENT_ID, clientSecret: process.env.GOOGLE_CLIENT_SECRET })]
+      ? [
+          Google({
+            clientId: process.env.GOOGLE_CLIENT_ID,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+            allowDangerousEmailAccountLinking: true,
+          }),
+        ]
       : []),
     // OIDC; requests only the default openid/profile/email scopes.
     ...(configuredProviders().linkedin

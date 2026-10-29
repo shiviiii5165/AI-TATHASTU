@@ -17,5 +17,5 @@ export default function OnboardingIndex() {
 async function ResumeRedirect(): Promise<never> {
   const user = await getCurrentUser();
   const state = await getOnboardingState(user.id);
-  redirect(state.currentStep === "done" ? FINISHED_REDIRECT : stepHref(state.currentStep));
+  redirect(state.currentStep === "done" ? `${FINISHED_REDIRECT}?redirect=/dashboard` : stepHref(state.currentStep));
 }

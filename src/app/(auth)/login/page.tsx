@@ -1,4 +1,3 @@
-import { eq } from "drizzle-orm";
 import { ArrowLeft, CircleAlert, Mail, ShieldCheck, Users, Zap } from "lucide-react";
 import type { Metadata } from "next";
 import { Caveat } from "next/font/google";
@@ -14,8 +13,7 @@ import { BrandLogo } from "@/components/brand-logo";
 import { ThemeToggleButton } from "@/components/theme-toggle-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { db } from "@/db";
-import { users } from "@/db/schema";
+import { resolvePostAuthDestination } from "@/lib/auth/destination";
 import { configuredProviders } from "@/lib/auth-providers";
 import { toLocalPath } from "@/lib/safe-redirect";
 
@@ -31,10 +29,16 @@ export const metadata: Metadata = {
 };
 
 const ERRORS: Record<string, string> = {
-  OAuthAccountNotLinked: "That email already uses a different sign-in method. Sign in the way you did the first time.",
-  Verification: "That sign-in link has expired or was already used. Request a new one below.",
-  Configuration: "Sign-in isn't available right now. Try again in a few minutes.",
-  AccessDenied: "Sign-in was cancelled or denied.",
+  OAuthAccountNotLinked:
+    "An account with this email already exists using a different sign-in method. Please sign in the way you did the first time (such as Google or Email Magic Link).",
+  Verification:
+    "That sign-in link has expired or has already been used. Please request a fresh link below.",
+  Configuration:
+    "Sign-in is temporarily unavailable. Please try again in a few moments.",
+  AccessDenied:
+    "Sign-in was cancelled or denied. Please try again.",
+  InvalidEmail:
+    "Please enter a valid email address.",
 };
 
 export default function LoginPage({ searchParams }: PageProps<"/login">) {
@@ -45,7 +49,6 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
       ============================================================ */}
       <section className="relative flex flex-col overflow-hidden min-h-[260px] sm:min-h-[290px] lg:min-h-dvh">
         {/* Workspace Photographic Background — anchored at top on mobile, desk/books at bottom-left on desktop */}
-        {/* Same artwork as /brand/login-workspace-clean.jpg, as WebP: 640px under the mobile veil, 1024px (source resolution) from lg. */}
         <div
           className="absolute inset-0 bg-cover pointer-events-none select-none bg-[center_top] lg:bg-[left_bottom] bg-[url('/img/login-workspace-clean-640.webp')] lg:bg-[url('/img/login-workspace-clean-1024.webp')]"
           aria-hidden="true"
@@ -57,7 +60,7 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
           aria-hidden="true"
         />
 
-        {/* Mobile Readability Overlay — gentle soft warm veil on mobile so text is completely crisp and readable above photographic art */}
+        {/* Mobile Readability Overlay */}
         <div
           className="absolute inset-0 bg-gradient-to-b from-[#FAFAFD]/98 via-[#FAFAFD]/92 to-[#FAFAFD]/60 lg:hidden pointer-events-none"
           aria-hidden="true"
@@ -69,7 +72,7 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
           aria-hidden="true"
         />
 
-        {/* Brand Logo in Upper-Left Corner — comfortably placed on light wall region on desktop */}
+        {/* Brand Logo in Upper-Left Corner */}
         <div className="relative z-10 flex items-center justify-between px-6 pt-6 sm:px-10 sm:pt-8 lg:px-0 lg:pl-[24%] xl:pl-[27%] lg:pt-6 xl:pt-8">
           <BrandLogo href="/" withTagline size="md" taglineClassName="text-slate-600 font-semibold" />
           <Link
@@ -82,7 +85,6 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
         </div>
 
         {/* ── Desktop Hero Layout ── */}
-        {/* Positioned in upper portion above the window, matching Image B */}
         <div className="hidden lg:block relative z-10 ml-[42%] xl:ml-[44%] pr-4 xl:pr-8 mt-5 xl:mt-8 2xl:mt-12 max-w-[480px]">
           <h1
             className="font-sans text-[32px] lg:text-[34px] xl:text-[42px] 2xl:text-[46px] font-extrabold leading-[1.08] tracking-[-0.03em] text-[#0F172A]"
@@ -97,7 +99,7 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
             </span>
           </h1>
 
-          {/* Tathastu signature — aligned toward the right side beneath headline */}
+          {/* Tathastu signature */}
           <div className="mt-1 flex justify-end pr-3 xl:pr-6">
             <div className="relative inline-block -rotate-2 select-none">
               <span
@@ -123,7 +125,6 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
             </div>
           </div>
 
-          {/* Supporting paragraph — sits cleanly above laptop and window frame */}
           <p
             className="mt-2 xl:mt-3 text-[13px] lg:text-[13.5px] xl:text-[15px] font-medium leading-relaxed text-[#334155]"
             style={{ textShadow: "0 1px 8px rgba(255,255,255,0.8)" }}
@@ -142,7 +143,6 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
             </span>
           </h1>
 
-          {/* Mobile Tathastu signature */}
           <div className="mt-1 flex justify-start">
             <div className="relative inline-block -rotate-2 select-none">
               <span
@@ -168,13 +168,11 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
             </div>
           </div>
 
-          {/* Mobile supporting paragraph */}
           <p className="mt-2 text-xs sm:text-[13px] font-medium leading-relaxed text-[#334155] max-w-xs">
             Sign in, build your profile and take the next step.
           </p>
         </div>
 
-        {/* Spacer so the left panel fills the height on desktop */}
         <div className="hidden lg:block flex-1" aria-hidden="true" />
       </section>
 
@@ -182,7 +180,6 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
           RIGHT PANEL: CLEAN FOCUSED AUTHENTICATION CARD (~43%)
       ============================================================ */}
       <section className="relative z-10 flex flex-col justify-between p-4 sm:p-8 lg:p-8 xl:p-14 bg-background border-t border-border lg:border-t-0 lg:border-l lg:border-border min-h-[480px] lg:min-h-dvh">
-        {/* Ambient flowing pastel wave decoration in bottom-right corner */}
         <div className="pointer-events-none absolute bottom-0 right-0 size-[440px] overflow-hidden" aria-hidden="true">
           <div className="absolute -bottom-24 -right-24 size-[400px] rounded-full bg-gradient-to-tl from-[#FF2A85]/14 via-[#8B5CF6]/10 to-transparent blur-3xl" />
           <svg className="absolute bottom-0 right-0 w-80 h-80 opacity-30" viewBox="0 0 320 320" fill="none">
@@ -224,7 +221,7 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
               </p>
             </div>
 
-            <Suspense fallback={<SignInOptions redirectTo="/onboarding" />}>
+            <Suspense fallback={<SignInOptions redirectTo="/dashboard" />}>
               <SignInWithParams searchParams={searchParams} />
             </Suspense>
 
@@ -258,7 +255,6 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
           </div>
         </div>
 
-        {/* Bottom space balance */}
         <div className="hidden lg:block h-6 pointer-events-none" aria-hidden="true" />
       </section>
     </main>
@@ -268,14 +264,16 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
 async function SignInWithParams({ searchParams }: Pick<PageProps<"/login">, "searchParams">) {
   const params = await searchParams;
   const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
-  const redirectTo = toLocalPath(first(params.callbackUrl));
+  const redirectTo = toLocalPath(first(params.callbackUrl), "/dashboard");
 
-  // Already signed in (and the account still exists)? Skip the form.
+  // Already signed in? Route to authoritative destination (dashboard if completed, pending step if incomplete).
   await connection();
   const session = await auth();
   if (session?.user?.id) {
-    const [user] = await db.select({ id: users.id }).from(users).where(eq(users.id, session.user.id));
-    if (user) redirect(redirectTo);
+    const { destination, isDeleted } = await resolvePostAuthDestination(session.user.id, first(params.callbackUrl));
+    if (!isDeleted) {
+      redirect(destination);
+    }
   }
 
   const errorKey = first(params.error);
