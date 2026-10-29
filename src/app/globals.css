@@ -391,6 +391,99 @@
   }
 }
 
+
+/* Premium Onboarding & Headline Animations */
+@keyframes headlineReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(14px);
+    filter: blur(5px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes textShimmerFlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes barExpandReveal {
+  0% {
+    width: 0;
+    opacity: 0;
+  }
+  100% {
+    width: 3.5rem;
+    opacity: 1;
+  }
+}
+
+@keyframes beaconPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.45);
+    opacity: 0.4;
+  }
+}
+
+@keyframes progressGlowPulse {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(255, 42, 133, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(255, 42, 133, 0.8), 0 0 32px rgba(147, 51, 234, 0.35);
+  }
+}
+
+.headline-reveal {
+  animation: headlineReveal 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.headline-shimmer {
+  background: linear-gradient(135deg, #0F172A 0%, #334155 20%, #FF2A85 45%, #9333EA 60%, #0F172A 80%, #334155 100%);
+  background-size: 260% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: textShimmerFlow 6s ease-in-out infinite;
+}
+
+.dark .headline-shimmer,
+[data-theme="dark"] .headline-shimmer {
+  background: linear-gradient(135deg, #FFFFFF 0%, #E2E8F0 20%, #FF2A85 45%, #C084FC 60%, #FFFFFF 80%, #E2E8F0 100%);
+  background-size: 260% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: textShimmerFlow 6s ease-in-out infinite;
+}
+
+.bar-expand {
+  animation: barExpandReveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards;
+}
+
+.progress-animated-glow {
+  animation: progressGlowPulse 2.8s ease-in-out infinite;
+}
+
+.beacon-pulse {
+  animation: beaconPulse 2s ease-in-out infinite;
+}
+
 .btn-brand-gradient {
   background: linear-gradient(135deg, #FF6B4A 0%, #FF2A85 50%, #9333EA 100%) !important;
   color: #FFFFFF !important;

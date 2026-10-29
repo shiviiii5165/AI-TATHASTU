@@ -54,20 +54,20 @@ export function ReviewConsent({ summary, initialChoices }: { summary: ProgressSu
 
   return (
     <>
-      <div className="mx-auto mt-8 w-full max-w-[880px]">
+      <div className="mx-auto mt-8 w-full max-w-[880px] headline-reveal">
         <section aria-labelledby="summary-heading">
           <h2 id="summary-heading" className="mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
             Your Information
           </h2>
 
           <div className="grid gap-4 md:grid-cols-2">
-            {/* Profile Completeness - Modernized high-contrast widget */}
-            <div className="rounded-2xl border border-border/80 bg-card p-6 shadow-xs md:col-span-2 transition-all">
+            {/* Profile Completeness - Modernized high-contrast widget with glowing progress */}
+            <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-card p-6 shadow-xs md:col-span-2 transition-all before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-[#FF6B4A] before:via-[#FF2A85] before:to-[#9333EA]">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <div className="flex items-center gap-2.5">
-                    <div className="flex size-8 items-center justify-center rounded-xl bg-gradient-to-br from-[#FF6B4A]/15 via-[#FF2A85]/15 to-[#9333EA]/15 text-[#FF2A85]">
-                      <Sparkles className="size-4" />
+                    <div className="flex size-8 items-center justify-center rounded-xl bg-gradient-to-br from-[#FF6B4A]/15 via-[#FF2A85]/15 to-[#9333EA]/15 text-[#FF2A85] shadow-2xs">
+                      <Sparkles className="size-4 animate-pulse" />
                     </div>
                     <h3 className="text-base font-bold tracking-tight text-foreground sm:text-lg">
                       Profile completeness
@@ -79,7 +79,7 @@ export function ReviewConsent({ summary, initialChoices }: { summary: ProgressSu
                 </div>
 
                 <div className="flex items-center gap-2 self-start sm:self-center">
-                  <div className="flex items-center gap-2 rounded-full border border-[#FF2A85]/20 bg-[#FF2A85]/10 px-3.5 py-1.5 font-mono text-sm font-extrabold text-[#FF2A85]">
+                  <div className="flex items-center gap-2 rounded-full border border-[#FF2A85]/20 bg-[#FF2A85]/10 px-3.5 py-1.5 font-mono text-sm font-extrabold text-[#FF2A85] shadow-xs">
                     <span>{Math.round(completeness * 100)}%</span>
                     <span className="text-xs font-semibold text-muted-foreground">
                       ({checks.filter((c) => c.done).length}/{checks.length} complete)
@@ -88,18 +88,18 @@ export function ReviewConsent({ summary, initialChoices }: { summary: ProgressSu
                 </div>
               </div>
 
-              {/* Progress bar */}
+              {/* Progress bar with animated glowing wave */}
               <div
                 role="progressbar"
                 aria-label="Profile completeness"
                 aria-valuemin={0}
                 aria-valuemax={100}
                 aria-valuenow={Math.round(completeness * 100)}
-                className="mt-4 h-2.5 w-full overflow-hidden rounded-full bg-muted/80 p-0.5 border border-border/40"
+                className="mt-4 h-3 w-full overflow-hidden rounded-full bg-muted/80 p-0.5 border border-border/40"
               >
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-[#FF6B4A] via-[#FF2A85] to-[#9333EA] shadow-[0_0_12px_rgba(255,42,133,0.35)] transition-all duration-700 ease-out"
-                  style={{ width: `${Math.max(4, Math.round(completeness * 100))}%` }}
+                  className="h-full rounded-full bg-gradient-to-r from-[#FF6B4A] via-[#FF2A85] to-[#9333EA] progress-animated-glow transition-all duration-1000 ease-out"
+                  style={{ width: `${Math.max(5, Math.round(completeness * 100))}%` }}
                 />
               </div>
 
@@ -109,7 +109,7 @@ export function ReviewConsent({ summary, initialChoices }: { summary: ProgressSu
                   <li
                     key={c.label}
                     className={cn(
-                      "flex items-center gap-3 rounded-xl border px-3.5 py-2.5 text-sm transition-colors",
+                      "flex items-center gap-3 rounded-xl border px-3.5 py-3 text-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xs",
                       c.done
                         ? "border-emerald-500/25 bg-emerald-500/[0.05] text-foreground font-semibold"
                         : "border-border/60 bg-muted/30 text-muted-foreground font-medium",
@@ -218,7 +218,7 @@ function SummaryCard({
   children: React.ReactNode;
 }) {
   return (
-    <dl className={cn("flex min-w-0 flex-col rounded-2xl border border-border/80 bg-card p-5 shadow-xs transition-colors", className)}>
+    <dl className={cn("flex min-w-0 flex-col rounded-2xl border border-border/80 bg-card p-5 shadow-xs transition-all hover:border-border hover:shadow-2xs", className)}>
       <div className="flex items-center justify-between gap-3">
         <dt className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{term}</dt>
         <dd className="-my-2 -mr-2">

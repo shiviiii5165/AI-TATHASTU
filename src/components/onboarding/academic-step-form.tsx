@@ -53,8 +53,8 @@ export function AcademicStepForm({
   }, [state.errors]);
 
   return (
-    <form ref={formRef} action={formAction} noValidate className="mt-8 max-w-3xl">
-      <div className="rounded-2xl border border-border/80 bg-card p-6 sm:p-8 md:p-10 shadow-xs backdrop-blur-xs transition-colors">
+    <form ref={formRef} action={formAction} noValidate className="mt-8 max-w-3xl headline-reveal">
+      <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-card p-6 sm:p-8 md:p-10 shadow-xs backdrop-blur-xs transition-all duration-300 before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-[#FF6B4A] before:via-[#FF2A85] before:to-[#9333EA]">
         <div className="grid gap-x-6 gap-y-6 sm:grid-cols-2">
           <Field label="Full name" field="fullName" error={state.errors?.fullName} className="sm:col-span-2">
             <Input
