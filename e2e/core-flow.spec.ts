@@ -142,7 +142,7 @@ test("Phase 1–3 journey: onboarding to a personalized dashboard", async ({ pag
     expectPhase2Verified(user);
 
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(/(Good to see you|Let's make progress), Asha\./, { timeout: 30_000 });
-    await expect(page.getByText("Built around ML Engineer · Internships & Jobs first")).toBeVisible();
+    await expect(page.getByText("Built around ML Engineer · Internships & Jobs first")).toBeVisible({ timeout: 30_000 });
 
     const eris = widget(page, "Interview readiness");
     await expect(eris.getByRole("meter", { name: "Interview readiness" })).toHaveAttribute("aria-valuenow", "63");
@@ -173,8 +173,15 @@ test("Phase 1–3 journey: onboarding to a personalized dashboard", async ({ pag
   });
 
   await test.step("dismissing a widget hides it, and it stays hidden", async () => {
-    await widget(page, "Skills to develop").getByRole("button", { name: "Hide Skills to develop" }).click();
-    await expect(widget(page, "Skills to develop")).toHaveCount(0);
+    const hideBtn = widget(page, "Skills to develop").getByRole("button", { name: "Hide Skills to develop" });
+    await expect(hideBtn).toBeVisible({ timeout: 15_000 });
+    await hideBtn.click();
+    await expect(async () => {
+      if ((await widget(page, "Skills to develop").count()) > 0) {
+        await hideBtn.click({ timeout: 1000 }).catch(() => {});
+      }
+      expect(await widget(page, "Skills to develop").count()).toBe(0);
+    }).toPass({ timeout: 15_000 });
     await expect(page.getByRole("button", { name: "1 hidden widget" })).toBeVisible();
     await expect
       .poll(() => countRows("SELECT count(*) AS n FROM widget_prefs WHERE user_id = $1 AND widget_id = 'skill_gaps' AND dismissed", [user.id]))

@@ -3891,10 +3891,10 @@ input[type=range]::-moz-range-thumb {
   flex-direction: column;
   gap: 10px;
   z-index: 3;
-  width: 182px;
+  width: 184px;
 }
 .ref-source-card {
-  width: 182px;
+  width: 184px;
   height: 48px;
   border-radius: 14px;
   background: #FFFFFF;
@@ -3902,7 +3902,7 @@ input[type=range]::-moz-range-thumb {
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
   display: flex;
   align-items: center;
-  padding: 0 14px;
+  padding: 0 10px 0 12px;
   position: relative;
   overflow: hidden;
   cursor: pointer;
@@ -3927,11 +3927,12 @@ input[type=range]::-moz-range-thumb {
   height: 22px;
   display: grid;
   place-items: center;
-  margin-right: 10px;
+  margin-right: 7px;
   flex-shrink: 0;
 }
 .ref-source-title {
-  font: 700 0.88rem/1 var(--ref-font-body);
+  font: 700 0.82rem/1 var(--ref-font-body);
+  letter-spacing: -0.015em;
   color: #1E293B;
   white-space: nowrap;
   overflow: hidden;
@@ -4340,8 +4341,8 @@ input[type=range]::-moz-range-thumb {
   .ref-hero-wrap { grid-template-columns: 340px 1fr; gap: 24px; }
   .ref-hero-headline { font-size: clamp(2.15rem, 3.6vw, 3.25rem); line-height: 1.1; }
   .ref-eco-stage { max-width: 860px; }
-  .ref-source-column { width: 176px; }
-  .ref-source-card { width: 176px; }
+  .ref-source-column { width: 180px; }
+  .ref-source-card { width: 180px; }
   .ref-dest-column { width: 210px; }
   .ref-dest-card { width: 210px; }
 }
@@ -5413,6 +5414,10 @@ input[type=range]::-moz-range-thumb {
 /* Staggered: the first callout on each side sits further in than the second. */
 .side-left .pill-1,
 .side-right .pill-3 { margin-inline: 28px; }
+@media (max-width: 1366px) {
+  .side-left .pill-1,
+  .side-right .pill-3 { margin-inline: 14px; }
+}
 
 /* Callout = circular avatar + separate rounded label, slightly overlapping. */
 .final-callout {

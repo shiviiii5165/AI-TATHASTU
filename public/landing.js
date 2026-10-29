@@ -266,7 +266,7 @@ function initFinalCtaLines() {
     // Only in the three-column layout, where callouts sit beside the centre.
     if (!g.width || callouts.some((el) => {
       const r = el.getBoundingClientRect();
-      return !(r.right <= c.left || r.left >= c.right);
+      return !(r.right <= c.left + 12 || r.left >= c.right - 12);
     })) {
       svg.textContent = '';
       shapes.length = 0;
