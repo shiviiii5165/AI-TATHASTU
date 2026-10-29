@@ -1,5 +1,4 @@
 import { LogOut } from "lucide-react";
-import Link from "next/link";
 import { Suspense } from "react";
 
 import { signOut } from "@/auth";
@@ -18,21 +17,10 @@ export default function OnboardingLayout({ children }: LayoutProps<"/onboarding"
         Skip to content
       </a>
 
-      {/* Top Navigation Header */}
+      {/* Top Navigation Header (Onboarding variant: focused wizard navigation) */}
       <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between border-b border-border bg-card/95 px-4 backdrop-blur-md sm:px-8 lg:px-10 lg:h-18">
-        <div className="flex items-center gap-8">
+        <div className="flex items-center">
           <BrandLogo href="/" withTagline size="sm" />
-          <nav className="hidden items-center gap-6 text-sm font-semibold text-muted-foreground md:flex" aria-label="Main navigation">
-            <Link href="/#ecosystem" className="transition-colors hover:text-foreground">
-              Platform
-            </Link>
-            <Link href="/#how" className="transition-colors hover:text-foreground">
-              Career Lab
-            </Link>
-            <Link href="/about" className="transition-colors hover:text-foreground">
-              About
-            </Link>
-          </nav>
         </div>
 
         <div className="flex items-center gap-3 sm:gap-4">

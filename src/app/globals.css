@@ -471,6 +471,25 @@
   -webkit-text-fill-color: transparent;
   animation: textShimmerFlow 6s ease-in-out infinite;
 }
+.profile-shimmer-highlight {
+  background: linear-gradient(135deg, #FF2A85 0%, #FF6B4A 30%, #9333EA 65%, #FF2A85 100%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: textShimmerFlow 4.5s ease-in-out infinite;
+}
+
+.dark .profile-shimmer-highlight,
+[data-theme="dark"] .profile-shimmer-highlight {
+  background: linear-gradient(135deg, #FF2A85 0%, #FF6B4A 30%, #C084FC 65%, #FF2A85 100%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: textShimmerFlow 4.5s ease-in-out infinite;
+}
+
 
 .bar-expand {
   animation: barExpandReveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards;

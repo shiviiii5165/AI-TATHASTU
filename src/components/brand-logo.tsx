@@ -49,7 +49,7 @@ export function BrandLogo({
               taglineClassName
             )}
           >
-            Career growth platform for students
+            You imagine. AI Tathastu makes it happen.
           </span>
         )}
       </span>
