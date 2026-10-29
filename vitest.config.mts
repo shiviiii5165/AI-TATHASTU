@@ -9,6 +9,7 @@ export default defineConfig({
     exclude: ["**/._*", "node_modules/**"],
     testTimeout: 30_000,
     hookTimeout: 60_000,
+    setupFiles: [path.resolve(import.meta.dirname, "src/test/setup.ts")],
   },
   resolve: {
     alias: {

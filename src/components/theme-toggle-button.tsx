@@ -21,7 +21,7 @@ export function ThemeToggleButton({ className, size = "md" }: ThemeToggleButtonP
         size === "sm" ? "size-9 min-h-[36px] min-w-[36px]" : "size-10 min-h-[44px] min-w-[44px]",
         className
       )}
-      aria-label="Toggle color theme"
+      aria-label="Toggle color theme (Switch to dark/light)"
     >
       <Sun className="size-4 text-[#F59E0B] dark:hidden" />
       <Moon className="size-4 text-[#B69CFF] hidden dark:block" />
