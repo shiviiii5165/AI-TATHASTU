@@ -15,7 +15,7 @@ export const metadata: Metadata = { title: "Your faculty profile" };
 export default function Page() {
   return (
     <>
-      <StepHeader step="faculty_profile" title="Your faculty profile">
+      <StepHeader step="faculty_profile" frame="form" title="Your faculty profile">
         Students and colleagues see this first. We use your institution, department and field to match you with students in your area.
       </StepHeader>
       <Suspense fallback={<StepSkeleton />}>

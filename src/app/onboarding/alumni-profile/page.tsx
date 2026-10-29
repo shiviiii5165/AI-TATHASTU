@@ -15,7 +15,7 @@ export const metadata: Metadata = { title: "Your alumni profile" };
 export default function Page() {
   return (
     <>
-      <StepHeader step="alumni_profile" title="Your alumni profile">
+      <StepHeader step="alumni_profile" frame="form" title="Your alumni profile">
         Where and what you studied. Students from your university and field will be able to find you.
       </StepHeader>
       <Suspense fallback={<StepSkeleton />}>

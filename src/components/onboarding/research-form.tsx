@@ -80,7 +80,7 @@ export function ResearchForm({
 
   return (
     <>
-      <div className="mt-6 sm:mt-8 max-w-4xl space-y-10">
+      <div className="onb-frame mt-6 sm:mt-8 space-y-10">
         {/* Section 1: Research Interests */}
         <section
           aria-labelledby="interests-heading"

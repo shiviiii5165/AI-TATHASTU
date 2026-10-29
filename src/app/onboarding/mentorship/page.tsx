@@ -14,7 +14,7 @@ export default function Page() {
   return (
     <>
       <StepHeader
-        step="mentorship"
+        step="mentorship" frame="form"
         title="How you'd like to mentor"
       >
         Set how many students you can take on and what you can help with. Students only see you as available while you have room.

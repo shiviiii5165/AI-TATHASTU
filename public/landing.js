@@ -226,6 +226,113 @@ function initReferenceEcoConnections() {
 initReferenceEcoConnections();
 
 /* ============================================================
+   3b. FINAL CTA CONNECTOR CURVES (side callouts -> CTA button)
+============================================================ */
+function initFinalCtaLines() {
+  const grid = document.getElementById('finalCtaGrid');
+  const svg = document.getElementById('finalCtaLines');
+  const btn = document.getElementById('ctaStartFreeBtn');
+  const center = grid && grid.querySelector('.final-cta-center');
+  if (!grid || !svg || !btn || !center) return;
+  const NS = 'http://www.w3.org/2000/svg';
+
+  // Areas the curves must never cross: the full box of each block of copy
+  // (not just its glyphs, so short centred lines still get clearance) and the button.
+  function textRects(g) {
+    const rects = [btn.getBoundingClientRect()];
+    center.querySelectorAll('h2, p, .final-cta-reassurances > div').forEach((el) => rects.push(el.getBoundingClientRect()));
+    return rects.map((r) => ({ l: r.left - g.left - 8, r: r.right - g.left + 8, t: r.top - g.top - 6, b: r.bottom - g.top + 6 }));
+  }
+
+  // Reuse path/dot elements across redraws so a resize or late font load
+  // doesn't restart (or cut short) the one-time draw-in transition.
+  const shapes = [];
+  function shape(i) {
+    if (!shapes[i]) {
+      const path = document.createElementNS(NS, 'path');
+      path.setAttribute('pathLength', '1');
+      const dot = document.createElementNS(NS, 'circle');
+      dot.setAttribute('r', '2.5');
+      svg.append(path, dot);
+      shapes[i] = { path, dot };
+    }
+    return shapes[i];
+  }
+
+  function draw() {
+    const g = grid.getBoundingClientRect();
+    const c = center.getBoundingClientRect();
+    const callouts = Array.from(grid.querySelectorAll('.final-callout'));
+    // Only in the three-column layout, where callouts sit beside the centre.
+    if (!g.width || callouts.some((el) => {
+      const r = el.getBoundingClientRect();
+      return !(r.right <= c.left || r.left >= c.right);
+    })) {
+      svg.textContent = '';
+      shapes.length = 0;
+      return;
+    }
+    svg.setAttribute('viewBox', `0 0 ${g.width} ${g.height}`);
+    const b = btn.getBoundingClientRect();
+    const blocked = textRects(g);
+    const btnCy = b.top - g.top + b.height / 2;
+
+    const curves = callouts.map((el, i) => {
+      const label = el.querySelector('.callout-label').getBoundingClientRect();
+      const left = label.right <= c.left;
+      const upper = el.classList.contains('pill-1') || el.classList.contains('pill-3');
+      return {
+        i, left, upper,
+        x1: (left ? label.right + 6 : label.left - 6) - g.left,
+        y1: label.top - g.top + label.height / 2,
+        y2: btnCy + (upper ? -9 : 9),
+        base: (left ? b.left - 22 : b.right + 22) - g.left,
+        pull: 0,
+      };
+    });
+    const setD = (k, pull) => {
+      const x2 = k.base + (k.left ? -pull : pull);
+      const dx = x2 - k.x1;
+      shape(k.i).path.setAttribute('d', `M ${k.x1} ${k.y1} C ${k.x1 + dx * 0.3} ${k.y1}, ${x2 - dx * 0.55} ${k.y2}, ${x2} ${k.y2}`);
+      return x2;
+    };
+    // Pull each endpoint outward until no sampled point touches the copy.
+    curves.forEach((k) => {
+      const path = shape(k.i).path;
+      for (; k.pull <= 192; k.pull += 16) {
+        setD(k, k.pull);
+        const len = path.getTotalLength();
+        let hit = false;
+        for (let s = 0; s <= 24 && !hit; s++) {
+          const p = path.getPointAtLength((len * s) / 24);
+          hit = blocked.some((r) => p.x > r.l && p.x < r.r && p.y > r.t && p.y < r.b);
+        }
+        if (!hit) break;
+      }
+    });
+    // Mirrored callouts share the larger clearance so both sides stay balanced.
+    curves.forEach((k) => {
+      const twin = curves.find((o) => o.upper === k.upper && o.left !== k.left);
+      const x2 = setD(k, Math.max(k.pull, twin ? twin.pull : 0));
+      const { path, dot } = shape(k.i);
+      path.setAttribute('class', k.upper ? 'tone-rose' : 'tone-lilac');
+      dot.setAttribute('cx', x2);
+      dot.setAttribute('cy', k.y2);
+    });
+  }
+
+  let raf = 0;
+  const schedule = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(draw); };
+  if ('ResizeObserver' in window) new ResizeObserver(schedule).observe(grid);
+  else window.addEventListener('resize', schedule, { passive: true });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
+  // The reveal moves the copy with transforms, which ResizeObserver can't see.
+  grid.addEventListener('transitionend', (e) => { if (e.propertyName === 'transform') schedule(); });
+  schedule();
+}
+initFinalCtaLines();
+
+/* ============================================================
    4. ETHEREAL FLOWING SPECTRAL MESH WAVES (HARMONIC CURVES)
 ============================================================ */
 function initReferenceMeshWaves() {
@@ -646,14 +753,14 @@ const POLICY_DETAILS = {
     title: 'Privacy Promise',
     edge: '#16A34A',
     desc: 'We never touch private code without permission, never sell student data, and never use invasive surveillance.',
-    simHTML: `<div style="font-size:.9rem;color:var(--ink-soft)">✓ Public &amp; approved projects only · ✓ Delete your profile anytime with one click</div>`
+    simHTML: `<div style="font-size:.9rem;color:var(--ink-soft)">✓ Public &amp; approved projects only · ✓ Delete your profile anytime with one click</div><div style="margin-top:14px;"><a href="/privacy" style="display:inline-block;padding:8px 16px;background:#16A34A;color:#FFFFFF;font-weight:700;font-size:0.85rem;border-radius:10px;text-decoration:none;">Read Full Privacy Policy →</a></div>`
   },
   terms: {
     eyebrow: 'Simple & Fair Terms',
     title: 'Terms of Use',
     edge: '#F43F5E',
     desc: 'Everything you build belongs 100% to you. AI Tathastu simply helps you showcase your verified proof to the world.',
-    simHTML: `<div style="font-size:.9rem;color:var(--ink-soft)">✓ You own your IP · ✓ Nothing is shared publicly until you approve it</div>`
+    simHTML: `<div style="font-size:.9rem;color:var(--ink-soft)">✓ You own your IP · ✓ Nothing is shared publicly until you approve it</div><div style="margin-top:14px;"><a href="/terms" style="display:inline-block;padding:8px 16px;background:#F43F5E;color:#FFFFFF;font-weight:700;font-size:0.85rem;border-radius:10px;text-decoration:none;">Read Full Terms of Use →</a></div>`
   },
   ownership: {
     eyebrow: 'You Stay in Control',

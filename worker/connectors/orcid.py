@@ -47,7 +47,7 @@ def map_orcid(orcid: str, record: Dict[str, Any], facts: Facts) -> Facts:
     given = _get(record, "person", "name", "given-names", "value")
     family = _get(record, "person", "name", "family-name", "value")
     facts.add("identity", "full_name", " ".join(p for p in (given, family) if p) or None, ev)
-    facts.add("contact", "website", f"https://orcid.org/{orcid}", ev)
+    facts.add("contact", "orcid_url", f"https://orcid.org/{orcid}", ev)
 
     for kw in _get(record, "person", "keywords", "keyword") or []:
         content = (kw.get("content") or "").strip()

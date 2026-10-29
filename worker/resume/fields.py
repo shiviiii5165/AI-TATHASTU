@@ -7,7 +7,8 @@ from typing import Dict, List
 
 FIELD_GROUPS: Dict[str, List[str]] = {
     "identity": ["full_name", "headline", "location"],
-    "contact": ["email", "phone", "linkedin_url", "github_url", "website"],
+    "contact": ["email", "phone", "linkedin_url", "github_url", "website",
+                "leetcode_url", "hackerrank_url", "kaggle_url", "orcid_url", "stackexchange_url"],
     "education": ["institution", "degree", "field_of_study", "start_date", "end_date", "grade"],
     "experience": ["organization", "role", "start_date", "end_date", "description"],
     "projects": ["title", "description", "technologies", "url"],

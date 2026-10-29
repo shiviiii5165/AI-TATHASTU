@@ -23,7 +23,7 @@ export default function ReviewConsentPage() {
       <StepHeader
         step="review"
         title="Review and confirm"
-        className="mx-auto w-full max-w-[880px]"
+        frame="form"
       >
         Check your answers. You can edit anything before creating your profile.
       </StepHeader>

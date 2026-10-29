@@ -15,6 +15,7 @@ import psycopg2.extras
 from crypto_box import open_credential
 from db import enqueue_compute_intelligence, fetch_one, has_consent, jsonb
 from jobs import Job
+from profile_urls import route_contact_url
 
 log = logging.getLogger("worker.connectors")
 
@@ -96,6 +97,12 @@ class Facts:
             return
         if isinstance(value, str):
             value = value.strip()
+        if group == "contact" and isinstance(value, str):
+            field, value = route_contact_url(field, value)  # platform URLs never land in `website`
+            if field is None:
+                return
+        if any(r[1] == group and r[2] == field and r[3] == record_key and r[5] == jsonb(value) for r in self.rows):
+            return  # same fact twice in one sync (e.g. a blog URL that is also the portfolio)
         self.rows.append((
             self.user_id, group, field, record_key,
             jsonb(value if extracted is None else extracted), jsonb(value),

@@ -10,6 +10,7 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
+from profile_urls import classify as classify_url
 from skills_catalog import CATALOG
 
 # Regex-exact fields (email, URL) vs heuristics (name, institution).
@@ -161,11 +162,6 @@ def _norm_phone(raw: str) -> Optional[str]:
     return ("+" if raw.strip().startswith("+") else "") + digits
 
 
-def _norm_url(raw: str) -> str:
-    url = raw.rstrip(".")
-    return url if re.match(r"https?://", url, re.I) else f"https://{url}"
-
-
 # ─── Extractors ─────────────────────────────────────────────────────────────
 
 
@@ -189,21 +185,15 @@ def extract_contact(text: str) -> List[Candidate]:
         raw = m.group(1)
         if "@" in text[max(0, m.start() - 1) : m.start()]:
             continue
-        lower = raw.lower()
-        if "linkedin.com/in/" in lower:
-            field_name = "linkedin_url"
-        elif re.search(r"github\.com/[\w-]+/?$", lower):
-            field_name = "github_url"
-        elif "github.com/" in lower or "linkedin.com" in lower:
-            continue  # repo links belong to projects
-        elif "website" not in seen and re.match(r"(https?://|www\.)", lower):
-            field_name = "website"
-        else:
-            continue
+        field_name, norm = classify_url(raw)
+        if field_name is None:
+            continue  # repo or problem links belong to projects, not contact
+        if field_name == "website" and not re.match(r"(https?://|www\.)", raw, re.I):
+            continue  # bare "node.js"-style words aren't a personal site
         if field_name in seen:
             continue
         seen.add(field_name)
-        out.append(Candidate("contact", field_name, _norm_url(raw), raw, raw, m.start(1), m.end(1)))
+        out.append(Candidate("contact", field_name, norm, raw, raw, m.start(1), m.end(1)))
     return out
 
 

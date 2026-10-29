@@ -993,7 +993,7 @@ export function ContactContent() {
               <span className="footer-pipe" aria-hidden="true">
                 |
               </span>
-              <Link href="/privacy#cookies" className="footer-legal-btn">
+              <Link href="/cookie-policy" className="footer-legal-btn">
                 Cookie Policy
               </Link>
               <span className="footer-pipe" aria-hidden="true">

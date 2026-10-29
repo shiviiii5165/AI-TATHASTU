@@ -96,7 +96,7 @@ export function ResumeUploader({
 
   return (
     <>
-      <div className="mx-auto mt-8 w-full max-w-2xl space-y-6">
+      <div className="onb-frame mt-8 space-y-6">
         {/* AI Consent Card — shown before upload area */}
         <AiConsent initial={initialAiConsent} uploaded={phase.kind === "processing"} />
 

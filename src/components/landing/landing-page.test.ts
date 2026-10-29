@@ -120,9 +120,14 @@ describe("Landing Page Redesign & Restored Hero — Architecture & Copy Complian
     expect(buttonRoleCount).toBe(5);
   });
 
-  it("contains the demo section with 16:9 frame, backdrop asset, and coming-soon triggers", () => {
+  it("contains the demo section with 16:9 frame, product preview, and coming-soon triggers", () => {
     expect(LANDING_HTML).toContain('id="demo"');
-    expect(LANDING_HTML).toContain("/brand/dashboard-hero-backdrop.jpg");
+    expect(LANDING_HTML).toContain("/img/demo-dashboard-preview-960.webp");
+    expect(LANDING_HTML).toContain('width="1600" height="900"');
+    // No fake playback cues while the real video isn't connected.
+    expect(LANDING_HTML).not.toContain("demo-track-progress");
+    expect(LANDING_HTML).not.toContain("HD 1080p");
+    expect(LANDING_HTML).toContain("Our 2-minute product demo is coming soon.");
     expect(LANDING_HTML).toContain('id="watchDemoBtn"');
     expect(LANDING_HTML).toContain('id="demoPlayTrigger"');
     expect(LANDING_HTML).toContain("Watch Demo (2 min)");

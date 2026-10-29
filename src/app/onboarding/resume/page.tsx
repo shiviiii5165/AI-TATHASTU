@@ -15,7 +15,7 @@ export default function ResumePage() {
       <StepHeader
         step="resume"
         title="Upload your resume"
-        className="mx-auto w-full max-w-2xl"
+        frame="form"
       >
         Add a resume to fill in your profile. Review all details before saving.
       </StepHeader>

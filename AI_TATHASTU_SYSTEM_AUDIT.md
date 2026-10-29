@@ -2161,3 +2161,316 @@ Replaced the legacy brand tagline (`You imagine. AI Tathastu makes it happen.`) 
 - **Playwright E2E Suite (`npx playwright test e2e/landing-redesign.spec.ts`):** Exit Code **0** (9/9 passed).
 - **Next.js Production Build (`npm run build`):** Exit Code **0** (102/102 static and partially prerendered pages compiled).
 - **Visual Inspection:** Confirmed clean rendering and styling on desktop viewports via `qa-restored-hero-desktop.png`.
+
+---
+
+## 58. "See it in action" and final CTA refinement (2026-10-30)
+
+Scope: two landing sections only (`#demo`, `#start`). All approved copy is unchanged. No other section, auth, backend or data code was touched. Nothing was committed, pushed or deployed. No target screenshots were attached to the request, so the composition follows the written brief.
+
+### 58.1 Problems confirmed (Chrome, production build)
+
+1. **See it in action:** heading, paragraph and button were centred above a 980 px video frame, making the section 1,051 px tall at 1440 px. The preview was `/brand/dashboard-hero-backdrop.jpg`, a 22 KB image upscaled to about 980 px: a blurry cartoon with cropped "Yora" text. The frame also showed a "2:00" duration, a progress bar frozen at 28 % and "HD 1080p". Those imply real playback, but no video exists.
+2. **Final CTA:** each callout was a single pill with a 36 px face inside it, not a separate circular avatar and label. While rebuilding it, a layout defect also surfaced: the side columns were only 250 px wide (1,200 px container, 620 px centre). A staggered callout needs about 264–276 px, so the right callout already pushed 10 px into the centre column at 1440 px, and at 1101–1200 px it would have reached the copy. The connectors were a fixed `viewBox="0 0 1200 300"` stretched with `preserveAspectRatio="none"`.
+
+### 58.2 Changes
+
+| File | Change |
+|---|---|
+| `src/components/landing/landing-markup.ts` | `#demo`: copy column (`.demo-copy`) and preview column; `<img>` poster with `srcset`, intrinsic 1600×900 and `loading="lazy"`; fake duration, progress bar, caption and "HD 1080p" removed; redundant "Product demo" badge removed (it covered the app logo in the preview; the kicker already says "Product walkthrough"); small "Preview shown with sample data." note; `data-video-src` hook on the frame for a future video. `#start`: callouts restructured as `.final-callout` = `img.callout-avatar` + `span.callout-label`, with an accent class per label; empty SVG filled by script. |
+| `src/styles/landing.css` | Demo: two-column grid `minmax(280px, 34fr) minmax(0, 66fr)`, gap `clamp(32px, 4vw, 56px)`, stacks at ≤860 px (copy first, centred); coral gradient CTA with shadow, hover, active and focus-visible states; poster `object-fit: cover`; light centre vignette instead of the full-frame dark overlay; white ring on the play button for contrast. CTA: 46 px circular avatars (3 px white border, accent ring, soft shadow); 38 px label pills (12 px radius, accent dot and border), overlapping the avatar by 10 px; container 1,200 → 1,280 px; stagger 40 → 28 px; three-column layout now from 1,240 px (was 1,101 px) and two columns below; curves drawn once via `pathLength`/`stroke-dashoffset` (0.9 s); headline enters once (opacity + 10 px translate, 0.5 s) when the existing `.rv` reveal fires; reassurance lines stack at ≤480 px; reduced-motion overrides for all of the above. |
+| `public/landing.js` | New `initFinalCtaLines()`: computes four cubic curves from the live positions of each label's inner edge and the CTA button. Endpoints move outward until no sampled point (25 per path) touches the full box of the headline, subtitle, button or reassurance lines; mirrored callouts share the larger clearance so both sides stay balanced. Path elements are reused across redraws, so resizes don't restart the draw-in. Redraws on ResizeObserver, `document.fonts.ready` and the end of the reveal transform. Nothing is drawn unless the callouts sit beside the centre column. |
+| `public/img/demo-dashboard-preview-{960,1600}.webp` | New preview assets (36 KB and 74 KB). |
+| `src/components/landing/landing-page.test.ts` | Asset assertion updated; asserts no fake playback cues and the exact coming-soon message. |
+| `e2e/landing-responsive.spec.ts` | 9 new tests (58.4). |
+
+### 58.3 Preview asset
+
+No dashboard screenshot existed in the repo. Following the brief's order of preference, the preview is a **genuine capture of the real `/dashboard`**, taken from the isolated e2e stack (in-memory PGlite, e2e env, no production data or credentials). It uses one synthetic user, "Demo Student" at "Sample University", with the repo's own e2e fixture data (`e2e/fixtures/profile-view.json`, the same seeding as `completeIntelligence`) and two `demo/…` repos. It was captured at 1440×810 (16:9) at 1.25× and saved as WebP at 960 and 1600 px wide. The `alt` text and the note under the frame both say it shows sample data. It still shows fixture numbers (for example 80 % profile complete, 3 skills, 6 opportunities); these are the app's real widgets rendering test data, and the visible note marks them as samples. The capture script ran only against the local stack and refused non-local databases; it is not part of the repo.
+
+**Not done:** the `today` gradient (marked optional in the brief). Wrapping the word in a span breaks the unit test that pins the exact headline string, so the heading text was left as one plain string.
+
+### 58.4 Verification (actual results)
+
+Rendered with Playwright and installed Chrome against a production build, with both sections screenshotted and inspected by eye:
+- **Light theme, reduced motion:** 1440, 1280, 1240, 1180, 1024, 768, 430, 390, 375, 320 px.
+- **Dark theme:** 1440 and 390 px.
+- **Full motion:** every width above.
+
+| Check | Result |
+|---|---|
+| Demo layout | Side by side at 1024 px and wider (copy 318–388 px, preview 617–754 px, 16:9); stacked, copy first, at 768 px and below. Section height at 1440 px: **1,051 → 661 px**. |
+| Final CTA | Three columns at 1240 px and wider with 4 curves; two columns at 1024–1239 px and one column at ≤640 px, no curves. No callout overlaps the copy, nothing extends off screen, no curve crosses the copy. |
+| Horizontal overflow (both sections, every width) | none |
+| `npm run typecheck` | exit 0 |
+| `npm run lint` | exit 0 (0 errors; 110 pre-existing warnings, none in changed files) |
+| `npx vitest run` | exit 0, 21 files, 195 tests |
+| `npx playwright test e2e/landing-responsive.spec.ts -g "See it in action"` | exit 0, 9 passed. An earlier run failed at 1240 px: a curve passed inside the subtitle's box. That led to checking full element boxes instead of individual text lines. |
+| `npx playwright test` (full suite) | exit 0, **58 passed** |
+
+The new tests cover 7 widths (1440 to 320). They check: copy beside the preview at ≥861 px and above it below that; a 16:9 frame inside the viewport; intrinsic image dimensions; the four exact labels; square, 50 %-radius avatars; no callout over the copy and none off screen; every sampled curve point outside the copy; and 4 curves at ≥1240 px, 0 below. They also check that both the play button and the CTA open the dialog with the exact message, with no playback UI present. A final test checks that the headline and curves finish their entrance with full motion and appear immediately with reduced motion.
+
+### 58.5 Limitations
+
+- **Engines and devices:** Chromium only; Firefox and WebKit aren't installed. No physical devices were tested.
+- **No reference image:** none was attached, so "matches the reference" was judged against the written brief, not a pixel comparison.
+- **Preview content:** the preview shows the dashboard as it looked on 2026-10-30, so it will need recapturing when the dashboard UI changes.
+- **Video hook:** `data-video-src` is in place, but no code reads it yet, because no video exists. Connecting a video still needs a small script change; the layout won't change.
+- **Avatars:** they reuse existing team and story photos as decorative images (`alt=""`). They aren't presented as testimonials, but the same faces appear by name elsewhere on the site.
+
+---
+
+## 59. Resume extraction and connector re-verification (2026-10-30)
+
+Scope: this pass re-checked the resume pipeline and connectors on top of §38–§47 (2026-10-29), which already covered fencing, consent re-checks, retries, the shared rate limiter and the k6 load test. Those results were not repeated. Changes were limited to three worker files. Nothing was committed, pushed or deployed, and no migrations were run. Every test used `.env.test` / local fixtures.
+
+### 59.1 Defects reproduced and fixed
+
+| # | Reproduced defect | File | Fix |
+|---|---|---|---|
+| 1 | A UTF-8 TXT resume saved with a BOM (Windows Notepad's default) lost the name: the BOM was glued to the first token, which then failed the name check | `worker/resume/text.py` | decode with `utf-8-sig` |
+| 2 | DOCX templates that put the name and contact line in the page header produced **no** name, email, phone or links (header text wasn't read) | `worker/resume/text.py` | read section header paragraphs first, de-duplicated across sections |
+| 3 | A LeetCode/HackerRank/Kaggle/ORCID/Stack Overflow/CodeChef/Codeforces/GFG URL in the resume was stored as the user's `website`, and because only the first website is kept, it displaced a real portfolio URL further down | `worker/resume/deterministic.py` | these hosts are skipped for `website`; connectors own them |
+| 4 | Image resumes: EXIF rotation from phone photos was ignored, and image size had no limit before OCR (memory risk on the 512 MB worker) | `worker/resume/text.py` | `ImageOps.exif_transpose`, grayscale, refuse more than 40 MP (becomes `needs_review`, not retried), downscale to 3,500 px on the longest side |
+
+Fix 4 is source-verified only: Tesseract isn't installed on this machine, so image and scanned-PDF OCR could not be run.
+
+Regression tests were added to `worker/tests/test_pipeline.py` (`test_coding_profile_url_is_not_the_website`, `test_txt_bom_and_docx_header`).
+
+### 59.2 Labelled corpus (rules-only path, `external_ai` off)
+
+8 synthetic documents, generated locally, no real personal data: TXT, TXT+BOM, TXT with a LeetCode URL first, a Unicode name, DOCX, DOCX with header contact, single-column PDF, two-column PDF. Expected values per document: name, email, phone (E.164), LinkedIn, GitHub, website, and 5 skills. Script: scratchpad `bench.py`, run against a copy of HEAD's two files and then against the working tree.
+
+| | Precision | Recall | TP / FP / FN | Time for 8 docs |
+|---|---|---|---|---|
+| HEAD | 0.988 | 0.909 | 80 / 1 / 8 | 37 ms |
+| After | **1.000** | **1.000** | 88 / 0 / 0 | 44 ms |
+
+**Caveat:** this corpus is small and partly built around the defects above. It shows that the fixes work and that nothing else in these cases regressed. It is **not** a general accuracy figure. Experience, project and certification fields come out as `unresolved` 0.5-confidence entries on the rules path by design, and were not scored. AI-tier extraction quality was not measured (no live provider call).
+
+### 59.3 Connectors (2026-10-30)
+
+| Connector | Check | Evidence | Result |
+|---|---|---|---|
+| LeetCode `shiviiii5165` | 1 live public GraphQL call through `fetch_leetcode` / `map_leetcode` | live | 4 solved (Easy 1 · Medium 2 · Hard 1), skill Python, profile URL; same as §40 |
+| GitHub `shiviiii5165` | 1 unauthenticated call | live | **403 rate limit** from this IP; not retried. §40's live result (8 non-fork public repos, 0 mismatches) stands |
+| LinkedIn `www.linkedin.com/in/shivam-kumar-singh-lpu` | `parseLinkedInUrl` | unit | normalised to `https://www.linkedin.com/in/shivam-kumar-singh-lpu`. Live OIDC sign-in still **blocked** (needs the owner's login) |
+| Portfolio `shivamkumarsingh-ashy.vercel.app` | not fetched | — | fetched only through Firecrawl, which needs a key; not called |
+| LeetCode URL forms incl. `/u/` | existing `sources.test.ts` | unit | pass |
+
+**Finding, not changed:** every connector (LeetCode, HackerRank, Kaggle, ORCID, Stack Exchange) also stores its profile URL as `contact.website`. That is consistent across the codebase, so moving it to dedicated fields is a product and schema decision (`field-groups.ts` has to stay in sync). It was recorded, not changed.
+
+### 59.4 Verification (actual exit codes)
+
+| Command | Baseline | After |
+|---|---|---|
+| `npm run typecheck` | exit 0 | no TS changes |
+| `npx vitest run` | exit 0, 195 tests | exit 0, 195 tests |
+| `python -m pytest worker/tests` | exit 0, 89 | exit 0, **91** |
+| `npm run lint` | — | exit 0 (0 errors, 110 warnings, all in untouched TS/JS) |
+
+Not run in this pass: Playwright and `next build` (no web code changed), and load tests (§43 stands).
+
+### 59.5 Remaining limitations
+
+- Scanned-PDF and image OCR are untested locally (no Tesseract); install it, or test in the worker's Docker image.
+- AI extraction quality and hallucination resistance against live providers: not measured.
+- GitHub live re-check: blocked by the unauthenticated rate limit.
+- LinkedIn live flow, the staging Neon load test and the owner actions in §47 are still open.
+
+---
+
+## 60. Profile URL normalization: personal website vs platform profiles (2026-10-30)
+
+Decision applied: a personal website and an external platform profile are different data. Nothing was committed, pushed or deployed. No migration was run or added, and no production data was accessed.
+
+### 60.1 Trace (source)
+
+| Writer | Before | Problem |
+|---|---|---|
+| LeetCode, HackerRank, Kaggle, ORCID, Stack Exchange connectors | `contact.website` | competed with the portfolio for the single `website` slot |
+| GitHub `blog`, LinkedIn `websites` | `contact.website` | correct when it's a personal site, wrong when it points at LeetCode etc. |
+| Portfolio connector | `contact.website` | correct |
+| Resume rules | LinkedIn/GitHub to their fields; platform links skipped (§59) | links lost instead of filed |
+| Resume AI tier | schema from `FIELD_GROUPS`; could put any URL in `website` | no routing after the model |
+| `/profile` (`loadProfile`) | one best value per contact field. LeetCode, Kaggle, ORCID, HackerRank, Stack Exchange and portfolio all ranked 2 | **whichever row loaded first won**, so a platform URL could hide the portfolio |
+
+Schema: `profile_facts.field_name` is free `text`, and contact facts are already per source (`origin`). Existing `connections` rows hold credentials and status, not display URLs. So **no migration was needed**.
+
+### 60.2 Changes
+
+| File | Change |
+|---|---|
+| `worker/profile_urls.py` (new) | `normalize()` (https, lower-case host without `www.`, no query, fragment or trailing slash) and `classify()`. Platform hosts are profiles only when the path is profile-shaped, so a repo, problem page or kernel is never a website and never a profile. `route_contact_url()` |
+| `worker/connectors/common.py` | `Facts.add` routes every contact URL and drops exact duplicates within a sync. This applies to every connector, including the GitHub blog and LinkedIn websites |
+| `worker/connectors/{coding_profiles,kaggle,orcid,stack_exchange}.py` | write `leetcode_url`, `hackerrank_url`, `kaggle_url`, `orcid_url`, `stackexchange_url` |
+| `worker/resume/deterministic.py` | uses the classifier: platform links are filed, not skipped. `_norm_url` was removed (now dead) |
+| `worker/resume/persist.py` | `route_contacts()` re-files AI-tier misfiled URLs before insert, one value per URL field. Email and phone behave as before |
+| `worker/resume/fields.py`, `src/lib/profile/field-groups.ts` | the 5 platform fields were added to `contact`, so the AI schema, the review screen and manual editing know them. `platformUrlField()` mirrors the Python host list |
+| `src/lib/profile/unified.ts` | **existing rows**: `website` facts whose URL is a platform profile are re-filed at read time, so no data rewrite is needed. **Precedence**: for `website`, the portfolio connector (3.25) beats GitHub blog (2) and unreviewed resume (3), but loses to user-edited values (≥3.5) and `user_entered` (5) |
+| `src/app/(dashboard)/profile/page.tsx` | website listed right after phone, then all platform links |
+| `worker/resume/llm.py` | the prompt tells the model to put platform links in their own fields |
+
+Connector syncs stay idempotent: `Facts.replace()` still deletes and reinserts only its own `origin`. A connector therefore can't overwrite the portfolio, a resume fact or a user edit.
+
+### 60.3 Tests added
+
+- `worker/tests/test_profile_urls.py` (8 tests, 15 subtests):
+  - classifier and normalization;
+  - a resume with a portfolio plus LinkedIn, GitHub, LeetCode, Kaggle, ORCID, Stack Overflow and HackerRank links, plus a repo link. Each lands in its own field with verbatim evidence, and the repo isn't treated as a contact;
+  - AI-tier misfiling re-routed at persist;
+  - platform connectors never write `website`;
+  - a GitHub blog pointing at LeetCode is re-filed, with duplicates dropped.
+  - **Integration:** the same LeetCode sync three times against the disposable e2e Postgres (`node e2e/support/stack.mts`, 127.0.0.1) leaves identical rows. The existing portfolio `website` and a user-edited `linkedin_url` are untouched. This test is skipped when no local DB is running; in this run it **executed**.
+- `src/lib/profile/unified.test.ts` (3 tests, PGlite through `loadProfile`): `platformUrlField` for the user's real link formats; existing rows that stored LeetCode and Kaggle as `website` show under their own fields while the portfolio stays the website (GitHub blog shown as an alternate); a user-edited website beats the portfolio.
+
+### 60.4 Verification (actual exit codes)
+
+| Command | Result |
+|---|---|
+| `python -m pytest worker/tests` | exit 0, **99 passed** (was 91) + 15 subtests |
+| `npm run typecheck` | exit 0 |
+| `npm run lint` | exit 0 (0 errors; 110 warnings, all pre-existing in untouched files) |
+| `npx vitest run` | exit 0, **22 files, 198 tests** (was 21/195) |
+| `npx playwright test` (full, isolated e2e stack) | exit 0, **58 passed** |
+
+`next build` was not re-run in this pass.
+
+### 60.5 Known limitations of this change
+
+- Rows written before this change are re-filed **for display** only. The stored `field_name` stays `website` until that source's next sync rewrites it. Resume facts are rewritten on the next extraction; confirmed ones are left untouched by design.
+- `orcid` isn't in `API_ORIGINS`, so ORCID facts appear on `/profile` only after the user confirms them. This is pre-existing and was not changed.
+- Platform hosts without a connector (Codeforces, CodeChef, GeeksforGeeks) are dropped from contact rather than stored. Adding fields for them would be a product decision.
+- The host lists exist twice (Python and TS) and must be kept in sync; each file has a comment saying so.
+
+### 60.6 Verification gaps (unchanged; not claimed as verified)
+
+| Integration | Status |
+|---|---|
+| GitHub | the 2026-10-30 live re-check returned **HTTP 403 (unauthenticated rate limit)**. The last successful live check is from 2026-10-29 (§40) |
+| LinkedIn | live OIDC flow needs the owner's authorized login; **not verified live**. URL parsing is unit-tested only |
+| Portfolio crawl | needs the configured Firecrawl key; **not called**. Routing of the portfolio URL to `website` is unit- and integration-tested |
+| Image and scanned-PDF OCR | **not run**: Tesseract isn't installed on this machine. The EXIF rotation and size limits from §59 are source-verified only |
+
+
+---
+
+## 61. Onboarding content frame and resume "Select all to save" (2026-10-30)
+
+Scope: onboarding layout and the resume review screen only. Auth, session, routing, step transitions, extraction, confidence scoring and the save action were not changed. Nothing was committed, pushed or deployed. All tests ran against the isolated e2e stack (PGlite + fake R2).
+
+### 61.1 Root cause of the misalignment (source)
+
+`src/app/onboarding/layout.tsx` wraps every step in a centred `max-w-6xl` (72rem) box. Each single-column step then set its own width and alignment inside it:
+
+| Step | Before |
+|---|---|
+| Basic profile, faculty/alumni profile | header and form `max-w-3xl`, **left-aligned** in the 72rem box, so the form ended around the middle with empty space on the right |
+| Persona steps (mentorship, give-back, professional) | grid `max-w-3xl`, left-aligned |
+| Research | `max-w-4xl`, left-aligned |
+| Resume upload | header and uploader `mx-auto max-w-2xl`, **centred** |
+| Review & consent | `mx-auto max-w-[880px]`, centred |
+| Resume review | full 72rem |
+
+Grid steps (role, career direction, priorities, connectors) fill the 72rem box with left-aligned headers. That was already consistent, so they were left as they are.
+
+### 61.2 Changes
+
+- `src/app/globals.css`: two Tailwind utilities, `onb-frame` (centred, max 56rem) and `onb-frame-wide` (centred, max 64rem).
+- `StepHeader`: new `frame="form" | "wide"` prop; without it the old `max-w-3xl` applies. Applied `frame="form"` to basic profile, faculty, alumni, professional, mentorship, give-back, research, resume upload and review & consent, and `frame="wide"` to resume review.
+- The content card/grid of `AcademicStepForm`, `PersonaStepForm`, `ResearchForm`, `ResumeUploader` and `ReviewConsent` uses `onb-frame`; resume review content and its notices use `onb-frame-wide`. The `<form>` elements stay full width so the sticky footer (inside each form, bleeding to the gutters) still spans the workspace. Footer, rail and header are unchanged.
+- Result: every form step is centred on the same line inside the workspace. Resume review is 8rem wider for its long rows but shares the centre line.
+
+### 61.3 Bulk selection semantics
+
+State model (`src/components/resume/review-selection.ts`, extracted from `review-form.tsx`): each extracted fact is `pending` (not selected), `save` (ticked) or `reject`. Confidence only affects display. Nothing is preselected: high-confidence facts are selected only through the existing "Confirm all high confidence" button, which is kept.
+
+- **Eligible** = not rejected. The master control is unchecked when no eligible fact is selected, indeterminate when some are, and checked when all are.
+- **Select all to save** moves every `pending` fact to `save`. From checked, it moves every `save` back to `pending`. Rejected facts never change: only the row's own Undo un-rejects them. Edited values are kept both ways.
+- Both controls (`#select-all-top` in the summary bar, `#select-all-footer` in the sticky footer) render from the same `rows` state, so they can't diverge. They use the shared Radix checkbox, which got an indeterminate minus icon. No other caller passes an indeterminate state.
+- Nothing is written until "Save and continue". The payload is unchanged: selected facts are sent as `confirm` (or `edited` server-side when the value changed), rejected as `reject`, and unselected facts aren't sent and stay `unconfirmed`.
+- Footer wording changed from "not reviewed" to "**not selected**" so a bulk select doesn't claim each field was reviewed. The "Unselected fields stay unsaved" hint next to the button was removed because it wrapped the counts at 1024 px and repeated them.
+- A note beside the top control reads: "Includes medium-confidence fields. Rejected fields stay excluded."
+
+### 61.4 Verification (actual results)
+
+| Check | Result |
+|---|---|
+| `npm run typecheck` | exit 0 |
+| `npm run lint` | exit 0 (0 errors; 110 pre-existing warnings) |
+| `npx vitest run` | exit 0, 23 files, **206 tests** (new `review-selection.test.ts`, 8 tests) |
+| `npx playwright test` (full suite) | exit 0, **67 passed** (new `e2e/resume-review-selection.spec.ts`, 9 tests; existing `core-flow` review step unchanged and passing) |
+
+The new e2e spec runs in Chrome and checks the result in Postgres. It covers: Confirm-all-high making both controls indeterminate; top control selecting all and updating the footer, with the rejected row still unticked and disabled and the edit kept; footer control deselecting and updating the top, with rejection and edit kept; one manual untick making both controls indeterminate and re-ticking making both checked; a save refused by the server (a fact changed in another session) showing the error, staying on the page and persisting nothing; and a successful save storing exactly `confirmed ×3`, `edited ×1` (with the edited value) and `rejected ×1`. At 1440/1280/1024/768/430/390/375/320 px it checks that upload and review headers are centred in `<main>` (±2 px) on the same centre line, that no element extends past the viewport, and that the last review section isn't covered by the sticky footer when scrolled to the end. The first run's 5 failures were test bugs (Next's route announcer also has `role="alert"`, and streamed content was measured before it arrived). They were fixed in the spec, not the app.
+
+Visual check: basic profile, resume upload and resume review were rendered and inspected at 1440, 1024 and 390 px (light theme).
+
+### 61.5 Limitations
+
+- Chromium only; no physical devices; dark mode not re-inspected (no colours changed).
+- Basic profile's centring was checked by screenshot, not by the automated width loop (that loop seeds a user at the resume step).
+- Faculty, alumni, persona, research and review & consent steps got the same frame classes but were not individually rendered in this pass; their e2e flows (`personas`, `academic-profile`, `privacy`) pass. *(Superseded by §61.6: all were rendered in the pre-commit review.)*
+
+### 61.6 Pre-commit review (2026-10-30)
+
+Read-only review of the §61 diff, then fixes for the defects it found. The diff matched the documented scope: no change to `saveResumeReview`, its validation, authorization or persistence; no formatting churn; no secrets, env files or artifacts. The other modified files in the tree belong to §56–§60.
+
+**Rendered and measured:** all ten affected steps (basic profile, resume upload, resume review, review & consent, faculty profile, research, mentorship, alumni profile, professional profile, give-back), light and dark, at 1440/1024/768/390/320 px. Header and content share the same edges (±1 px), are centred in `<main>` (±2 px), and no element extends past the viewport. Resume review was also driven by keyboard only: Space toggles both controls, Enter neither toggles nor submits, indeterminate is exposed as `aria-checked="mixed"`, the counts line is `aria-live="polite"`, rejections and edits survive bulk changes, and no `profile_facts` row changes before "Save and continue".
+
+**Defects found and fixed**
+
+| # | Severity | Defect | Origin | Fix |
+|---|---|---|---|---|
+| 1 | High (a11y) | Tabbing through the review rows left focused controls **completely hidden** behind the sticky footer (22 of 24 tab stops in a 1024×700 window). A control already inside the viewport isn't scrolled to, and the area behind the footer counts as inside. WCAG 2.4.11 | Pre-existing (`StepFooter`, all steps with long forms) | `StepFooter` scrolls a newly focused element into view (`block: "nearest"`, instant) when it sits under the bar; `html:has(#step-content) { scroll-padding-bottom: 10rem }` keeps it clear. After: 0 hidden. `scroll-padding` alone was tried first and had no effect |
+| 2 | High (dark mode) | In dark mode the sticky footer stayed white (`bg-white/95`), so the new footer "Select all to save" label (`#F7F8FC`) was about 1:1 against it, and the counts about 2:1 | Pre-existing hard-coded colour; §61 put a primary control on it | `bg-background/95 border-border/80`: identical in light (`--background` is `#FFFFFF`, `--border` is `#E2E8F0` = slate-200), dark token in dark |
+| 3 | Medium (dark mode) | The indeterminate master checkbox looked empty in dark mode: `dark:bg-input/30` outranked `data-[state=indeterminate]:bg-primary` (equal specificity, emitted later), leaving a dark minus on a dark box | Introduced by §61 | `dark:data-[state=indeterminate]:bg-primary`, matching the existing `dark:data-checked:bg-primary` |
+
+**Not a defect (investigated):** during load the page briefly holds a second, unhydrated copy of the review form inside React's hidden streaming container (`<div hidden id="S:1">`) before it is swapped into `<main>`. It is never visible, has no layout box, and logs no hydration errors (6/6 runs). It made early test interactions flaky. The spec now waits for a `settled()` state: control visible in `<main>` and the only copy.
+
+**Tests added to `e2e/resume-review-selection.spec.ts`** (now 11 tests): keyboard focus never hidden behind the footer (Tab ×30); dark-mode indeterminate box and footer visibly styled. The spec passed 5× in a row (55/55).
+
+**Files changed in the review:** `src/components/onboarding/continue-form.tsx` (fixes 1–2), `src/app/globals.css` (fix 1), `src/components/ui/checkbox.tsx` (fix 3), `e2e/resume-review-selection.spec.ts`. Two temporary review specs were written and deleted.
+
+**Privacy and security (current code, not this diff):** `external_ai` consent is read in `worker/intelligence/compute.py`, `worker/worker.py` (`generate_roadmap`), `worker/resume/extract.py` (also re-checked at persist) and `worker/connectors/portfolio.py`; repo scoring requires `allow_external_ai`. `discoverableBy` gates `similarPeople`, `/api/search` and the dashboard people count. `usableFactsOf` filters facts on skills, achievements and the dashboard stats. None of these files is in the §61 diff, so it introduces no consent or discovery regression. Verified by source reading and the existing unit tests, not re-run against a live database.
+
+**Verification (exact commands):**
+
+| Command | Result |
+|---|---|
+| `npm run typecheck` | exit 0 |
+| `npm run lint` | exit 0 (0 errors, 110 pre-existing warnings) |
+| `npx vitest run` | exit 0, 23 files, 206 tests |
+| `python -m pytest worker/tests -q` | exit 0, 98 passed, 1 skipped (the §60 integration test skips when the local e2e DB isn't running) |
+| `npx playwright test` (full suite; its web server runs `next build`) | exit 0, **69 passed** |
+| `npx playwright test e2e/resume-review-selection.spec.ts --repeat-each=5` | exit 0, 55 passed |
+| `npm run build` | exit 0, 102/102 pages |
+
+**Pre-existing dark-mode issues seen, not fixed (outside this scope):** review group headings use `text-[#0F172A]` and are near-invisible in dark; unticked row "Save" checkboxes have very low contrast on dark cards; the rail's persona card and the white Back button keep light-theme colours.
+
+**Remaining gaps:** Chromium only (no Firefox/WebKit, no physical devices); no screen-reader software was run (ARIA states were asserted, not listened to); browser zoom and large text sizes were not tested.
+
+
+---
+
+## 57. Production-Ready Legal Documentation Architecture & Compliance Suite
+
+### 57.1 Summary of Implementation
+
+Implemented the official legal agreements for AI Tathastu across three dedicated pages with dynamic environment-backed contact resolution:
+1. **Privacy Policy ([`src/app/privacy/page.tsx`](file:///e:/dev/ai-tathastu/src/app/privacy/page.tsx)):**
+   - 17 structured sections covering data collection, AI processing, public profiles, lawful bases, third-party disclosure, cookies, security, and statutory grievance mechanisms.
+2. **Terms of Use ([`src/app/terms/page.tsx`](file:///e:/dev/ai-tathastu/src/app/terms/page.tsx)):**
+   - 27 structured sections affirming 100% intellectual property ownership by users, algorithmic score disclaimers, recruiter obligations, unacceptable conduct, and governing jurisdiction.
+3. **Cookie Policy ([`src/app/cookie-policy/page.tsx`](file:///e:/dev/ai-tathastu/src/app/cookie-policy/page.tsx)) & Alias ([`src/app/cookies/page.tsx`](file:///e:/dev/ai-tathastu/src/app/cookies/page.tsx)):**
+   - 11 structured sections detailing essential authentication cookies, functional storage, lack of third-party advertising tracking, and browser management controls.
+4. **Dynamic Centralized Configuration ([`src/lib/legal-config.ts`](file:///e:/dev/ai-tathastu/src/lib/legal-config.ts)):**
+   - Resolves support, privacy, hello, and legal email addresses directly from verified environment variables (`SMTP_SUPPORT_USER`, `SMTP_HELLO_USER`, etc.) with strict fallbacks.
+
+### 57.2 Quality Assurance Verification
+
+- **TypeScript (`npm run typecheck`):** Exit Code **0** (0 type errors).
+- **ESLint (`npm run lint`):** Exit Code **0** (0 errors).
+- **Vitest Unit Suite (`npx vitest run`):** Exit Code **0** (23/23 suites, **206/206 tests passed**).
+- **Playwright E2E Suite (`npx playwright test e2e/legal-pages.spec.ts`):** Exit Code **0** (**3/3 passed** in Chromium).
+- **Landing E2E Suite (`npx playwright test e2e/landing-redesign.spec.ts`):** Exit Code **0** (**9/9 passed** in Chromium).
+- **Next.js Production Build (`npm run build`):** Exit Code **0** (104/104 static and partially prerendered routes compiled cleanly).

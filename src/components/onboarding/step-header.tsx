@@ -6,19 +6,27 @@ export function StepHeader({
   step,
   title,
   children,
+  frame,
   className,
 }: {
   step: WizardStep;
   title: ReactNode;
   children?: ReactNode;
-  /** Single-column steps pass their content width (e.g. "mx-auto max-w-2xl") so the header lines up with it. */
+  /** Single-column steps: centre the header in the same frame as their content ("form" = onb-frame, "wide" = onb-frame-wide). */
+  frame?: "form" | "wide";
   className?: string;
 }) {
   const pad = (n: number) => String(n).padStart(2, "0");
   const position = stepPosition(step) + 1;
 
   return (
-    <header className={cn("relative max-w-3xl headline-reveal", className)}>
+    <header
+      className={cn(
+        "relative headline-reveal",
+        frame === "form" ? "onb-frame" : frame === "wide" ? "onb-frame-wide" : "max-w-3xl",
+        className,
+      )}
+    >
       {/* Luminous ambient accent glow backdrop */}
       <div
         aria-hidden="true"

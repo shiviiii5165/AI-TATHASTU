@@ -104,6 +104,29 @@ class DeterministicTests(unittest.TestCase):
         self.assertEqual(skills["C++"], deterministic.EXACT)
         self.assertEqual(skills["SQL"], deterministic.LEXICON_OUTSIDE_SKILLS)  # acronym counts in prose
 
+    def test_coding_profile_url_is_not_the_website(self) -> None:
+        text = "Ananya Reddy\nhttps://leetcode.com/u/ananya/\nhttps://ananya.dev\n"
+        cands, _ = deterministic.run(text)
+        sites = [c.value for c in cands if c.field == "website"]
+        self.assertEqual(sites, ["https://ananya.dev"])
+
+    def test_txt_bom_and_docx_header(self) -> None:
+        import io
+        import docx
+        from resume import text as T
+
+        doc = T.extract("﻿Ananya Reddy\nananya@example.com".encode("utf-8"), "txt")
+        names = [c.value for c in deterministic.run(doc.text)[0] if c.field == "full_name"]
+        self.assertEqual(names, ["Ananya Reddy"])
+
+        d = docx.Document()
+        d.sections[0].header.paragraphs[0].text = "Ananya Reddy"
+        d.add_paragraph("ananya@example.com")
+        buf = io.BytesIO()
+        d.save(buf)
+        cands = deterministic.run(T.extract(buf.getvalue(), "docx").text)[0]
+        self.assertIn("Ananya Reddy", [c.value for c in cands if c.field == "full_name"])
+
 
 class VerifyTests(unittest.TestCase):
     SOURCE = "Research Intern, Sample Labs\nJun 2024 – Aug 2024\nBuilt a  RAG evaluation harness"

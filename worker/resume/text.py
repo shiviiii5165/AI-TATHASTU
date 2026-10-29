@@ -18,6 +18,9 @@ MAX_OCR_PAGES = 6
 OCR_UNCERTAIN_BELOW = 0.70
 # A PDF page with less text than this is treated as scanned.
 MIN_TEXT_CHARS = 40
+# Image resumes: refuse decompression bombs, downscale huge photos before OCR.
+MAX_IMAGE_PIXELS = 40_000_000
+MAX_IMAGE_SIDE = 3500
 
 BBox = Tuple[float, float, float, float]
 
@@ -197,11 +200,18 @@ def _ocr_png(png: bytes, page: int, scale: float = 1.0) -> Tuple[List[Block], fl
 
 
 def _image(data: bytes) -> Document:
-    from PIL import Image
+    from PIL import Image, ImageOps
 
     _require_tesseract()
+    image = Image.open(io.BytesIO(data))
+    if image.width * image.height > MAX_IMAGE_PIXELS:
+        raise ValueError("image is too large to OCR")
+    # Phone photos store rotation in EXIF; Tesseract reads the raw pixels.
+    image = ImageOps.exif_transpose(image).convert("L")
+    if max(image.size) > MAX_IMAGE_SIDE:  # bounded memory; still ~300 dpi for A4
+        image.thumbnail((MAX_IMAGE_SIDE, MAX_IMAGE_SIDE))
     buf = io.BytesIO()
-    Image.open(io.BytesIO(data)).convert("RGB").save(buf, format="PNG")
+    image.save(buf, format="PNG")
     blocks, conf = _ocr_png(buf.getvalue(), 1)
     return Document(blocks, [PageInfo(1, "ocr", conf)])
 
@@ -216,6 +226,15 @@ def _docx(data: bytes) -> Document:
 
     document = docx.Document(io.BytesIO(data))
     blocks: List[Block] = []
+    # Many templates put the name and contact line in the page header; read it
+    # first (once, even when sections repeat it), as it appears above the body.
+    seen_header: set = set()
+    for section in document.sections:
+        for para in section.header.paragraphs:
+            text = _clean(para.text)
+            if text and text not in seen_header:
+                seen_header.add(text)
+                blocks.append(Block(text, None, None))
     # Walk the body in order so tables stay where they appear.
     for child in document.element.body.iterchildren():
         tag = child.tag.rsplit("}", 1)[-1]
@@ -238,7 +257,7 @@ def _docx(data: bytes) -> Document:
 
 def _txt(data: bytes) -> Document:
     try:
-        text = data.decode("utf-8")
+        text = data.decode("utf-8-sig")  # drops a BOM, which would otherwise glue onto the name
     except UnicodeDecodeError:
         text = data.decode("latin-1")
     paras = [_clean(p) for p in text.replace("\r\n", "\n").split("\n\n")]

@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: "How you'd like to give back" };
 export default function Page() {
   return (
     <>
-      <StepHeader step="give_back" title="How you'd like to give back">
+      <StepHeader step="give_back" frame="form" title="How you'd like to give back">
         Choose any that suit you, or none for now. You can change these any time, and students only see what you turn on.
       </StepHeader>
       <Suspense fallback={<StepSkeleton />}>

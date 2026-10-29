@@ -19,7 +19,7 @@ export default function BasicProfilePage() {
   return (
     <>
       <StepHeader
-        step="basic_profile"
+        step="basic_profile" frame="form"
         title="Tell us about yourself"
       >
         Your academic background helps us personalize your dashboard and match you with opportunities.

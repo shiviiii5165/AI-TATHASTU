@@ -25,7 +25,7 @@ def fetch(username: str, key: str) -> Dict[str, List[Dict[str, Any]]]:
 
 def map_kaggle(username: str, data: Dict[str, List[Dict[str, Any]]], facts: Facts) -> Facts:
     profile = f"kaggle.com/{username}"
-    facts.add("contact", "website", f"https://www.kaggle.com/{username}", f"Kaggle profile {profile}")
+    facts.add("contact", "kaggle_url", f"https://www.kaggle.com/{username}", f"Kaggle profile {profile}")
     languages: Dict[str, int] = {}
     for k in data.get("kernels", []):
         ref = k.get("ref") or ""

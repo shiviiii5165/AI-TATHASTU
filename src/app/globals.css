@@ -181,6 +181,28 @@
   --onb-gutter-r: max(var(--onb-gutter), env(safe-area-inset-right, 0px));
 }
 
+/*
+ * Onboarding content frame for single-column steps: header and content share one
+ * centred column inside the workspace (the area right of the step rail). Grid steps
+ * (role, career direction, priorities, connectors) keep the full workspace width.
+ * Sticky footers stay outside the frame so they still span the workspace.
+ */
+@utility onb-frame {
+  width: 100%;
+  max-width: 56rem;
+  margin-inline: auto;
+}
+@utility onb-frame-wide {
+  width: 100%;
+  max-width: 64rem;
+  margin-inline: auto;
+}
+
+/* Gap kept below a field that StepFooter scrolls into view, clear of the sticky footer (up to ~9rem tall when it wraps on phones). */
+html:has(#step-content) {
+  scroll-padding-bottom: 10rem;
+}
+
 /* iOS Safari zooms into any field under 16px; unlayered so it beats text-sm utilities. */
 @media (pointer: coarse) {
   input:not([type="checkbox"], [type="radio"], [type="range"]), select, textarea {

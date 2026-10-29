@@ -23,7 +23,7 @@ export default function ResearchPage({ searchParams }: PageProps<"/onboarding/re
   return (
     <>
       <StepHeader
-        step="research_expertise"
+        step="research_expertise" frame="form"
         title="Your research and expertise"
       >
         What you work on and which students you can help. Students see your interests when they look for a mentor.

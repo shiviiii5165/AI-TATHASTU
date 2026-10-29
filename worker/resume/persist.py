@@ -3,17 +3,35 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import replace
 from typing import Any, List
 
 import psycopg2.extras
 
 from db import jsonb
+from profile_urls import URL_FIELDS, route_contact_url
 from resume.deterministic import Candidate
 from resume.text import Document
 
 log = logging.getLogger("worker.resume.persist")
 
 UNCERTAIN_OCR_PENALTY = 0.8
+
+
+def route_contacts(candidates: List[Candidate]) -> List[Candidate]:
+    """Contact URLs from either tier go to `website` or their platform field (the
+    AI tier can put a LeetCode link in `website`); one value per URL field."""
+    out: List[Candidate] = []
+    seen_contact = set()
+    for c in candidates:
+        if c.group == "contact" and c.field in URL_FIELDS and isinstance(c.value, str):
+            field, value = route_contact_url(c.field, c.value)
+            if field is None or field in seen_contact:
+                continue
+            seen_contact.add(field)
+            c = replace(c, field=field, value=value)
+        out.append(c)
+    return out
 
 
 def persist(cur: Any, user_id: str, doc: Document, candidates: List[Candidate]) -> int:
@@ -27,7 +45,7 @@ def persist(cur: Any, user_id: str, doc: Document, candidates: List[Candidate]) 
         (user_id,),
     )
     rows = []
-    for c in candidates:
+    for c in route_contacts(candidates):
         page = doc.page_info(c.start)
         method, confidence, validation = c.method, c.confidence, c.validation
         if page and page.method == "ocr":

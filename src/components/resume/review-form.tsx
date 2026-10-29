@@ -13,6 +13,8 @@ import { Textarea } from "@/components/ui/textarea";
 import type { ConfidenceLevel } from "@/lib/profile/field-groups";
 import { cn } from "@/lib/utils";
 
+import { decisionsPayload, selectionSummary, toggleAll, type MasterState, type RowState } from "./review-selection";
+
 export type ReviewFact = {
   id: string;
   fieldName: string;
@@ -34,8 +36,6 @@ export type ReviewGroup = {
   entries: { recordKey: string; facts: ReviewFact[] }[];
 };
 
-type Decision = "pending" | "save" | "reject";
-type RowState = { decision: Decision; value: string };
 type Addition = { recordKey: string; values: Record<string, string> };
 
 const LONG_FIELDS = new Set(["description", "headline"]);
@@ -49,11 +49,7 @@ export function ReviewForm({ groups, nothingFound }: { groups: ReviewGroup[]; no
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const counts = useMemo(() => {
-    const c = { save: 0, reject: 0, pending: 0 };
-    for (const r of Object.values(rows)) c[r.decision]++;
-    return c;
-  }, [rows]);
+  const counts = useMemo(() => selectionSummary(rows), [rows]);
   const addedCount = Object.values(additions)
     .flat()
     .filter((a) => Object.values(a.values).some((v) => v.trim())).length;
@@ -73,9 +69,7 @@ export function ReviewForm({ groups, nothingFound }: { groups: ReviewGroup[]; no
   function submit() {
     setError(null);
     const payload: ResumeReviewInput = {
-      decisions: Object.entries(rows)
-        .filter(([, r]) => r.decision !== "pending")
-        .map(([id, r]) => ({ id, action: r.decision === "save" ? "confirm" : "reject", value: r.value.trim() })),
+      decisions: decisionsPayload(rows),
       additions: Object.entries(additions).flatMap(([fieldGroup, list]) =>
         list.flatMap((a) =>
           Object.entries(a.values)
@@ -90,65 +84,107 @@ export function ReviewForm({ groups, nothingFound }: { groups: ReviewGroup[]; no
     });
   }
 
+  const masterProps = { master: counts.master, disabled: counts.eligible === 0, onToggle: () => setRows(toggleAll) };
+
   return (
     <>
-      <div className="mt-10 flex flex-wrap items-center justify-between gap-4 rounded-lg border bg-card p-4">
-        <p className="text-sm">
-          {nothingFound ? (
-            "We couldn't pick out any fields from your resume. Add the important ones below, or continue."
-          ) : (
-            <>
-              <span className="font-medium">{allFacts.length} fields found.</span>{" "}
-              <span className="text-muted-foreground">Only the ones you tick are saved.</span>
-            </>
+      <div className="onb-frame-wide">
+        <div className="mt-10 flex flex-wrap items-center justify-between gap-4 rounded-lg border bg-card p-4">
+          <div className="min-w-0 space-y-2">
+            <p className="text-sm">
+              {nothingFound ? (
+                "We couldn't pick out any fields from your resume. Add the important ones below, or continue."
+              ) : (
+                <>
+                  <span className="font-medium">{allFacts.length} fields found.</span>{" "}
+                  <span className="text-muted-foreground">Only the ones you tick are saved.</span>
+                </>
+              )}
+            </p>
+            {!nothingFound && (
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <SelectAllControl id="select-all-top" describedBy="select-all-note" {...masterProps} />
+                <p id="select-all-note" className="text-xs text-muted-foreground">
+                  Includes medium-confidence fields. Rejected fields stay excluded.
+                </p>
+              </div>
+            )}
+          </div>
+          {!nothingFound && (
+            <Button
+              type="button"
+              variant="outline"
+              className="h-10 px-4"
+              onClick={confirmHigh}
+              disabled={highPending.length === 0}
+            >
+              <CheckCheck data-icon="inline-start" aria-hidden />
+              {highPending.length ? `Confirm all high confidence (${highPending.length})` : "High confidence confirmed"}
+            </Button>
           )}
-        </p>
-        {!nothingFound && (
-          <Button
-            type="button"
-            variant="outline"
-            className="h-10 px-4"
-            onClick={confirmHigh}
-            disabled={highPending.length === 0}
-          >
-            <CheckCheck data-icon="inline-start" aria-hidden />
-            {highPending.length ? `Confirm all high confidence (${highPending.length})` : "High confidence confirmed"}
-          </Button>
-        )}
-      </div>
+        </div>
 
-      <div className="mt-10 space-y-14">
-        {groups.map((group) => (
-          <GroupSection
-            key={group.id}
-            group={group}
-            rows={rows}
-            setRow={setRow}
-            additions={additions[group.id] ?? []}
-            setAdditions={(list) => setAdditions((a) => ({ ...a, [group.id]: list }))}
-          />
-        ))}
+        <div className="mt-10 space-y-14">
+          {groups.map((group) => (
+            <GroupSection
+              key={group.id}
+              group={group}
+              rows={rows}
+              setRow={setRow}
+              additions={additions[group.id] ?? []}
+              setAdditions={(list) => setAdditions((a) => ({ ...a, [group.id]: list }))}
+            />
+          ))}
+        </div>
       </div>
 
       <StepFooter
         backStep="resume"
         error={error ?? undefined}
         status={
-          <p className="text-sm text-muted-foreground">
-            <span className="text-foreground">{counts.save + addedCount} to save</span> · {counts.reject} rejected ·{" "}
-            {counts.pending} not reviewed
-          </p>
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 sm:justify-start">
+            {!nothingFound && <SelectAllControl id="select-all-footer" {...masterProps} />}
+            <p className="text-sm text-muted-foreground" aria-live="polite" data-testid="review-counts">
+              <span className="whitespace-nowrap text-foreground">{counts.save + addedCount} to save</span> ·{" "}
+              <span className="whitespace-nowrap">{counts.reject} rejected</span> ·{" "}
+              <span className="whitespace-nowrap">{counts.pending} not selected</span>
+            </p>
+          </div>
         }
       >
         <form action={submit}>
-          <ContinueButton
-            pending={pending}
-            label="Save and continue"
-            hint={counts.pending ? "Unreviewed fields stay unsaved" : undefined}
-          />
+          <ContinueButton pending={pending} label="Save and continue" />
         </form>
       </StepFooter>
     </>
+  );
+}
+
+/** One of two views (summary bar, sticky footer) of the same selection state. */
+function SelectAllControl({
+  id,
+  master,
+  disabled,
+  describedBy,
+  onToggle,
+}: {
+  id: string;
+  master: MasterState;
+  disabled: boolean;
+  describedBy?: string;
+  onToggle: () => void;
+}) {
+  return (
+    <label htmlFor={id} className={cn("flex min-h-9 items-center gap-2 text-sm font-medium", disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer")}>
+      <Checkbox
+        id={id}
+        checked={master === "checked" ? true : master === "indeterminate" ? "indeterminate" : false}
+        disabled={disabled}
+        aria-describedby={describedBy}
+        onCheckedChange={onToggle}
+      />
+      Select all to save
+    </label>
   );
 }
 

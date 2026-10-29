@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: "Where you work now" };
 export default function Page() {
   return (
     <>
-      <StepHeader step="professional_profile" title="Where you work now">
+      <StepHeader step="professional_profile" frame="form" title="Where you work now">
         Your current role helps students see what paths lead where, and lets us show you talent that fits your team.
       </StepHeader>
       <Suspense fallback={<StepSkeleton />}>

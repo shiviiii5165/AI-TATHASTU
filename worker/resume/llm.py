@@ -40,7 +40,8 @@ SYSTEM = "You extract structured facts from one section of a student's resume.\n
 # Whole-document extraction: garbage text layers, scans and images (plan Stage 4 fallback).
 FULL_SYSTEM = (
     "You are an expert resume parser. Read the attached resume and extract ALL information into the requested "
-    "JSON schema: identity, contact and online presence (email, phone, LinkedIn, GitHub, website), education, "
+    "JSON schema: identity, contact and online presence (email, phone, LinkedIn, GitHub, LeetCode, HackerRank, "
+    "Kaggle, ORCID, Stack Overflow profile links in their own fields; `website` only for a personal site/portfolio), education, "
     "experience, projects, skills, certifications, awards/achievements, publications and languages.\n" + EVIDENCE_RULES
 )
 VISION_USER = (

@@ -44,6 +44,11 @@ export const FIELD_GROUPS: FieldGroupDef[] = [
       { name: "linkedin_url", label: "LinkedIn" },
       { name: "github_url", label: "GitHub" },
       { name: "website", label: "Website" },
+      { name: "leetcode_url", label: "LeetCode" },
+      { name: "hackerrank_url", label: "HackerRank" },
+      { name: "kaggle_url", label: "Kaggle" },
+      { name: "orcid_url", label: "ORCID" },
+      { name: "stackexchange_url", label: "Stack Exchange" },
     ],
   },
   {
@@ -138,6 +143,35 @@ export const FIELD_GROUPS: FieldGroupDef[] = [
   },
 ];
 
+
+// Platform profile URLs. Mirrors worker/profile_urls.py; keep the lists in sync.
+const PLATFORM_URLS: [field: string, host: RegExp, path: RegExp][] = [
+  ["linkedin_url", /^linkedin\.com$/, /^\/in\/[^/]+\/?$/],
+  ["github_url", /^github\.com$/, /^\/[A-Za-z0-9-]+\/?$/],
+  ["leetcode_url", /^leetcode\.com$/, /^\/(?:u\/)?[\w-]+\/?$/],
+  ["hackerrank_url", /^hackerrank\.com$/, /^\/(?:profile\/)?[\w-]+\/?$/],
+  ["kaggle_url", /^kaggle\.com$/, /^\/[\w-]+\/?$/],
+  ["orcid_url", /^orcid\.org$/, /^\/\d{4}-\d{4}-\d{4}-\d{3}[\dX]\/?$/],
+  [
+    "stackexchange_url",
+    /^(?:[\w-]+\.)?(?:stackoverflow|stackexchange|superuser|serverfault|askubuntu|mathoverflow)\.(?:com|net)$/,
+    /^\/users\/\d+(?:\/[^/]+)?\/?$/,
+  ],
+];
+
+/**
+ * The contact field a profile URL belongs to (e.g. "leetcode_url"), or null for
+ * anything else. Older facts stored these as `website`; the profile re-files them.
+ */
+export function platformUrlField(url: string): string | null {
+  try {
+    const u = new URL(/^https?:\/\//i.test(url.trim()) ? url.trim() : `https://${url.trim()}`);
+    const host = u.hostname.toLowerCase().replace(/^www\./, "");
+    return PLATFORM_URLS.find(([, h, p]) => h.test(host) && p.test(u.pathname))?.[0] ?? null;
+  } catch {
+    return null;
+  }
+}
 
 export function fieldLabel(groupId: string, fieldName: string) {
   const group = FIELD_GROUPS.find((g) => g.id === groupId);

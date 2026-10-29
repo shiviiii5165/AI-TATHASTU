@@ -54,7 +54,7 @@ export function ReviewConsent({ summary, initialChoices }: { summary: ProgressSu
 
   return (
     <>
-      <div className="mx-auto mt-8 w-full max-w-[880px] headline-reveal">
+      <div className="onb-frame mt-8 headline-reveal">
         <section aria-labelledby="summary-heading">
           <h2 id="summary-heading" className="mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
             Your Information

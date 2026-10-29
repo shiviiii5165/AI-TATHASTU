@@ -21,6 +21,7 @@ export default function ResumeReviewPage() {
     <>
       <StepHeader
         step="resume"
+        frame="wide"
         title="Review extracted details"
       >
         Verify the information extracted from your resume. You can edit, approve, or discard any detail before saving.
@@ -128,7 +129,7 @@ function toGroups(facts: ProfileFact[]): ReviewGroup[] {
 
 function Notice({ title, icon, children }: { title: string; icon?: boolean; children: React.ReactNode }) {
   return (
-    <div role="status" className="mt-10 max-w-2xl rounded-lg border border-dashed p-8">
+    <div role="status" className="onb-frame-wide mt-10 rounded-lg border border-dashed p-8">
       <p className="flex items-center gap-2 font-medium">
         {icon && <LoaderCircle aria-hidden className="size-4 animate-spin text-muted-foreground" />}
         {title}

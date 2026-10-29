@@ -47,7 +47,7 @@ export function PersonaStepForm({
 
   return (
     <form ref={formRef} action={formAction} noValidate className="mt-6 sm:mt-8">
-      <div className="grid max-w-3xl gap-x-6 gap-y-6 sm:grid-cols-2">
+      <div className="onb-frame grid gap-x-6 gap-y-6 sm:grid-cols-2">
         {fields.map((f) => (
           <FieldControl key={f.name} field={f} value={state.values[f.name] ?? ""} error={state.errors?.[f.name]} />
         ))}

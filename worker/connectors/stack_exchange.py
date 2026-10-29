@@ -30,7 +30,7 @@ def map_stack_exchange(site: str, data: Dict[str, Any], facts: Facts) -> Facts:
     u = data["user"]
     link = u.get("link") or ""
     ev = f"{site} profile {link}"
-    facts.add("contact", "website", link, ev)
+    facts.add("contact", "stackexchange_url", link, ev)
     rep = u.get("reputation")
     if rep:
         badges = u.get("badge_counts") or {}

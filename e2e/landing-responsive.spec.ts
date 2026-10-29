@@ -125,3 +125,92 @@ test.describe("Landing page responsive layout", () => {
     for (const h of sizes) expect(h).toBeGreaterThanOrEqual(24);
   });
 });
+
+test.describe("See it in action + final CTA", () => {
+  for (const [width, height] of [[1440, 900], [1280, 800], [1240, 800], [1024, 768], [768, 1024], [390, 844], [320, 640]] as const) {
+    test(`${width}px: demo layout and CTA callouts`, async ({ page }) => {
+      await page.setViewportSize({ width, height });
+      await page.goto("/");
+      await page.locator("#start").scrollIntoViewIfNeeded();
+      await page.waitForLoadState("networkidle");
+
+      // Demo: copy beside the preview from 861px, stacked (copy first) below.
+      const demo = await page.evaluate(() => {
+        const r = (s: string) => document.querySelector(s)!.getBoundingClientRect();
+        const copy = r(".demo-copy"), frame = r(".demo-frame-inner"), img = document.querySelector<HTMLImageElement>(".demo-preview-img")!;
+        return { side: copy.right <= frame.left, stackedFirst: copy.bottom <= frame.top, ratio: frame.width / frame.height, vw: document.documentElement.clientWidth, frameRight: frame.right, w: img.getAttribute("width"), h: img.getAttribute("height") };
+      });
+      if (width >= 861) expect(demo.side, "copy beside preview").toBe(true);
+      else expect(demo.stackedFirst, "copy above preview").toBe(true);
+      expect(demo.ratio).toBeCloseTo(16 / 9, 1);
+      expect(demo.frameRight).toBeLessThanOrEqual(demo.vw);
+      expect([demo.w, demo.h]).toEqual(["1600", "900"]);
+
+      // Callouts: circular avatar + separate label; never over the centre copy.
+      const cta = await page.evaluate(() => {
+        const grid = document.getElementById("finalCtaGrid")!;
+        const text = [...grid.querySelectorAll(".final-cta-center h2, .final-cta-center p, #ctaStartFreeBtn, .final-cta-reassurances > div")].map((e) => e.getBoundingClientRect());
+        const callouts = [...grid.querySelectorAll(".final-callout")].map((c) => {
+          const a = c.querySelector(".callout-avatar")!, l = c.querySelector(".callout-label")!;
+          const ab = a.getBoundingClientRect(), lb = l.getBoundingClientRect();
+          return { label: l.textContent, round: getComputedStyle(a).borderRadius === "50%", square: Math.abs(ab.width - ab.height) < 1, ab, lb };
+        });
+        const overlap = callouts.some(({ ab, lb }) => [ab, lb].some((c) => text.some((t) => c.left < t.right && t.left < c.right && c.top < t.bottom && t.top < c.bottom)));
+        // Sample every connector path against the copy.
+        const g = grid.getBoundingClientRect();
+        const paths = [...grid.querySelectorAll<SVGPathElement>("#finalCtaLines path")];
+        const crosses = paths.some((p) => {
+          const len = p.getTotalLength();
+          for (let s = 0; s <= 40; s++) {
+            const pt = p.getPointAtLength((len * s) / 40);
+            const x = pt.x + g.left, y = pt.y + g.top;
+            if (text.some((t) => x > t.left && x < t.right && y > t.top && y < t.bottom)) return true;
+          }
+          return false;
+        });
+        const vw = document.documentElement.clientWidth;
+        const offscreen = callouts.some(({ ab, lb }) => ab.left < 0 || lb.right > vw);
+        return { labels: callouts.map((c) => c.label), allRound: callouts.every((c) => c.round && c.square), overlap, paths: paths.length, crosses, offscreen };
+      });
+      expect(cta.labels).toEqual(["Learn new skills", "Get real opportunities", "Connect with mentors", "Build together"]);
+      expect(cta.allRound).toBe(true);
+      expect(cta.overlap, "callout overlaps CTA copy").toBe(false);
+      expect(cta.offscreen).toBe(false);
+      expect(cta.crosses, "connector crosses CTA copy").toBe(false);
+      if (width >= 1240) expect(cta.paths).toBe(4);
+      else expect(cta.paths).toBe(0);
+    });
+  }
+
+  test("play control and CTA open the coming-soon dialog; no fake playback UI", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/");
+    await expect(page.locator("#demo .demo-track-progress, #demo .demo-duration")).toHaveCount(0);
+    for (const trigger of ["#demoPlayTrigger", "#watchDemoBtn"]) {
+      await page.locator(trigger).scrollIntoViewIfNeeded();
+      await page.locator(trigger).click();
+      await expect(page.locator("#demoModal")).toHaveClass(/open/);
+      await expect(page.locator("#demoModal")).toContainText("Our 2-minute product demo is coming soon.");
+      await page.keyboard.press("Escape");
+      await expect(page.locator("#demoModal")).not.toHaveClass(/open/);
+    }
+  });
+
+  test("headline and connectors finish their entrance; reduced motion shows them at once", async ({ browser }) => {
+    for (const reducedMotion of ["no-preference", "reduce"] as const) {
+      const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion });
+      const page = await ctx.newPage();
+      await page.goto("/");
+      await page.locator("#start").scrollIntoViewIfNeeded();
+      await expect(page.locator("#finalCtaGrid")).toHaveClass(/\bin\b/);
+      await expect
+        .poll(() => page.evaluate(() => {
+          const h = getComputedStyle(document.querySelector(".final-cta-headline")!);
+          const p = document.querySelector("#finalCtaLines path");
+          return h.opacity === "1" && h.transform === "none" && !!p && parseFloat(getComputedStyle(p).strokeDashoffset) === 0;
+        }), { timeout: 4000 })
+        .toBe(true);
+      await ctx.close();
+    }
+  });
+});

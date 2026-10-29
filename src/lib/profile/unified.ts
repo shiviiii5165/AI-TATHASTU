@@ -19,6 +19,7 @@ import {
 import type { ProfileViewDoc } from "@/lib/dashboard/types";
 import { CAREER_ROLES } from "@/lib/onboarding/catalog";
 import { factDisplayValue } from "@/lib/profile/display";
+import { platformUrlField } from "@/lib/profile/field-groups";
 
 /**
  * One read model for "the user's profile", used by /profile (which shows
@@ -78,7 +79,10 @@ export type ProfileData = Awaited<ReturnType<typeof loadProfile>>;
 
 // Which source wins when several give the same identity field.
 const PRECEDENCE: Partial<Record<FactOrigin, number>> = { user_entered: 5, linkedin_oidc: 4, resume: 3 };
-const rank = (f: Fact) => (PRECEDENCE[f.origin] ?? 2) + (f.confirmation === "edited" ? 0.5 : 0);
+// For `website`, the portfolio the user connected beats unreviewed resume and GitHub-blog values.
+const rank = (f: Fact) =>
+  (f.field === "website" && f.origin === "portfolio" ? 3.25 : (PRECEDENCE[f.origin] ?? 2)) +
+  (f.confirmation === "edited" ? 0.5 : 0);
 
 /**
  * `known`: the user and onboarding rows the caller's auth guard already read,
@@ -98,7 +102,7 @@ export async function loadProfile(userId: string, known?: { user: User; state: O
   const facts: Fact[] = factRows.map((f) => ({
     id: f.id,
     group: f.fieldGroup,
-    field: f.fieldName,
+    field: contactField(f.fieldGroup, f.fieldName, f.normalizedValue ?? f.extractedValue),
     recordKey: f.recordKey,
     value: factDisplayValue(f.normalizedValue ?? f.extractedValue),
     origin: f.origin,
@@ -184,6 +188,12 @@ export async function loadProfile(userId: string, known?: { user: User; state: O
     repos,
     connectorsCount: connCount?.n ?? 0,
   };
+}
+
+/** Rows written before platform fields existed stored LeetCode/Kaggle/… links as `website`. */
+export function contactField(group: string, field: string, value: unknown): string {
+  if (group !== "contact" || field !== "website" || typeof value !== "string") return field;
+  return platformUrlField(value) ?? field;
 }
 
 function dedupe(facts: Fact[]) {

@@ -2,7 +2,7 @@
 
 import { ArrowLeft, ArrowRight, LoaderCircle } from "lucide-react";
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 
 import { continueFromStep, type ContinuableStep } from "@/app/onboarding/actions";
 import type { Persona } from "@/db/schema";
@@ -61,8 +61,25 @@ export function StepFooter({
   error?: string;
   children: React.ReactNode;
 }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Tabbing to a field that is already in the viewport doesn't scroll, so this sticky bar can
+  // cover it (WCAG 2.4.11). Scroll it clear; html's scroll-padding-bottom (globals.css) sets the gap.
+  useEffect(() => {
+    const onFocus = (e: FocusEvent) => {
+      const bar = ref.current;
+      const el = e.target;
+      if (!bar || !(el instanceof HTMLElement) || bar.contains(el)) return;
+      if (el.getBoundingClientRect().bottom > bar.getBoundingClientRect().top) {
+        el.scrollIntoView({ block: "nearest", behavior: "instant" });
+      }
+    };
+    document.addEventListener("focusin", onFocus);
+    return () => document.removeEventListener("focusin", onFocus);
+  }, []);
+
   return (
-    <div className="sticky bottom-0 z-30 mt-12 -ml-(--onb-gutter-l) -mr-(--onb-gutter-r) border-t border-slate-200/80 bg-white/95 pl-(--onb-gutter-l) pr-(--onb-gutter-r) pt-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))] backdrop-blur-md sm:pt-4.5 sm:pb-[max(1.125rem,env(safe-area-inset-bottom))]">
+    <div ref={ref} className="sticky bottom-0 z-30 mt-12 -ml-(--onb-gutter-l) -mr-(--onb-gutter-r) border-t border-border/80 bg-background/95 pl-(--onb-gutter-l) pr-(--onb-gutter-r) pt-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))] backdrop-blur-md sm:pt-4.5 sm:pb-[max(1.125rem,env(safe-area-inset-bottom))]">
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4">
         {/* Mobile buttons row */}
         {/* Wraps below ~360px so three actions (Back, Skip, Continue) never overflow. */}

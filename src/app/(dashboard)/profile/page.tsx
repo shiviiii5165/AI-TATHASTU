@@ -20,7 +20,10 @@ export default function ProfilePage() {
   );
 }
 
-const IDENTITY_ORDER = ["full_name", "headline", "location", "email", "phone", "linkedin_url", "github_url", "website"];
+const IDENTITY_ORDER = [
+  "full_name", "headline", "location", "email", "phone", "website",
+  "linkedin_url", "github_url", "leetcode_url", "hackerrank_url", "kaggle_url", "orcid_url", "stackexchange_url",
+];
 
 async function Profile() {
   const { user, state } = await requireOnboardedUser();

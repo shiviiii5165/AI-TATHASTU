@@ -4840,16 +4840,21 @@ input[type=range]::-moz-range-thumb {
   overflow: hidden;
 }
 .demo-container {
-  max-width: 1120px;
+  max-width: 1240px;
   margin: 0 auto;
   padding: 0 24px;
   position: relative;
   z-index: 2;
 }
-.demo-header {
-  text-align: center;
-  max-width: 720px;
-  margin: 0 auto 48px auto;
+/* Copy on the left, product preview on the right; stacks below 861px. */
+.demo-split {
+  display: grid;
+  grid-template-columns: minmax(280px, 34fr) minmax(0, 66fr);
+  gap: clamp(32px, 4vw, 56px);
+  align-items: center;
+}
+.demo-copy {
+  max-width: 400px;
 }
 .demo-kicker-badge {
   display: inline-flex;
@@ -4887,38 +4892,48 @@ input[type=range]::-moz-range-thumb {
   line-height: 1.6;
 }
 .demo-cta-row {
-  margin-top: 24px;
+  margin-top: 28px;
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
 }
+/* Coral brand CTA, matching the hero and final CTA buttons. */
 .demo-watch-btn {
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  min-height: 48px;
   padding: 12px 26px;
-  border-radius: 12px;
-  background: var(--surface);
-  border: 1.5px solid var(--line);
-  color: var(--ink);
-  font-weight: 600;
-  font-size: 0.95rem;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #FF5A5F 0%, #FF385C 55%, #FF7A45 100%);
+  border: 0;
+  color: #FFFFFF;
+  font-family: var(--d);
+  font-weight: 700;
+  font-size: 1rem;
   cursor: pointer;
-  transition: all 0.25s ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 10px 24px -8px rgba(255, 56, 92, 0.55);
 }
 .demo-watch-btn:hover {
-  background: var(--bg-2);
-  border-color: #8B5CF6;
-  color: #8B5CF6;
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(139, 92, 246, 0.15);
+  transform: translateY(-1px);
+  box-shadow: 0 14px 30px -8px rgba(255, 56, 92, 0.6);
+}
+.demo-watch-btn:active { transform: translateY(0); }
+.demo-watch-btn:focus-visible {
+  outline: 2px solid #FF385C;
+  outline-offset: 3px;
 }
 .demo-btn-play {
-  color: #EC4899;
+  color: #FFFFFF;
 }
 .demo-video-card {
-  max-width: 980px;
-  margin: 0 auto;
+  min-width: 0;
+}
+.demo-preview-note {
+  margin-top: 10px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
 }
 .demo-frame-outer {
   border-radius: 20px;
@@ -4933,48 +4948,22 @@ input[type=range]::-moz-range-thumb {
   aspect-ratio: 16 / 9;
   border-radius: 14px;
   overflow: hidden;
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 24px;
+  background: #F8FAFC;
 }
+.demo-preview-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top left;
+}
+/* Light centre vignette so the play button reads without hiding the UI. */
 .demo-frame-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.4) 0%, rgba(15, 23, 42, 0.7) 100%);
+  background: radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 0.28) 0%, rgba(15, 23, 42, 0.08) 38%, rgba(15, 23, 42, 0) 70%);
   pointer-events: none;
-}
-.demo-top-bar {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.demo-badge {
-  padding: 4px 12px;
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(8px);
-  color: #FFFFFF;
-  font-size: 0.8rem;
-  font-weight: 700;
-  border-radius: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-}
-.demo-duration {
-  padding: 4px 10px;
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(8px);
-  color: #FFFFFF;
-  font-size: 0.82rem;
-  font-weight: 600;
-  border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 .demo-play-trigger {
   position: absolute;
@@ -4992,8 +4981,13 @@ input[type=range]::-moz-range-thumb {
   align-items: center;
   justify-content: center;
   color: #FFFFFF;
-  box-shadow: 0 12px 32px rgba(236, 72, 153, 0.5);
+  /* White ring keeps the button visible over both light and dark UI. */
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.85), 0 12px 32px rgba(236, 72, 153, 0.5);
   transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.demo-play-trigger:focus-visible {
+  outline: 3px solid #FFFFFF;
+  outline-offset: 6px;
 }
 .demo-play-trigger:hover {
   transform: translate(-50%, -50%) scale(1.1);
@@ -5013,37 +5007,21 @@ input[type=range]::-moz-range-thumb {
 .demo-play-icon {
   margin-left: 4px;
 }
-.demo-bottom-bar {
-  position: relative;
-  z-index: 2;
+
+@media (max-width: 1100px) {
+  .demo-section { padding: 88px 0; }
 }
-.demo-track-line {
-  width: 100%;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: 2px;
-  margin-bottom: 12px;
-  overflow: hidden;
+@media (max-width: 860px) {
+  .demo-split { grid-template-columns: minmax(0, 1fr); gap: 32px; }
+  .demo-copy { max-width: 600px; margin: 0 auto; text-align: center; }
+  .demo-cta-row { justify-content: center; }
+  .demo-video-card { width: 100%; max-width: 760px; margin: 0 auto; }
 }
-.demo-track-progress {
-  display: block;
-  width: 28%;
-  height: 100%;
-  background: linear-gradient(90deg, #FF5A5F, #EC4899);
-}
-.demo-caption-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  color: #FFFFFF;
-  font-size: 0.88rem;
-  font-weight: 600;
-}
-.demo-caption-hd {
-  font-size: 0.75rem;
-  padding: 2px 6px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
+@media (max-width: 640px) {
+  .demo-section { padding: 64px 0; }
+  .demo-container { padding: 0 16px; }
+  .demo-play-trigger { width: 64px; height: 64px; }
+  .demo-play-icon svg { width: 22px; height: 22px; }
 }
 
 /* ============================================================
@@ -5385,7 +5363,7 @@ input[type=range]::-moz-range-thumb {
   overflow: hidden;
 }
 .final-cta-container {
-  max-width: 1200px;
+  max-width: 1280px;
   margin: 0 auto;
   padding: 0 24px;
 }
@@ -5404,55 +5382,98 @@ input[type=range]::-moz-range-thumb {
   pointer-events: none;
   z-index: 0;
 }
+/* Paths are drawn by landing.js from the live layout; pathLength="1" lets the
+   draw-in run the same way whatever the path's real length. */
 .final-cta-lines path {
   fill: none;
-  stroke: rgba(196, 160, 240, 0.55);
+  stroke: rgba(196, 160, 240, 0.6);
   stroke-width: 1.5;
-  vector-effect: non-scaling-stroke;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  transition: stroke-dashoffset 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.25s;
 }
-.final-cta-lines path:nth-of-type(odd) { stroke: rgba(244, 164, 196, 0.55); }
-.final-cta-lines circle { fill: rgba(196, 160, 240, 0.7); }
+.final-cta-lines path.tone-rose { stroke: rgba(244, 164, 196, 0.65); }
+.final-cta-lines circle {
+  fill: rgba(196, 160, 240, 0.75);
+  opacity: 0;
+  transition: opacity 0.3s ease 0.95s;
+}
+.final-cta-grid.in .final-cta-lines path { stroke-dashoffset: 0; }
+.final-cta-grid.in .final-cta-lines circle { opacity: 1; }
 .final-cta-side {
   position: relative;
   z-index: 1;
   display: flex;
   flex-direction: column;
-  gap: 56px;
+  gap: 52px;
 }
 .side-left { align-items: flex-start; }
 .side-right { align-items: flex-end; }
+/* Staggered: the first callout on each side sits further in than the second. */
 .side-left .pill-1,
-.side-right .pill-3 { margin-inline: 36px; }
-.final-callout-pill {
+.side-right .pill-3 { margin-inline: 28px; }
+
+/* Callout = circular avatar + separate rounded label, slightly overlapping. */
+.final-callout {
+  --accent: #F43F5E;
+  --accent-soft: rgba(244, 63, 94, 0.22);
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 5px 16px 5px 5px;
-  font-size: 0.88rem;
-  font-weight: 650;
-  line-height: 1.25;
-  white-space: nowrap;
-  border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 4px 14px -4px rgba(99, 70, 140, 0.16);
-  color: var(--ink);
-  border: 1px solid var(--line);
 }
+.final-callout.accent-rose   { --accent: #E11D48; --accent-soft: rgba(244, 63, 94, 0.24); }
+.final-callout.accent-orange { --accent: #EA580C; --accent-soft: rgba(249, 115, 22, 0.24); }
+.final-callout.accent-purple { --accent: #7C3AED; --accent-soft: rgba(139, 92, 246, 0.24); }
+.final-callout.accent-green  { --accent: #059669; --accent-soft: rgba(16, 185, 129, 0.24); }
+.side-right .final-callout { flex-direction: row-reverse; }
 .callout-avatar {
-  width: 36px;
-  height: 36px;
+  position: relative;
+  z-index: 1;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
-  border: 2px solid #FFFFFF;
+  border: 3px solid #FFFFFF;
+  box-shadow: 0 0 0 1px var(--accent-soft), 0 6px 16px -6px rgba(60, 40, 110, 0.35);
 }
-.dark .final-callout-pill,
-[data-theme="dark"] .final-callout-pill {
-  background: rgba(25, 27, 36, 0.88);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+.callout-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 16px 0 22px;
+  margin-left: -10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--accent-soft);
+  box-shadow: 0 6px 18px -8px rgba(99, 70, 140, 0.22);
+  color: var(--ink);
+  font-size: 0.88rem;
+  font-weight: 650;
+  line-height: 1;
+  white-space: nowrap;
+}
+.side-right .callout-label {
+  margin-left: 0;
+  margin-right: -10px;
+  padding: 0 22px 0 16px;
+}
+.callout-label::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+.dark .callout-label,
+[data-theme="dark"] .callout-label {
+  background: rgba(25, 27, 36, 0.92);
+  box-shadow: 0 6px 18px -6px rgba(0, 0, 0, 0.5);
 }
 .dark .callout-avatar,
-[data-theme="dark"] .callout-avatar { border-color: rgba(255, 255, 255, 0.12); }
+[data-theme="dark"] .callout-avatar { border-color: rgba(25, 27, 36, 1); }
 
 .final-cta-center {
   position: relative;
@@ -5468,6 +5489,17 @@ input[type=range]::-moz-range-thumb {
   color: var(--ink);
   margin-bottom: 12px;
   text-wrap: balance;
+}
+/* One-time entrance, slightly after the section reveal. Transform/opacity only,
+   so it never shifts layout. */
+.final-cta-grid.rv .final-cta-headline {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.12s, transform 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.12s;
+}
+.final-cta-grid.rv.in .final-cta-headline {
+  opacity: 1;
+  transform: none;
 }
 .final-cta-subtitle {
   font-family: var(--s);
@@ -5533,20 +5565,25 @@ input[type=range]::-moz-range-thumb {
     var(--bg);
 }
 .dark .final-cta-lines path,
-[data-theme="dark"] .final-cta-lines path { stroke: rgba(167, 139, 250, 0.3); }
+[data-theme="dark"] .final-cta-lines path { stroke: rgba(167, 139, 250, 0.35); }
 
-@media (max-width: 1100px) {
+/* Three columns need ~264px per side for a staggered callout; below 1240px
+   the callouts move under the CTA instead of pushing into the copy. */
+@media (max-width: 1239px) {
   .final-cta-grid {
     grid-template-columns: 1fr 1fr;
     row-gap: 32px;
   }
   .final-cta-center { grid-column: 1 / -1; order: -1; }
   .final-cta-lines { display: none; }
-  .final-cta-side { gap: 12px; }
+  .final-cta-side { gap: 14px; }
   .side-left { align-items: flex-end; }
   .side-right { align-items: flex-start; }
   .side-left .pill-1,
   .side-right .pill-3 { margin-inline: 0; }
+  /* Below the CTA both columns read left to right: avatar first. */
+  .side-right .final-callout { flex-direction: row; }
+  .side-right .callout-label { margin-left: -10px; margin-right: 0; padding: 0 16px 0 22px; }
 }
 
 @media (max-width: 991px) {
@@ -5574,6 +5611,11 @@ input[type=range]::-moz-range-thumb {
   .side-left,
   .side-right { align-items: center; }
 }
+@media (max-width: 480px) {
+  /* Two short lines read better stacked than with a dangling separator. */
+  .final-cta-reassurances { flex-direction: column; gap: 4px; }
+  .reassurance-sep { display: none; }
+}
 
 @media (max-width: 520px) {
   .faq-support-card {
@@ -5597,8 +5639,15 @@ input[type=range]::-moz-range-thumb {
   .faq-item,
   .faq-answer-panel,
   .faq-support-cta,
-  .final-primary-btn {
+  .final-primary-btn,
+  .demo-watch-btn,
+  .final-cta-lines path,
+  .final-cta-lines circle,
+  .final-cta-grid.rv .final-cta-headline {
     animation: none !important;
     transition: none !important;
   }
+  .final-cta-lines path { stroke-dashoffset: 0; }
+  .final-cta-lines circle,
+  .final-cta-grid.rv .final-cta-headline { opacity: 1; transform: none; }
 }

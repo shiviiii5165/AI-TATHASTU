@@ -55,7 +55,7 @@ def map_leetcode(data: Dict[str, Any], facts: Facts) -> Facts:
         facts.add("achievements", "description",
                   f"Contest rating {stats['contest_rating']} over {stats.get('contests')} contests"
                   + (f" (top {stats['top_percentage']}%)" if stats.get("top_percentage") else ""), ev, "leetcode:stats")
-    facts.add("contact", "website", f"https://leetcode.com/u/{name}", ev)
+    facts.add("contact", "leetcode_url", f"https://leetcode.com/u/{name}", ev)
     for lang in user.get("languageProblemCount") or []:
         if lang.get("problemsSolved"):
             facts.add("skills", "skill", lang["languageName"], f"{lang['problemsSolved']} LeetCode problems solved in {lang['languageName']}",
@@ -77,7 +77,7 @@ def map_hackerrank(data: Dict[str, Any], facts: Facts) -> Facts:
     p = data["profile"]
     name = p.get("username")
     ev = f"hackerrank.com/profile/{name}"
-    facts.add("contact", "website", f"https://www.hackerrank.com/profile/{name}", ev)
+    facts.add("contact", "hackerrank_url", f"https://www.hackerrank.com/profile/{name}", ev)
     badges: List[Dict[str, Any]] = [b for b in data.get("badges", []) if b.get("stars")]
     stats = {"badges": {b.get("badge_name"): b.get("stars") for b in badges}}
     if badges:
