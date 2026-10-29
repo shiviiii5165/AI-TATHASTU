@@ -16,6 +16,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useId, useState, useSyncExternalStore } from "react";
 
@@ -333,7 +334,7 @@ export function AboutContent() {
       <header className="site-nav">
         <div className="wrap site-nav-inner">
           <Link href="/" className="brand-link" aria-label="AI Tathastu Home">
-            <div className="brand-logo-mark">AT</div>
+            <Image src="/icons/icon-192.png" alt="AI Tathastu" className="brand-logo-mark" width={40} height={40} />
             <div className="brand-text-col">
               <span className="brand-name">AI Tathastu</span>
               <span className="brand-sub">You imagine. AI Tathastu makes it happen.</span>
@@ -820,7 +821,7 @@ export function AboutContent() {
               <div className="footer-col footer-col-brand">
                 <div className="footer-brand-lockup">
                   <Link className="footer-brand-link" href="/">
-                    <span className="footer-brand-icon">AT</span>
+                    <Image src="/icons/icon-192.png" alt="AI Tathastu" className="footer-brand-icon" width={34} height={34} />
                     <div className="footer-brand-text">
                       <span className="footer-brand-name">AI Tathastu</span>
                       <span className="footer-brand-tagline">You imagine. AI Tathastu makes it happen.</span>

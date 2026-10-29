@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -9,6 +10,12 @@ interface BrandLogoProps {
   taglineClassName?: string;
 }
 
+const SIZES = {
+  sm: { dimension: 32, className: "size-8", titleClass: "text-base", taglineClass: "text-[0.625rem]" },
+  md: { dimension: 40, className: "size-10", titleClass: "text-lg", taglineClass: "text-xs" },
+  lg: { dimension: 48, className: "size-12", titleClass: "text-2xl", taglineClass: "text-xs" },
+};
+
 export function BrandLogo({
   className,
   withTagline = true,
@@ -16,27 +23,26 @@ export function BrandLogo({
   size = "md",
   taglineClassName,
 }: BrandLogoProps) {
+  const currentSize = SIZES[size] || SIZES.md;
+
   const content = (
     <span className={cn("inline-flex items-center gap-3 select-none", className)}>
-      <span
-        aria-hidden="true"
+      <Image
+        src="/icons/icon-192.png"
+        alt="AI Tathastu"
+        width={currentSize.dimension}
+        height={currentSize.dimension}
+        priority
         className={cn(
-          "grid place-items-center rounded-xl font-heading font-extrabold text-white shadow-sm transition-transform duration-150 group-hover:scale-105",
-          "bg-gradient-to-br from-[#FF6B4A] via-[#FF2A85] to-[#9333EA]",
-          size === "sm" && "size-7 text-xs rounded-lg shadow-[0_2px_8px_rgba(255,42,133,0.3)]",
-          size === "md" && "size-9 text-sm rounded-xl shadow-[0_4px_12px_rgba(255,42,133,0.35)]",
-          size === "lg" && "size-11 text-base rounded-2xl shadow-[0_6px_16px_rgba(255,42,133,0.4)]"
+          "shrink-0 object-contain drop-shadow-sm transition-transform duration-200 group-hover:scale-105",
+          currentSize.className
         )}
-      >
-        AT
-      </span>
+      />
       <span className="flex flex-col leading-tight">
         <span
           className={cn(
-            "font-sans font-extrabold tracking-tight text-[#0F172A] transition-colors group-hover:text-[#FF2A85]",
-            size === "sm" && "text-base",
-            size === "md" && "text-lg",
-            size === "lg" && "text-2xl"
+            "font-sans font-extrabold tracking-tight text-[#0F172A] dark:text-white transition-colors group-hover:text-[#FF2A85]",
+            currentSize.titleClass
           )}
         >
           AI Tathastu<span className="text-[#FF2A85]">.</span>
@@ -44,8 +50,8 @@ export function BrandLogo({
         {withTagline && (
           <span
             className={cn(
-              "font-sans font-medium text-slate-500 hidden min-[400px]:block",
-              size === "sm" ? "text-[0.625rem]" : "text-xs",
+              "font-sans font-medium text-slate-500 dark:text-slate-400 hidden min-[400px]:block",
+              currentSize.taglineClass,
               taglineClassName
             )}
           >

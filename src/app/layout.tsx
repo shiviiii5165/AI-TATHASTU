@@ -53,6 +53,16 @@ export const metadata: Metadata = {
   appleWebApp: { title: "AI Tathastu", statusBarStyle: "black-translucent" },
   openGraph: { siteName: "AI Tathastu", type: "website" },
   twitter: { card: "summary_large_image" },
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icons/icon-192.png", type: "image/png", sizes: "192x192" },
+      { url: "/icons/icon-512.png", type: "image/png", sizes: "512x512" },
+    ],
+    apple: [
+      { url: "/apple-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
 };
 
 export const viewport: Viewport = {

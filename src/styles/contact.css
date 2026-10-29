@@ -202,14 +202,8 @@ body {
   width: 40px;
   height: 40px;
   border-radius: 11px;
-  background: linear-gradient(135deg, #FF2A85 0%, #9333EA 100%);
-  display: grid;
-  place-items: center;
-  color: #FFFFFF;
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 1.15rem;
-  box-shadow: 0 4px 14px rgba(255, 42, 133, 0.35);
+  object-fit: contain;
+  flex-shrink: 0;
 }
 .brand-text-col {
   display: flex;
@@ -1149,14 +1143,8 @@ body {
   width: 42px;
   height: 42px;
   border-radius: 11px;
-  background: linear-gradient(135deg, #FF6A3D 0%, #FF2B6D 50%, #0091FF 100%);
-  color: #FFFFFF;
-  font-family: var(--font-display);
-  font-weight: 900;
-  font-size: 1.1rem;
-  display: grid;
-  place-items: center;
-  box-shadow: 0 6px 14px rgba(255, 43, 109, 0.3);
+  object-fit: contain;
+  flex-shrink: 0;
 }
 .footer-brand-text {
   display: flex;

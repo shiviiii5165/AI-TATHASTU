@@ -2198,12 +2198,8 @@ input[type=range]::-moz-range-thumb {
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #FF6A3D 0%, #FF2B6D 50%, #0091FF 100%);
-  color: #FFFFFF;
-  font: 900 1.15rem/1 var(--ref-font-head, 'Plus Jakarta Sans', sans-serif);
-  display: grid;
-  place-items: center;
-  box-shadow: 0 6px 14px -3px rgba(255, 43, 109, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  object-fit: contain;
+  flex-shrink: 0;
   transition: transform 0.28s var(--spring);
 }
 .footer-brand-link:hover .footer-brand-icon {
@@ -3411,13 +3407,7 @@ input[type=range]::-moz-range-thumb {
   width: 40px;
   height: 40px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #FF6B4A 0%, #FF2A85 38%, #8B5CF6 72%, #00D2FF 100%);
-  display: grid;
-  place-items: center;
-  color: #FFFFFF;
-  font: 900 1.15rem/1 var(--ref-font-head);
-  letter-spacing: -0.02em;
-  box-shadow: 0 4px 12px rgba(255, 51, 102, 0.3);
+  object-fit: contain;
   flex-shrink: 0;
   transition: transform 0.3s var(--spring);
 }

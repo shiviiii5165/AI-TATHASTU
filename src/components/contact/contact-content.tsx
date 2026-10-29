@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useSyncExternalStore } from "react";
+import Image from "next/image";
 import Link from "next/link";
 
 interface CategoryOption {
@@ -228,9 +229,7 @@ export function ContactContent() {
       <header className="site-nav" role="banner">
         <div className="wrap site-nav-inner">
           <Link href="/" className="brand-link" aria-label="AI Tathastu Home">
-            <div className="brand-logo-mark" aria-hidden="true">
-              AT
-            </div>
+            <Image src="/icons/icon-192.png" alt="AI Tathastu" className="brand-logo-mark" width={40} height={40} />
             <div className="brand-text-col">
               <span className="brand-name">AI Tathastu</span>
               <span className="brand-sub">
@@ -867,9 +866,7 @@ export function ContactContent() {
             <div className="footer-col footer-col-brand">
               <div className="footer-brand-lockup">
                 <Link href="/" className="footer-brand-link">
-                  <span className="footer-brand-icon" aria-hidden="true">
-                    AT
-                  </span>
+                  <Image src="/icons/icon-192.png" alt="AI Tathastu" className="footer-brand-icon" width={42} height={42} />
                   <div className="footer-brand-text">
                     <span className="footer-brand-name">AI Tathastu</span>
                     <span className="footer-brand-tagline">
