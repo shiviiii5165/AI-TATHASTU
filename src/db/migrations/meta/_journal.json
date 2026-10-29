@@ -120,6 +120,13 @@
       "when": 1793232000000,
       "tag": "0016_rate_limits",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793277749585,
+      "tag": "0017_admin_platform_os",
+      "breakpoints": true
     }
   ]
 }

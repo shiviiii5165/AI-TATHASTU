@@ -28,10 +28,16 @@ export function LandingEnhancer() {
     root.querySelectorAll<HTMLAnchorElement>(".ref-signin-link").forEach((link) => {
       link.style.display = "none";
     });
-    root.querySelectorAll<HTMLAnchorElement>("#navCreateProfileBtn, .ref-primary-cta, #ctaCardCreateBtn").forEach((btn) => {
+    root.querySelectorAll<HTMLAnchorElement>(
+      "#navCreateProfileBtn, #mobileGetStartedBtn, #ctaStartFreeBtn, .btn-final-cta, .ref-primary-cta, #ctaCardCreateBtn"
+    ).forEach((btn) => {
       const textSpan = btn.querySelector("span");
-      if (textSpan) textSpan.textContent = "Open Dashboard";
-      btn.href = "/dashboard";
+      if (textSpan) {
+        textSpan.textContent = "Open Dashboard";
+      } else {
+        btn.innerHTML = '<span>Open Dashboard</span> <span aria-hidden="true">&rarr;</span>';
+      }
+      btn.href = "/api/session/refresh";
     });
   }, [signedIn]);
 

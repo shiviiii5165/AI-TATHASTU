@@ -574,64 +574,64 @@ bind3DTilt('#holoCard', 10);
 
 const ROOM_DETAILS = {
   avasar: {
-    eyebrow: 'Room 01 · Roles Matched to Proof',
-    title: 'Avasar — Your Work Opens the Door',
+    icon: '⚡',
+    title: 'Avasar (Get Hired)',
     edge: '#CA8A04',
-    desc: 'Instead of filtering by resume keywords, Avasar looks at the projects, code, and notebooks you have actually built to connect you with internships and research labs.',
-    simHTML: `
-      <div style="display:grid;gap:10px">
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#fff;border-radius:12px;border:1.5px solid var(--line)">
-          <div><strong>AI Product Intern · Bangalore</strong><div style="font-size:.82rem;color:var(--mute)">Matched because you built 3 working Python &amp; AI apps</div></div>
-          <span style="padding:5px 10px;border-radius:99px;background:var(--green-bg);color:var(--green-ink);font:800 .78rem var(--s)">97% Match</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#fff;border-radius:12px;border:1.5px solid var(--line)">
-          <div><strong>Undergraduate Research Fellow</strong><div style="font-size:.82rem;color:var(--mute)">Matched because of your data analysis notebooks</div></div>
-          <span style="padding:5px 10px;border-radius:99px;background:var(--pinkred-bg);color:var(--pinkred-ink);font:800 .78rem var(--s)">94% Match</span>
-        </div>
-      </div>`
+    desc: 'Connect your verified skills directly to internships, research labs, and hiring pipelines without resume black holes.',
+    features: [
+      'Proof-based matching algorithm powered by your actual repository code and project artifacts.',
+      'Direct invitations from campus recruiters and tech labs actively seeking your verified skills.',
+      'Transparent opportunity requirements with zero keyword-stuffing barriers.',
+      'Development status: In active testing across select partner departments.'
+    ]
   },
   learn: {
-    eyebrow: 'Room 02 · Smart Learning Path',
-    title: 'Learn — Never Repeat What You Already Know',
+    icon: '📚',
+    title: 'Learn (Grow)',
     edge: '#E11D48',
-    desc: 'Your projects already show what you have mastered. Learn skips the beginner tutorials you do not need and guides you straight to your next meaningful milestone.',
-    simHTML: `
-      <div style="display:flex;flex-direction:column;gap:8px;font-size:.88rem">
-        <div style="padding:9px 12px;border-radius:10px;background:var(--green-bg);color:var(--green-ink)">✓ <strong>Already Proven in Your Projects:</strong> Python, Git, Dataframes &amp; Neural Net Basics</div>
-        <div style="padding:9px 12px;border-radius:10px;background:var(--yellow-bg);color:var(--yellow-ink)">⚡ <strong>Your Next Step:</strong> Building &amp; Deploying Real-World AI Assistants</div>
-      </div>`
+    desc: 'Skip repetitive tutorials. Get custom learning paths tailored to your knowledge gaps based on the code you have already shipped.',
+    features: [
+      'Automated prerequisite detection that respects your existing project mastery.',
+      'Targeted milestone roadmaps for advanced AI, systems, and full-stack development.',
+      'Curated real-world project specifications that build production-ready portfolios.',
+      'Development status: Module preview releasing in upcoming beta milestone.'
+    ]
   },
   collaborate: {
-    eyebrow: 'Room 03 · Find Your Squad',
-    title: 'Collaborate — Meet Teammates Who Build',
+    icon: '👥',
+    title: 'Collaborate (Build)',
     edge: '#16A34A',
-    desc: 'Have a great hackathon or project idea? Find students whose skills complement yours — pair your AI model with a great frontend designer or systems builder.',
-    simHTML: `
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 14px;background:#fff;border-radius:12px;border:1.5px solid var(--line)">
-        <div><strong>Hackathon Squad Match</strong><div style="font-size:.82rem;color:var(--mute)">You (AI &amp; Python) + Ananya (Frontend &amp; UI) + Kabir (Data &amp; Pitch)</div></div>
-        <span style="padding:5px 10px;border-radius:99px;background:var(--purple-bg);color:var(--purple-ink);font:800 .76rem var(--s)">99% Team Fit</span>
-      </div>`
+    desc: 'Find compatible co-builders for hackathons, capstones, and open-source projects based on complementary skill graphs.',
+    features: [
+      'Complementary team matching (e.g., ML engineer + frontend designer + systems engineer).',
+      'Shared project workspace creation with role-based contribution tracking.',
+      'Campus-wide and inter-collegiate hackathon squad discovery.',
+      'Development status: Architecture finalized; campus pilot launching soon.'
+    ]
   },
   meet: {
-    eyebrow: 'Room 04 · Live Co-Building',
-    title: 'Meet — Code Together & Get Unstuck',
+    icon: '💬',
+    title: 'Meet (Get Guidance)',
     edge: '#7C3AED',
-    desc: 'Jump into friendly campus rooms where students build side-by-side and experienced mentors drop in for 15-minute guidance when you hit a roadblock.',
-    simHTML: `
-      <div style="padding:10px 14px;background:#fff;border-radius:12px;border:1.5px solid var(--line);font-size:.86rem">
-        <div style="color:var(--green-ink);font-weight:700">● LIVE ROOM: "Weekend Project Builders" (6 students · 1 Alumni Mentor)</div>
-        <div style="color:var(--mute);margin-top:4px">Reviewing project architecture and preparing demos together</div>
-      </div>`
+    desc: 'Join focused virtual co-working rooms and connect with verified alumni mentors for targeted 15-minute guidance.',
+    features: [
+      'Drop-in virtual rooms for focused silent study and live technical co-building.',
+      '15-minute micro-mentorship sessions to resolve architectural roadblocks.',
+      'Alumni insights and technical interview preparation with industry practitioners.',
+      'Development status: Schedule and mentor roster currently being onboarded.'
+    ]
   },
   iris: {
-    eyebrow: 'Room 05 · Fair & Calm Assessment',
-    title: 'Iris — Respects How You Think',
+    icon: '🎯',
+    title: 'IRIS (ASSESS)',
     edge: '#DB2777',
-    desc: 'No stressful webcams or trick memorization questions. Iris looks at how you approach real problems, test ideas, and explain your thinking.',
-    simHTML: `
-      <div style="padding:10px 14px;background:#fff;border-radius:12px;border:1.5px solid var(--line);font-size:.86rem">
-        <strong>Verified Problem-Solving Highlight:</strong> Clear step-by-step debugging and thoughtful project design.
-      </div>`
+    desc: 'An objective, stress-free capability assessment that evaluates real problem-solving and code architecture rather than memorization.',
+    features: [
+      'Real-world debugging scenarios and code review challenges.',
+      'Zero invasive proctoring or stress-inducing camera surveillance.',
+      'Comprehensive readiness scores verifying structural thinking and code quality.',
+      'Development status: IRIS core assessment engine in private preview.'
+    ]
   }
 };
 
@@ -708,49 +708,170 @@ const POLICY_DETAILS = {
   }
 };
 
-const roomModal = document.getElementById('roomModal');
-const modalCard = document.getElementById('modalCard');
-const modalCloseBtn = document.getElementById('modalCloseBtn');
+
+let lastActiveModalTrigger = null;
 
 function openModal(data) {
   if (!data) return;
-  modalCard.style.setProperty('--modal-edge', data.edge);
-  document.getElementById('modalEyebrow').innerHTML = `<b>✦</b> ${data.eyebrow}`;
-  document.getElementById('modalTitle').textContent = data.title;
-  document.getElementById('modalDesc').textContent = data.desc;
-  document.getElementById('modalSimBox').innerHTML = data.simHTML;
+  const roomModal = document.getElementById('roomModal');
+  const modalCard = document.getElementById('modalCard');
+  if (!roomModal) return;
+
+  lastActiveModalTrigger = document.activeElement;
+
+  if (modalCard && data.edge) {
+    modalCard.style.setProperty('--modal-edge', data.edge);
+  }
+  const iconWrap = document.getElementById('modalIconWrap');
+  if (iconWrap) iconWrap.textContent = data.icon || '✦';
+
+  const eyebrowEl = document.getElementById('modalEyebrow');
+  if (eyebrowEl && data.eyebrow) eyebrowEl.innerHTML = '<b>✦</b> ' + data.eyebrow;
+
+  const titleEl = document.getElementById('modalTitle');
+  if (titleEl) titleEl.textContent = data.title;
+
+  const descEl = document.getElementById('modalDesc');
+  if (descEl) descEl.textContent = data.desc;
+
+  const boxEl = document.getElementById('modalSimBox');
+  if (boxEl) {
+    if (data.features && Array.isArray(data.features)) {
+      boxEl.innerHTML = data.features.map(f => `
+        <div class="modal-feature-bullet">
+          <span class="bullet-icon">✓</span>
+          <span>${f}</span>
+        </div>
+      `).join('');
+    } else if (data.simHTML) {
+      boxEl.innerHTML = data.simHTML;
+    }
+  }
+
   roomModal.classList.add('open');
+  const closeBtn = document.getElementById('modalCloseBtn');
+  if (closeBtn) closeBtn.focus();
   sfx.chime(587.33, 0.16, 'triangle');
 }
 
-document.querySelectorAll('.bento-card[data-room]').forEach(card => {
-  card.addEventListener('click', () => {
-    const key = card.getAttribute('data-room');
-    openModal(ROOM_DETAILS[key]);
-  });
-});
-
-document.querySelectorAll('[data-policy]').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const key = btn.getAttribute('data-policy');
-    openModal(POLICY_DETAILS[key]);
-  });
-});
-
-modalCloseBtn.addEventListener('click', () => roomModal.classList.remove('open'));
-roomModal.addEventListener('click', (e) => {
-  if (e.target === roomModal) roomModal.classList.remove('open');
-});
-document.getElementById('modalActionBtn').addEventListener('click', () => {
-  sfx.chord([523.25, 659.25, 783.99]);
-  showToast('✦ Connected to your profile preview!');
+function closeModal() {
+  const roomModal = document.getElementById('roomModal');
   if (roomModal) roomModal.classList.remove('open');
-});
-document.getElementById('modalJumpBtn')?.addEventListener('click', () => {
-  if (roomModal) roomModal.classList.remove('open');
-  const joinEl = document.getElementById('join');
-  if (joinEl) joinEl.scrollIntoView({ behavior: 'smooth' });
-});
+  if (lastActiveModalTrigger && typeof lastActiveModalTrigger.focus === 'function') {
+    lastActiveModalTrigger.focus();
+  }
+}
+
+function openDemoModal() {
+  const demoModal = document.getElementById('demoModal');
+  if (!demoModal) return;
+  lastActiveModalTrigger = document.activeElement;
+  demoModal.classList.add('open');
+  const closeBtn = document.getElementById('demoModalCloseBtn');
+  if (closeBtn) closeBtn.focus();
+  sfx.chime(587.33, 0.16, 'triangle');
+}
+
+function closeDemoModal() {
+  const demoModal = document.getElementById('demoModal');
+  if (demoModal) demoModal.classList.remove('open');
+  if (lastActiveModalTrigger && typeof lastActiveModalTrigger.focus === 'function') {
+    lastActiveModalTrigger.focus();
+  }
+}
+
+function initLandingModals() {
+  const roomModal = document.getElementById('roomModal');
+  const modalCloseBtn = document.getElementById('modalCloseBtn');
+  const modalActionBtn = document.getElementById('modalActionBtn');
+
+  document.querySelectorAll('.bento-card[data-room]').forEach(card => {
+    card.addEventListener('click', () => {
+      const key = card.getAttribute('data-room');
+      openModal(ROOM_DETAILS[key]);
+    });
+  });
+
+  document.querySelectorAll('[data-policy]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const key = btn.getAttribute('data-policy');
+      openModal(POLICY_DETAILS[key]);
+    });
+  });
+
+  if (modalCloseBtn) modalCloseBtn.addEventListener('click', closeModal);
+  if (roomModal) {
+    roomModal.addEventListener('click', (e) => {
+      if (e.target === roomModal) closeModal();
+    });
+  }
+  if (modalActionBtn) {
+    modalActionBtn.addEventListener('click', () => {
+      sfx.chord([523.25, 659.25, 783.99]);
+      closeModal();
+    });
+  }
+
+  // Demo Modal bindings
+  const demoModal = document.getElementById('demoModal');
+  const demoModalCloseBtn = document.getElementById('demoModalCloseBtn');
+  const demoModalActionBtn = document.getElementById('demoModalActionBtn');
+  const watchDemoBtn = document.getElementById('watchDemoBtn');
+  const demoPlayTrigger = document.getElementById('demoPlayTrigger');
+
+  if (watchDemoBtn) watchDemoBtn.addEventListener('click', openDemoModal);
+  if (demoPlayTrigger) demoPlayTrigger.addEventListener('click', openDemoModal);
+  if (demoModalCloseBtn) demoModalCloseBtn.addEventListener('click', closeDemoModal);
+  if (demoModalActionBtn) {
+    demoModalActionBtn.addEventListener('click', () => {
+      sfx.chord([523.25, 659.25, 783.99]);
+      closeDemoModal();
+    });
+  }
+  if (demoModal) {
+    demoModal.addEventListener('click', (e) => {
+      if (e.target === demoModal) closeDemoModal();
+    });
+  }
+
+  // Keyboard accessibility
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (roomModal && roomModal.classList.contains('open')) closeModal();
+      if (demoModal && demoModal.classList.contains('open')) closeDemoModal();
+    }
+  });
+}
+initLandingModals();
+
+function initFaqAccordion() {
+  const triggers = document.querySelectorAll('.faq-trigger');
+  triggers.forEach(trigger => {
+    trigger.addEventListener('click', () => {
+      const item = trigger.closest('.faq-item');
+      if (!item) return;
+      const isOpen = item.classList.contains('open');
+
+      document.querySelectorAll('.faq-item.open').forEach(other => {
+        if (other !== item) {
+          other.classList.remove('open');
+          const otherTrigger = other.querySelector('.faq-trigger');
+          if (otherTrigger) otherTrigger.setAttribute('aria-expanded', 'false');
+        }
+      });
+
+      if (isOpen) {
+        item.classList.remove('open');
+        trigger.setAttribute('aria-expanded', 'false');
+      } else {
+        item.classList.add('open');
+        trigger.setAttribute('aria-expanded', 'true');
+        sfx.chime(520, 0.08, 'sine', 0.02);
+      }
+    });
+  });
+}
+initFaqAccordion();
 
 /* ============================================================
    11. INTERACTIVE SKILL NODE CONSTELLATION GRAPH PLAYGROUND
@@ -2310,6 +2431,8 @@ if (typeof window !== 'undefined') {
     try { if (typeof initTourAndSubmission === 'function') initTourAndSubmission(); } catch (_) {}
     try { if (typeof initFooterInteractions === 'function') initFooterInteractions(); } catch (_) {}
     try { if (typeof initBackToTop === 'function') initBackToTop(); } catch (_) {}
+    try { if (typeof initLandingModals === 'function') initLandingModals(); } catch (_) {}
+    try { if (typeof initFaqAccordion === 'function') initFaqAccordion(); } catch (_) {}
   };
 }
 

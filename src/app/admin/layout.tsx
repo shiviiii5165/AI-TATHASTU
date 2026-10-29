@@ -1,17 +1,24 @@
-import Link from "next/link";
+import type { ReactNode } from "react";
+import { connection } from "next/server";
 
-import { BrandLogo } from "@/components/brand-logo";
+import { AdminShell } from "@/components/admin/admin-shell";
+import { requireAdmin } from "@/lib/admin";
+import { getAdminContext } from "@/lib/admin/rbac";
 
-export default function AdminLayout({ children }: LayoutProps<"/admin">) {
+export const instant = false;
+
+export default async function AdminLayout({ children }: { children: ReactNode }) {
+  await connection();
+  const user = await requireAdmin();
+  const ctx = await getAdminContext(user);
+
   return (
-    <div className="min-h-dvh">
-      <header className="flex items-center justify-between border-b px-6 py-4 sm:px-10">
-        <Link href="/dashboard" className="rounded-sm focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none">
-          <BrandLogo />
-        </Link>
-        <span className="font-mono text-xs tracking-wider text-muted-foreground uppercase">Admin</span>
-      </header>
-      <main className="px-6 py-10 sm:px-10">{children}</main>
-    </div>
+    <AdminShell
+      userEmail={user.email || "admin@aitathastu.com"}
+      userName={user.name}
+      role={ctx?.role || "super_admin"}
+    >
+      {children}
+    </AdminShell>
   );
 }
