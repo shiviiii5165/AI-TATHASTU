@@ -790,6 +790,13 @@ function initLandingModals() {
       const key = card.getAttribute('data-room');
       openModal(ROOM_DETAILS[key]);
     });
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        const key = card.getAttribute('data-room');
+        openModal(ROOM_DETAILS[key]);
+      }
+    });
   });
 
   document.querySelectorAll('[data-policy]').forEach(btn => {

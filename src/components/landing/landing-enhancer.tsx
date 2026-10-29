@@ -28,15 +28,11 @@ export function LandingEnhancer() {
     root.querySelectorAll<HTMLAnchorElement>(".ref-signin-link").forEach((link) => {
       link.style.display = "none";
     });
+    // Update destination according to authentication/onboarding state
+    // while keeping the exact button label consistent as "Get Started Free"
     root.querySelectorAll<HTMLAnchorElement>(
       "#navCreateProfileBtn, #mobileGetStartedBtn, #ctaStartFreeBtn, .btn-final-cta, .ref-primary-cta, #ctaCardCreateBtn"
     ).forEach((btn) => {
-      const textSpan = btn.querySelector("span");
-      if (textSpan) {
-        textSpan.textContent = "Open Dashboard";
-      } else {
-        btn.innerHTML = '<span>Open Dashboard</span> <span aria-hidden="true">&rarr;</span>';
-      }
       btn.href = "/api/session/refresh";
     });
   }, [signedIn]);

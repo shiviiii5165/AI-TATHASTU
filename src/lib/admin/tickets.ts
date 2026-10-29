@@ -260,7 +260,7 @@ export async function getTicketDetails(
 
   if (!ticket) return null;
 
-  let messageQuery = db
+  const messageQuery = db
     .select()
     .from(supportMessages)
     .where(

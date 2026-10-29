@@ -34,9 +34,9 @@ import {
 describe("Admin Control Center — Security & RBAC Matrix", () => {
   it("grants super_admin universal access across all permissions", () => {
     const context: AdminAuthContext = {
-      user: { id: "admin-1", email: "admin@aitathastu.com", name: "Super Admin" } as any,
+      user: { id: "admin-1", email: "admin@aitathastu.com", name: "Super Admin" } as unknown as AdminAuthContext["user"],
       role: "super_admin",
-      permissions: ["*"] as any,
+      permissions: ["*"] as unknown as AdminPermission[],
       isSuperAdmin: true,
     };
 
@@ -50,7 +50,7 @@ describe("Admin Control Center — Security & RBAC Matrix", () => {
   it("restricts support_agent to support and read operations only", () => {
     const perms = getRolePermissions("support_agent");
     const context: AdminAuthContext = {
-      user: { id: "agent-1", email: "agent@aitathastu.com", name: "Support Agent" } as any,
+      user: { id: "agent-1", email: "agent@aitathastu.com", name: "Support Agent" } as unknown as AdminAuthContext["user"],
       role: "support_agent",
       permissions: perms,
       isSuperAdmin: false,
@@ -73,7 +73,7 @@ describe("Admin Control Center — Security & RBAC Matrix", () => {
   it("enforces least-privilege boundary on ai_ops role", () => {
     const perms = getRolePermissions("ai_ops");
     const context: AdminAuthContext = {
-      user: { id: "ai-1", email: "ai@aitathastu.com", name: "AI Ops" } as any,
+      user: { id: "ai-1", email: "ai@aitathastu.com", name: "AI Ops" } as unknown as AdminAuthContext["user"],
       role: "ai_ops",
       permissions: perms,
       isSuperAdmin: false,
@@ -93,7 +93,7 @@ describe("Admin Control Center — Security & RBAC Matrix", () => {
   it("enforces boundaries on finance_admin role", () => {
     const perms = getRolePermissions("finance_admin");
     const context: AdminAuthContext = {
-      user: { id: "fin-1", email: "finance@aitathastu.com", name: "Finance Admin" } as any,
+      user: { id: "fin-1", email: "finance@aitathastu.com", name: "Finance Admin" } as unknown as AdminAuthContext["user"],
       role: "finance_admin",
       permissions: perms,
       isSuperAdmin: false,
@@ -107,7 +107,7 @@ describe("Admin Control Center — Security & RBAC Matrix", () => {
 
   it("honors custom permission overrides for specific team members", () => {
     const context: AdminAuthContext = {
-      user: { id: "agent-2", email: "lead@aitathastu.com", name: "Lead Agent" } as any,
+      user: { id: "agent-2", email: "lead@aitathastu.com", name: "Lead Agent" } as unknown as AdminAuthContext["user"],
       role: "support_agent",
       permissions: [...getRolePermissions("support_agent"), "students.sessions.revoke"],
       isSuperAdmin: false,

@@ -31,7 +31,7 @@ export async function listStudents(options: ListStudentsOptions = {}) {
   }
 
   if (options.role) {
-    conditions.push(eq(users.role, options.role as any));
+    conditions.push(eq(users.role, options.role as (typeof users.$inferSelect)["role"]));
   }
 
   if (options.university) {

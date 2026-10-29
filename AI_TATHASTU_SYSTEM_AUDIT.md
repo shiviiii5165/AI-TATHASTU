@@ -1888,3 +1888,119 @@ The AI Tathastu landing page has been systematically restructured in accordance 
 - **Admin Unit Test Suite (`npx vitest run src/lib/admin/admin.test.ts`):** Exit Code 0 (16/16 tests passing).
 - **Next.js Production Build (`npm run build`):** Exit Code 0 (102/102 static and dynamic routes prerendered with Turbopack, `○ /` compiled statically with zero hydration errors).
 - **Branch & Repository State:** Local working directory clean on `main`. No commits, merges, or pushes performed.
+
+
+---
+
+## 54. LANDING PAGE FINAL COMPLIANCE & VISUAL QA AUDIT
+
+### 54.1 Executive Summary
+
+A comprehensive compliance audit and visual quality-assurance sweep was executed on the AI Tathastu landing page redesign. All rendered HTML, client behaviors, responsive viewports, and visual artifacts were verified against the approved design and copy specifications. Discrepancies identified during inspection—including header CTA naming consistency, dark-mode FAQ typography contrast, and room-card keyboard accessibility—were corrected, validated through automated end-to-end tests, and visually verified across desktop and mobile screenshot captures.
+
+### 54.2 Confirmed Discrepancies & Resolutions
+
+1. **Header CTA Consistency Across Auth States:**
+   - *Discrepancy:* `src/components/landing/landing-enhancer.tsx` previously changed the primary button label to `"Open Dashboard"` when signed in.
+   - *Correction:* Updated `landing-enhancer.tsx` to maintain the exact label `"Get Started Free"` consistently for both signed-out and signed-in visitors. Only the destination `href` changes to `/api/session/refresh` for authenticated users (which safely resolves to `/dashboard` if onboarded, or the user's authoritative onboarding step if incomplete), while hiding `.ref-signin-link`.
+
+2. **Dark Mode FAQ Text Contrast (WCAG Compliance):**
+   - *Discrepancy:* In initial visual screenshot inspection (`qa-faq-expanded.png`), FAQ question triggers (`.faq-q-text`) and support headlines lacked explicit high-contrast color declarations for dark theme, resulting in low contrast against dark card surfaces.
+   - *Correction:* Added explicit CSS styling in `src/styles/landing.css` for `.faq-q-text`, `.faq-headline`, `.faq-answer-inner p`, `.faq-support-headline`, and `.faq-support-card` utilizing `--ink` (`#F7F8FC`) and `--ink-soft` (`#C4CAD8`), achieving WCAG AAA contrast ratio in dark mode.
+
+3. **Room Card Keyboard Accessibility (WCAG 2.2 AA):**
+   - *Discrepancy:* Bento room cards possessed `role="button"` and `tabindex="0"` but only bound mouse `click` handlers in `public/landing.js`.
+   - *Correction:* Added `keydown` event listeners to `.bento-card[data-room]` in `public/landing.js` to trigger the room modal on `Enter` and `Space` keystrokes.
+
+4. **Code Quality & ESLint Compliance:**
+   - *Discrepancy:* 8 ESLint errors in admin libraries (`prefer-const` in `tickets.ts`, explicit `any` in `students.ts` and `admin.test.ts`).
+   - *Correction:* Resolved all 8 errors with strong typing and const bindings. `npm run lint` now completes with 0 errors.
+
+### 54.3 Exact Section & Copy Verification Matrix
+
+| Section | Required Copy / Element | Rendered Status | Verification Method |
+|---|---|---|---|
+| **Header** | Logo: `icon-192.png`<br>CTA: `Get Started Free` | Confirmed exact | Playwright E2E & Visual Screenshot |
+| **Rooms** | `Avasar` (`Get Hired`)<br>`Learn` (`Grow`)<br>`Collaborate` (`Build`)<br>`Meet` (`Get Guidance`)<br>`IRIS` (`ASSESS`) | Confirmed exact | Vitest unit test & Playwright modal trigger |
+| **How it works** | Label: `How it works`<br>Heading: `From your work to your next step.`<br>Subtitle: `Five simple steps. You stay in control.` | Confirmed exact | Vitest assertion & Visual Screenshot (`qa-how-it-works.png`) |
+| **Demo** | Heading: `See it in action`<br>CTA: `Watch Demo (2 min)`<br>Asset: `/brand/dashboard-hero-backdrop.jpg`<br>Behavior: Coming Soon modal | Confirmed exact | Playwright modal check & Visual Screenshot (`qa-demo-section.png`, `qa-demo-modal.png`) |
+| **Privacy** | 1. `Secure & Encrypted Data Storage`<br>2. `You Own Your Data (Export or Delete Anytime)`<br>3. `No Training on Your Personal Data (Without Consent)`<br>4. `Granular Privacy Controls (Choose What to Share)`<br>Link: `Read our Privacy Policy →` | Confirmed exact | Vitest contract test & Visual Screenshot (`qa-privacy-section.png`) |
+| **FAQ** | 5 interactive accordion questions + "Still have questions?" card linking to `/contact` | Confirmed exact | Playwright accordion test & Visual Screenshot (`qa-faq-expanded.png`) |
+| **Final CTA** | Heading: `Start your career journey today`<br>Subtitle: `Join thousands of students who are already building a brighter future with AI Tathastu.`<br>CTA: `Get Started Free →`<br>Reassurances: `No credit card required`<br>`Takes less than 2 minutes` | Confirmed exact | Vitest contract test & Visual Screenshot (`qa-final-cta.png`) |
+| **Footer** | Complete footer preserved | Confirmed exact | Playwright DOM attachment check |
+
+### 54.4 Verification Suite Results
+
+1. **TypeScript Typecheck (`npm run typecheck`):**
+   - Exit Code: **0** (0 type errors).
+2. **ESLint (`npm run lint`):**
+   - Exit Code: **0** (0 errors, 110 benign warnings in legacy scripts).
+3. **Full Vitest Suite (`npm test`):**
+   - Exit Code: **0** (21 test files passed, 194/194 tests passed in 8.03s).
+4. **Playwright Landing Page E2E (`npx playwright test e2e/landing-redesign.spec.ts`):**
+   - Exit Code: **0** (8/8 browser tests passed in Chromium).
+5. **Visual Screenshot Capture Suite (`npx playwright test e2e/capture-qa-screenshots.spec.ts`):**
+   - Exit Code: **0** (Generated 7 visual QA artifacts in artifact directory).
+6. **Next.js Production Build (`npm run build`):**
+   - Exit Code: **0** (102/102 routes compiled and prerendered cleanly with Turbopack, static `○ /` with zero hydration mismatches).
+
+### 54.5 Visual Inspection & Accessibility Findings
+
+- **Zero Horizontal Overflow:** Verified at 1440px desktop, 1280px standard, 1024px tablet, and 390px mobile viewports (`scrollWidth === innerWidth`).
+- **Theme Integrity:** Verified readable contrast across both Light (`--bg: #FFFFFF`, `--ink: #121624`) and Dark (`--bg: #101116`, `--ink: #F7F8FC`) modes.
+- **Motion Accessibility:** All pulse and glow animations include `@media (prefers-reduced-motion: reduce)` overrides disabling continuous transitions.
+- **Keyboard Navigation:** Full tab-order navigation, Enter/Space activation on room cards, and Escape key modal closure with trigger focus restoration.
+
+### 54.6 Git Working Tree Status
+
+- **Branch:** `main`
+- **Working Tree:** Contains verified local corrections; no commits, merges, pushes, or resets performed.
+
+
+---
+
+## 55. Landing Page Hero Restoration & Complete 10-Section Architecture Recovery
+
+### 55.1 Root Cause Analysis
+
+In commit `bec6fa1`, the landing page was updated to implement the 5 rooms bento architecture, demo section, privacy cards, FAQ accordions, and final CTA. During the removal of the legacy university logo showcase (`trustedStrip`), the top hero section (`<header class="ref-hero" id="top">`) was inadvertently bypassed, placing the 5-rooms ecosystem directly beneath the navigation header.
+
+### 55.2 Safe Restoration & Architecture Integration
+
+1. **Archeological Recovery:**
+   - Extracted the exact, canonical 3-part hero composition from commit `fa6bb53:src/components/landing/landing-markup.ts`.
+   - Re-inserted the full hero `<header class="ref-hero" id="top">` (~16.7KB) immediately following the floating 3D navbar (`.ref-nav-shell`) and immediately preceding the 5 rooms section (`#ecosystem`).
+2. **Canonical Composition Verified:**
+   - **Headline & Copy:** `Know where you stand.<br>Know what to do next.` with exact supporting text: `Connect your GitHub, LinkedIn, LeetCode and resume. See what skills you have, what is missing, and what to learn next.`
+   - **CTAs:** Coral gradient `Get started →` (`.ref-primary-cta`, dynamic session routing to `/api/session/refresh`) and `See how it works` (`#seeHowItWorksBtn`, smooth scroll to `#how`).
+   - **Central Profile Card (`#refCentralCard`):** "YOUR PROFILE" header, verified circular avatar of `Ananya Sharma`, title `Computer Science Student`, and 4 data pills (`Skills 24`, `Projects 8`, `Publications 5`, `Opportunities 14`).
+   - **7 Source Cards (`#refSourceCol`):** `Resume`, `GitHub`, `LinkedIn`, `LeetCode`, `Kaggle`, `Research Papers`, `Projects`.
+   - **Dynamic SVG Bezier Connectors (`#refSvgConnectionsGroup`):** Smooth multi-color animated bezier paths dynamically generated by `initReferenceEcoConnections()` in `public/landing.js`.
+   - **3 Destination Output Cards (`#refDestCol`):** `Opportunities` (Internships, Jobs, Research, Collaborations), `Learning` (Skill Roadmaps, AI Modules, Certifications), `Connections` (Peers, Mentors, Communities).
+   - **Spectral Mesh Wave Background:** `#refMeshCanvas` canvas wave simulation powered by `initReferenceMeshWaves()`.
+3. **Absence of College Showcase:**
+   - Verified that `trustedStrip` / university logo banner remains completely removed from the landing page.
+
+### 55.3 Exact 10-Section Page Sequence
+
+| Step | Section ID / Class | Purpose & Content | Verification Status |
+|---|---|---|---|
+| **1** | `.ref-nav-shell` | Floating 3D capsule header (`icon-192.png`, nav links, theme toggle, `Get Started Free` CTA) | Verified |
+| **2** | `#top` / `.ref-hero` | Restored canonical hero (`Know where you stand...`, 7 sources -> profile -> 3 outputs) | Verified |
+| **3** | `#ecosystem` | How AI Tathastu helps you (5 rooms: Avasar, Learn, Collaborate, Meet, IRIS) | Verified |
+| **4** | `#how` | How it works (5 numbered process steps: 01 to 05) | Verified |
+| **5** | `#demo` | See it in action (16:9 interactive player frame with `/brand/dashboard-hero-backdrop.jpg`) | Verified |
+| **6** | `#campus` | Real Stories · Backed by Work (Preserved 3D student testimonial coverflow cards) | Verified |
+| **7** | `#privacy` | Your data. Your control. (4 exact benefit cards + link to `/privacy`) | Verified |
+| **8** | `#faq` | Frequently asked questions (5 accordion items + Still have questions? support card) | Verified |
+| **9** | `#start` | Start your career journey today (Final CTA with exact reassurance strings) | Verified |
+| **10** | `#footer` | Complete comprehensive platform footer with legal links, social links, and newsletter | Verified |
+
+### 55.4 Test & Verification Summary
+
+1. **TypeScript (`npm run typecheck`):** Exit Code **0** (0 type errors).
+2. **ESLint (`npm run lint`):** Exit Code **0** (0 errors).
+3. **Vitest Unit Suite (`npx vitest run`):** Exit Code **0** (21 test suites passed, 195/195 tests passed in 7.11s).
+4. **Playwright E2E Suite (`npx playwright test e2e/landing-redesign.spec.ts`):** Exit Code **0** (9/9 passed in 33.1s).
+5. **Next.js Production Build (`npm run build`):** Exit Code **0** (102/102 routes compiled and prerendered cleanly).
+6. **Visual Inspection:** Screen capture artifacts `qa-restored-hero-desktop.png` and `qa-landing-desktop-light.png` inspected and confirmed matching canonical visual design reference.
