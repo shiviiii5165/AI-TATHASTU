@@ -96,12 +96,17 @@ function initReferenceEcoConnections() {
     const stageRect = stage.getBoundingClientRect();
     if (!stageRect.width || !stageRect.height) return;
 
-    if (window.innerWidth <= 1080 || stageRect.width < 780) {
+    // Draw only while sources, profile and outcomes sit side by side with room
+    // for a curve; the stacked mobile layout uses its own bridges instead.
+    const cardRect = centralCard.getBoundingClientRect();
+    const srcRect = sourceCards[0].getBoundingClientRect();
+    const destRect = destCards.length ? destCards[0].getBoundingClientRect() : null;
+    const MIN_SPAN = 24;
+    if (cardRect.left - srcRect.right < MIN_SPAN || (destRect && destRect.left - cardRect.right < MIN_SPAN)) {
       svgGroup.innerHTML = "";
       return;
     }
 
-    const cardRect = centralCard.getBoundingClientRect();
     const cardLeftX = cardRect.left - stageRect.left;
     const cardRightX = cardRect.right - stageRect.left;
     const cardCenterY = cardRect.top - stageRect.top + cardRect.height / 2;

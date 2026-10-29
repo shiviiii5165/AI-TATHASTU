@@ -233,7 +233,7 @@ export function ContactContent() {
             <div className="brand-text-col">
               <span className="brand-name">AI Tathastu</span>
               <span className="brand-sub">
-                You imagine. AI Tathastu makes it happen.
+                Your Dreams. Our Intelligence. <span className="font-semibold text-[#FF2A85]">Tathastu.</span>
               </span>
             </div>
           </Link>
@@ -870,7 +870,7 @@ export function ContactContent() {
                   <div className="footer-brand-text">
                     <span className="footer-brand-name">AI Tathastu</span>
                     <span className="footer-brand-tagline">
-                      You imagine. AI Tathastu makes it happen.
+                      Your Dreams. Our Intelligence. <span className="font-semibold text-[#FF2A85]">Tathastu.</span>
                     </span>
                   </div>
                 </Link>

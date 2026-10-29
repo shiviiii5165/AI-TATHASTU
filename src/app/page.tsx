@@ -4,7 +4,7 @@ import { LandingPage } from "@/components/landing/landing-page";
 import "@/styles/landing.css";
 
 export const metadata: Metadata = {
-  title: "AI Tathastu: You imagine. AI Tathastu makes it happen.",
+  title: "AI Tathastu: Your Dreams. Our Intelligence. Tathastu.",
   description:
     "Connect your GitHub, LinkedIn, LeetCode and resume. See what skills you have, what is missing, and what to learn next.",
 };

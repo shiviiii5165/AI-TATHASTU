@@ -36,7 +36,7 @@ export const STARTER_TEMPLATES = [
     category: "account",
     description: "Sent to newly registered students upon account creation",
     subject: "Welcome to AI Tathastu, {{student_name}}!",
-    preheader: "You imagine. AI Tathastu makes it happen.",
+    preheader: "Your Dreams. Our Intelligence. Tathastu.",
     htmlBody: `<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; color: #1e293b;">
   <h2 style="color: #0f172a; font-size: 24px; font-weight: 800;">Welcome to AI Tathastu</h2>
   <p style="font-size: 16px; line-height: 1.6;">Hi {{student_name}},</p>

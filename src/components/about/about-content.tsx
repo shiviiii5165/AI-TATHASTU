@@ -337,7 +337,7 @@ export function AboutContent() {
             <Image src="/icons/icon-192.png" alt="AI Tathastu" className="brand-logo-mark" width={40} height={40} />
             <div className="brand-text-col">
               <span className="brand-name">AI Tathastu</span>
-              <span className="brand-sub">You imagine. AI Tathastu makes it happen.</span>
+              <span className="brand-sub">Your Dreams. Our Intelligence. <span className="font-semibold text-[#FF2A85]">Tathastu.</span></span>
             </div>
           </Link>
 
@@ -824,7 +824,7 @@ export function AboutContent() {
                     <Image src="/icons/icon-192.png" alt="AI Tathastu" className="footer-brand-icon" width={34} height={34} />
                     <div className="footer-brand-text">
                       <span className="footer-brand-name">AI Tathastu</span>
-                      <span className="footer-brand-tagline">You imagine. AI Tathastu makes it happen.</span>
+                      <span className="footer-brand-tagline">Your Dreams. Our Intelligence. <span className="font-semibold text-[#FF2A85]">Tathastu.</span></span>
                     </div>
                   </Link>
                 </div>

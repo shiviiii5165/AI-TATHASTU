@@ -50,12 +50,12 @@ export function BrandLogo({
         {withTagline && (
           <span
             className={cn(
-              "font-sans font-medium text-slate-500 dark:text-slate-400 hidden min-[400px]:block",
+              "font-sans font-medium text-slate-500 dark:text-slate-400 hidden min-[400px]:block tracking-tight",
               currentSize.taglineClass,
               taglineClassName
             )}
           >
-            You imagine. AI Tathastu makes it happen.
+            Your Dreams. Our Intelligence. <span className="font-semibold text-slate-800 dark:text-slate-200">Tathastu.</span>
           </span>
         )}
       </span>

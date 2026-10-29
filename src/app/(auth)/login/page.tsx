@@ -25,7 +25,7 @@ const scriptFont = Caveat({
 
 export const metadata: Metadata = {
   title: "Sign In · AI Tathastu",
-  description: "You imagine. AI Tathastu makes it happen.",
+  description: "Your Dreams. Our Intelligence. Tathastu.",
 };
 
 const ERRORS: Record<string, string> = {

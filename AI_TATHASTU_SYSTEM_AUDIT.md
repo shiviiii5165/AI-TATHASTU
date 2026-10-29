@@ -2004,3 +2004,160 @@ In commit `bec6fa1`, the landing page was updated to implement the 5 rooms bento
 4. **Playwright E2E Suite (`npx playwright test e2e/landing-redesign.spec.ts`):** Exit Code **0** (9/9 passed in 33.1s).
 5. **Next.js Production Build (`npm run build`):** Exit Code **0** (102/102 routes compiled and prerendered cleanly).
 6. **Visual Inspection:** Screen capture artifacts `qa-restored-hero-desktop.png` and `qa-landing-desktop-light.png` inspected and confirmed matching canonical visual design reference.
+
+---
+
+## 56. FAQ, Support Panel & Final CTA Precision Redesign (2026-10-30)
+
+### 56.1 Changes
+
+Files: `src/components/landing/landing-markup.ts` (FAQ support card and `#start` blocks only), `src/styles/landing.css` (FAQ + final-CTA rules and their media queries), new asset `public/img/help-illustration.webp`.
+
+- **FAQ:** Removed the `Clear answers` kicker badge. Heading reduced to `clamp(1.6rem, 2.2vw, 1.875rem)` (~30px on desktop). Closed rows are 50px, with 10px gaps. Grid is ~53/47 (`1.15fr / 1fr`) with a 32px gap. The five questions and their answers are unchanged; the answers were checked against the code (Google + email sign-in in `src/auth.ts`, PDF/DOCX in `src/lib/uploads/resume.ts`, IRIS naming used across dashboard code, no billing code present).
+- **Support card:** Lavender/blue tinted card with the copy on the left and the woman-with-laptop illustration on the right. The `Support team active · Responses within 24 hours` line was removed because nothing in the code implements it. The `Visit Help Center →` link still points to `/contact` (200 OK). The card's minimum height (342px) matches the closed FAQ column so both columns' tops and bottoms align.
+- **Illustration asset:** The supplied 1536×1024 artwork had an opaque black background with a glow. The black was converted to alpha (un-premultiplied over black, with the subject area forced opaque so dark hair stays solid), then cropped and resized to 640×494 WebP (74 KB). The `<img>` has explicit width/height and `aspect-ratio` to prevent layout shift. In dark mode a radial mask softens the halo edge.
+- **Final CTA:** Removed the bordered/glowing card in favour of a pastel radial-gradient section background. The layout is a 3-column grid (`minmax(200px,1fr) | ≤620px | minmax(200px,1fr)`). Four avatar pills use existing 160px WebP avatars as decorative 36px circles (`alt=""`) and replace the earlier emoji icons. The pills are staggered (first pill inset 36px, second pill 56px lower). Faint 1.5px SVG connector curves (`vector-effect: non-scaling-stroke`, pointer-events none, `aria-hidden`) run from the callouts and end before the centre column. The headline (`clamp(1.9rem, 2.8vw, 2.5rem)`) fits on one line at 1280px and above. The reassurance lines share one row with a dot separator and wrap on narrow screens. All copy strings are unchanged. `#ctaStartFreeBtn` and its `/login` link are unchanged, and the enhancer's override still applies.
+- **Responsive:** Below 1100px the centre column comes first, the callouts form two columns underneath, and the connector lines are hidden. Below 640px the callouts stack centred. Below 520px the support illustration moves below the copy (max 300px wide).
+- **Contact-page safety:** `contact.css` reuses `.faq-*` class names, so the new `min-height` and `border-radius` on `.faq-trigger` are scoped to `.faq-section`. Contact FAQ triggers were measured as unchanged (67px tall, 20px 24px padding, 0 radius).
+- **Reduced motion:** `.faq-item`, `.faq-answer-panel` and `.faq-support-cta` were added to the existing `prefers-reduced-motion` list.
+
+### 56.2 Verification (actual results)
+
+| Check | Result |
+|---|---|
+| `npx tsc --noEmit` | exit 0 |
+| `npx eslint src/components/landing` | exit 0 |
+| `npx vitest run src/components/landing` | exit 0, 9/9 |
+| `npx next build` | exit 0 |
+| Browser render (Edge via Playwright, reduced motion) at 1440/1280/1024/768/430/390/375/320 | Horizontal overflow 0 at every width. FAQ heading and support card tops align on desktop. Illustration loaded and visible at every width. Pills don't collide with the headline or button. Footer follows directly after the section. |
+| Dark mode (1440, 390) | Rendered and inspected. Text is legible and the halo is softened. |
+| Accordion: mouse click and Enter/Space for all 5 items | Opens and closes correctly. `aria-expanded` and panel visibility stay in sync. |
+| Playwright e2e suite (`e2e/landing-redesign.spec.ts`) | **Not run.** Playwright's bundled browsers aren't installed on this machine. |
+
+---
+
+## 57. Landing page responsive audit and fixes (2026-10-30)
+
+Scope: the public landing page (`/`), with the approved design kept as the source of truth. No copy, colours, typography, section order, routes or behaviour were changed. No dependencies were added. Nothing was committed, pushed or deployed.
+
+**Evidence types used**
+- **Source inspection:** `src/components/landing/landing-markup.ts`, `src/styles/landing.css`, `public/landing.js`.
+- **Browser rendering:** production build (`node load/serve.mts`, e2e environment only), driven by Playwright with installed Chrome and reduced motion. Viewport screenshots were taken and inspected by eye.
+- **Automated tests:** Playwright and Vitest.
+- **Not done:** physical-device testing, Firefox and WebKit (see 57.6).
+
+### 57.1 Baseline method
+
+Two scanners ran against the unmodified tree:
+1. **Overflow scan, 30 viewports** (320×640 up to 2560×1440: 11 phone widths, foldable 600–720, tablets 768–1180 in portrait and landscape, laptops 1024×600 to 2560×1440). It lists every visible in-flow element extending past the viewport, plus header control overlaps.
+2. **Clipping scan, 21 viewports.** It lists text, buttons, links and images cut off by an `overflow: hidden` ancestor, and controls smaller than 24 px.
+
+**Why scrollWidth checks aren't enough here:** `body` sets `overflow-x: hidden` (`landing-base.css`, `landing.css`), so `document.scrollWidth` can never exceed the viewport. Content pushed past the edge is silently clipped instead. The existing overflow assertions in `responsive-viewports.spec.ts` and `landing-redesign.spec.ts` therefore can't fail. The new spec measures element geometry instead.
+
+**Baseline result:** no element extended past the viewport and no header controls collided, at any of the 30 sizes. Five real defects were found inside clipping containers and in the hero script.
+
+### 57.2 Defects found and fixed
+
+| # | Defect (measured) | Viewports | Root cause | Fix |
+|---|---|---|---|---|
+| R1 | Hero connector curves missing: source, profile and outcome cards render unconnected | 769–1239 px | `public/landing.js` cleared the paths whenever `innerWidth <= 1080` or the stage was under 780 px, although the CSS keeps a side-by-side stage down to 769 px | The script now draws whenever the cards are actually side by side with at least 24 px for a curve, measured from live card positions. Path geometry is unchanged. |
+| R2 | Hero outcome cards cut off: right edge at 1025 px on a 921 px screen; card gaps 0–22 px | 921–1100 px | The three-column stage needs about 629 px, but the grid column beside the 340 px copy column was narrower; the hero's clipping box hid the overflow | The existing stacked hero (copy above, stage centred below, previously ≤920 px only) now applies at ≤1160 px. The nav still switches to the menu button at 920 px, as before. |
+| R3 | "Research Papers" truncated to "Research Pa…" | ≤1280 px desktop, ≤~380 px phone | Source cards narrowed to 165 px at ≤1280; fixed-width 2-column grid on phones | ≤1280 px: 176 px source cards (desktop default 182 px is unchanged). ≤480 px: the label may wrap to two lines inside the existing card height. |
+| R4 | Real Stories centre card wider than the screen (both borders cut off at 320 px), and the author row spilling past the card's bottom border (scrollHeight 281 vs 266) | all widths ≤768 px | Fixed `width: 340px; height: 270px` at ≤768 px | `width: min(340px, 100vw − 32px)`, `height: auto` with the old 270 px as minimum, stage 290 → 310 px. At ≤480 px the proof pill ("15-Min Live Guidance") wraps under the author instead of squeezing the name to three lines. |
+| R5 | Touch targets: carousel dots 7×7 px, footer legal buttons 14 px tall | all | — | Invisible hit areas: dot `::before` (25 px tall); legal buttons `padding 5px 0` with an equal negative margin. No visual change. |
+
+**Remaining touch-target note:** inactive dots are 15 px wide (spacing 15 px between centres), so the horizontal hit area is still below 24 px. Making it larger would require changing the visible dot spacing, which is a design change and was not made.
+
+**Reviewed, no change needed:** header and mobile menu at every width (no collisions, theme toggle and CTA fit at 320 px); How It Works, privacy cards, FAQ and support card, final CTA and footer (no clipped content found by the scanner or in screenshots); demo dialog fits 320×568, 667×375 and 1024×600, with the close button in view and Escape working.
+
+**Intentional, not defects:** the Real Stories side cards extend past the section edge. This is the coverflow design: the scanner flags them, but only the centre card has to fit.
+
+### 57.3 Files changed
+
+| File | Change |
+|---|---|
+| `public/landing.js` | R1: layout-based connector condition in `initReferenceEcoConnections` |
+| `src/styles/landing.css` | R2: new `@media (max-width: 1160px)` hero-stack block (moved from the 920 px block, which now holds only the nav switch); R3: 176 px source cards at ≤1280, label wrap at ≤480; R4: story card and stage rules at ≤768 and ≤480; R5: `.story-dot::before`, `.footer-legal-btn` padding |
+| `e2e/landing-responsive.spec.ts` | New: 18 tests (see 57.5) |
+
+### 57.4 Before and after measurements (Chrome, production build)
+
+| Measurement | Before | After |
+|---|---|---|
+| Hero connectors drawn, 769–1239 px | 0 paths | 20 paths at every width tested (769, 800, 912, 921, 960, 1024, 1080, 1140, 1161, 1180, 1240) |
+| Hero outcome card right edge at 921 px | 1025 px (clipped) | 889 px |
+| Smallest hero card gap when side by side | 0 px | 33 px (769 px) |
+| Truncated hero source labels | at ≤1280 px and 320–375 px | none at the 16 spec viewports |
+| Story centre card at 320 px | x −10 to 330, content spills | x 16 to 304, contained |
+| Story centre card content spilling | every width ≤768 | none |
+| Elements past the viewport (30 sizes) | 0 | 0 |
+
+**Desktop design preservation:** viewport-by-viewport screenshots before and after, compared per pixel (difference threshold 24/255 for anti-aliasing):
+
+- **1366×768, 1440×900, 1920×1080, 2560×1440:** pixel-identical, 0.00 % difference in every frame. Full-page heights unchanged.
+- **1180×820 and 1280×720:** only the first frame differs (1.3 % and 1.7 %: restored connectors, 11 px wider source cards). Heights unchanged.
+- **800–912 px:** first frame differs by 1.1–1.3 % (connectors now drawn in the stacked layout). Heights unchanged.
+- **1024 px:** page 232 px taller because the hero now stacks (R2). All frames shift accordingly.
+- **≤768 px:** page exactly 20 px taller at every width (story stage, R4). Frames above Real Stories are identical. The differences below are the 20 px shift, confirmed by the full-page height comparison.
+
+**Performance:** the changes are a few CSS rules and one conditional in an existing function. No new assets, listeners or animation loops; the existing resize listener and ResizeObserver are unchanged. Transfer size, LCP and TBT were **not re-measured** in this pass, and no performance change is claimed.
+
+### 57.5 Verification (actual exit codes)
+
+| Command | Result |
+|---|---|
+| `npm run typecheck` | exit 0 |
+| `npm run lint` | exit 0 (0 errors; 110 pre-existing warnings, none from changed files) |
+| `npx vitest run` | exit 0, 21 files, 195 tests |
+| `npx playwright test e2e/landing-responsive.spec.ts` | exit 0, 18 passed. The first run failed at 375 px on a truncated "Research Papers" label, which led to the ≤480 px wrap rule. |
+| `npx playwright test` (full suite) | exit 0, **49 passed** |
+
+`landing-responsive.spec.ts` covers 16 viewports (320 to 2560). It checks section order; hero outcome cards inside the viewport; connector paths drawn with gaps of at least 24 px whenever the stage is side by side; no truncated source labels; story centre card inside the viewport with no spill; and no in-flow element past the viewport edge. It also checks that the demo dialog fits three short or narrow sizes (with Escape closing it) and that the dots and legal buttons have a hit area at least 24 px tall.
+
+### 57.6 Limitations
+
+- **Browser engines:** Chromium only (installed Chrome). Firefox and WebKit binaries aren't installed, and were not installed for this task, so Safari-engine and Firefox rendering are **untested**.
+- **Devices:** all phone, foldable and tablet results come from viewport emulation in desktop Chrome. No physical device, touch hardware, iOS safe area or mobile browser chrome was tested.
+- **Zoom and text scaling:** not tested directly. Browser zoom changes the CSS viewport width, so the 320–1440 width matrix approximates 80–200 % zoom on desktop. Larger default text sizes were not tested.
+- **Dark mode:** not re-inspected after these changes. The edited rules set no colours.
+- **Live viewport changes:** the connector script re-runs on resize and ResizeObserver, and the spec loads each width fresh. Resizing an open page across the 1160 px stack point was not separately automated.
+
+
+---
+
+## 56. Universal Brand Tagline Update — "Your Dreams. Our Intelligence. Tathastu."
+
+### 56.1 Summary of Changes
+
+Replaced the legacy brand tagline (`You imagine. AI Tathastu makes it happen.`) everywhere across the platform with the new tagline:
+**`Your Dreams. Our Intelligence. Tathastu.`**
+
+### 56.2 Updated Files & Design Treatments
+
+1. **Shared Brand Component ([`src/components/brand-logo.tsx`](file:///e:/dev/ai-tathastu/src/components/brand-logo.tsx)):**
+   - Tagline updated to: `Your Dreams. Our Intelligence. <span className="font-semibold text-slate-800 dark:text-slate-200">Tathastu.</span>`.
+   - Propagates automatically to all authenticated headers, sidebars, modals, and login layouts.
+2. **Landing Page Shell ([`src/components/landing/landing-markup.ts`](file:///e:/dev/ai-tathastu/src/components/landing/landing-markup.ts)):**
+   - Floating navbar: `<span class="ref-brand-tagline">Your Dreams. Our Intelligence. <span class="ref-tagline-accent">Tathastu.</span></span>`.
+   - Footer lockup: `<span class="footer-brand-tagline">Your Dreams. Our Intelligence. <span class="footer-tagline-accent">Tathastu.</span></span>`.
+3. **Landing Styles ([`src/styles/landing.css`](file:///e:/dev/ai-tathastu/src/styles/landing.css)):**
+   - Added `.ref-tagline-accent` and `.footer-tagline-accent` styled with a vibrant brand gradient (`linear-gradient(135deg, #FF2A85 0%, #FF6B4A 100%)`) and enhanced light/dark theme contrast (`#64748B` light / `#94A3B8` dark).
+4. **Login Page ([`src/app/(auth)/login/page.tsx`](file:///e:/dev/ai-tathastu/src/app/(auth)/login/page.tsx)):**
+   - Updated Next.js metadata description to `"Your Dreams. Our Intelligence. Tathastu."`.
+5. **Landing Page Metadata ([`src/app/page.tsx`](file:///e:/dev/ai-tathastu/src/app/page.tsx)):**
+   - Updated page title to `"AI Tathastu: Your Dreams. Our Intelligence. Tathastu."`.
+6. **About Page ([`src/components/about/about-content.tsx`](file:///e:/dev/ai-tathastu/src/components/about/about-content.tsx)):**
+   - Updated header and footer brand lockups with brand coral accent styling on `Tathastu.`.
+7. **Contact & Support Page ([`src/components/contact/contact-content.tsx`](file:///e:/dev/ai-tathastu/src/components/contact/contact-content.tsx)):**
+   - Updated header and footer brand lockups with brand coral accent styling on `Tathastu.`.
+8. **Admin Email Studio ([`src/lib/admin/email-engine.ts`](file:///e:/dev/ai-tathastu/src/lib/admin/email-engine.ts)):**
+   - Updated system welcome email preheader to `"Your Dreams. Our Intelligence. Tathastu."`.
+
+### 56.3 Verification Suite
+
+- **TypeScript Typecheck (`npm run typecheck`):** Exit Code **0** (0 type errors).
+- **ESLint (`npm run lint`):** Exit Code **0** (0 errors).
+- **Vitest Unit Suite (`npx vitest run`):** Exit Code **0** (21/21 suites, 195/195 tests passed).
+- **Playwright E2E Suite (`npx playwright test e2e/landing-redesign.spec.ts`):** Exit Code **0** (9/9 passed).
+- **Next.js Production Build (`npm run build`):** Exit Code **0** (102/102 static and partially prerendered pages compiled).
+- **Visual Inspection:** Confirmed clean rendering and styling on desktop viewports via `qa-restored-hero-desktop.png`.
