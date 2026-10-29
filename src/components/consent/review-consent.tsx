@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Check, LoaderCircle, Minus } from "lucide-react";
+import { ArrowRight, Check, LoaderCircle, Minus, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useState, useTransition } from "react";
 
@@ -56,53 +56,87 @@ export function ReviewConsent({ summary, initialChoices }: { summary: ProgressSu
     <>
       <div className="mx-auto mt-8 w-full max-w-[880px]">
         <section aria-labelledby="summary-heading">
-          <h2 id="summary-heading" className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-600">
+          <h2 id="summary-heading" className="mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
             Your Information
           </h2>
 
           <div className="grid gap-4 md:grid-cols-2">
-          <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs md:col-span-2">
-            <div className="flex items-baseline justify-between">
-              <p className="text-sm font-semibold text-slate-900">Profile completeness</p>
-              <p className="font-mono text-sm font-semibold text-[#FF2A85]">{Math.round(completeness * 100)}%</p>
-            </div>
-            <div
-              role="progressbar"
-              aria-label="Profile completeness"
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={Math.round(completeness * 100)}
-              className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100"
-            >
+            {/* Profile Completeness - Modernized high-contrast widget */}
+            <div className="rounded-2xl border border-border/80 bg-card p-6 shadow-xs md:col-span-2 transition-all">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex size-8 items-center justify-center rounded-xl bg-gradient-to-br from-[#FF6B4A]/15 via-[#FF2A85]/15 to-[#9333EA]/15 text-[#FF2A85]">
+                      <Sparkles className="size-4" />
+                    </div>
+                    <h3 className="text-base font-bold tracking-tight text-foreground sm:text-lg">
+                      Profile completeness
+                    </h3>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
+                    Everything filled helps us generate accurate matches, recommendations, and intelligence.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 self-start sm:self-center">
+                  <div className="flex items-center gap-2 rounded-full border border-[#FF2A85]/20 bg-[#FF2A85]/10 px-3.5 py-1.5 font-mono text-sm font-extrabold text-[#FF2A85]">
+                    <span>{Math.round(completeness * 100)}%</span>
+                    <span className="text-xs font-semibold text-muted-foreground">
+                      ({checks.filter((c) => c.done).length}/{checks.length} complete)
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Progress bar */}
               <div
-                className="h-full origin-left bg-gradient-to-r from-[#FF5A5F] via-[#F43F5E] to-[#EA580C] transition-transform duration-500"
-                style={{ transform: `scaleX(${completeness})` }}
-              />
+                role="progressbar"
+                aria-label="Profile completeness"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.round(completeness * 100)}
+                className="mt-4 h-2.5 w-full overflow-hidden rounded-full bg-muted/80 p-0.5 border border-border/40"
+              >
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-[#FF6B4A] via-[#FF2A85] to-[#9333EA] shadow-[0_0_12px_rgba(255,42,133,0.35)] transition-all duration-700 ease-out"
+                  style={{ width: `${Math.max(4, Math.round(completeness * 100))}%` }}
+                />
+              </div>
+
+              {/* Checklist items with clear 14px text and distinct badges */}
+              <ul className="mt-5 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+                {checks.map((c) => (
+                  <li
+                    key={c.label}
+                    className={cn(
+                      "flex items-center gap-3 rounded-xl border px-3.5 py-2.5 text-sm transition-colors",
+                      c.done
+                        ? "border-emerald-500/25 bg-emerald-500/[0.05] text-foreground font-semibold"
+                        : "border-border/60 bg-muted/30 text-muted-foreground font-medium",
+                    )}
+                  >
+                    {c.done ? (
+                      <span className="flex size-5.5 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 shadow-2xs">
+                        <Check aria-hidden className="size-3.5 stroke-[2.8]" />
+                      </span>
+                    ) : (
+                      <span className="flex size-5.5 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground/60 border border-border/70">
+                        <Minus aria-hidden className="size-3.5 stroke-[2]" />
+                      </span>
+                    )}
+                    <span className="truncate">{c.label}</span>
+                    <span className="ml-auto text-xs font-semibold">
+                      {c.done ? (
+                        <span className="text-emerald-600 dark:text-emerald-400">Done</span>
+                      ) : (
+                        <span className="text-muted-foreground/70">Optional</span>
+                      )}
+                    </span>
+                    <span className="sr-only">{c.done ? " (done)" : " (not yet)"}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
-            <ul className="mt-4 grid gap-2 sm:grid-cols-2">
-              {checks.map((c) => (
-                <li
-                  key={c.label}
-                  className={cn(
-                    "flex items-center gap-2 text-xs font-medium",
-                    c.done ? "text-slate-800" : "text-slate-500",
-                  )}
-                >
-                  {c.done ? (
-                    <span className="flex size-4 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
-                      <Check aria-hidden className="size-3 stroke-[2.5]" />
-                    </span>
-                  ) : (
-                    <span className="flex size-4 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-                      <Minus aria-hidden className="size-3" />
-                    </span>
-                  )}
-                  {c.label}
-                  <span className="sr-only">{c.done ? " (done)" : " (not yet)"}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
 
             {summary.answers.map((a) => (
               <SummaryCard key={a.term} term={a.term} href={a.href}>
@@ -110,7 +144,7 @@ export function ReviewConsent({ summary, initialChoices }: { summary: ProgressSu
                   a.ordered.length ? (
                     <ol className="space-y-1">
                       {a.ordered.map((p, i) => (
-                        <li key={p} className="text-slate-800 text-sm font-medium">
+                        <li key={p} className="text-foreground text-sm font-medium">
                           <span className="mr-2 font-mono text-xs font-semibold text-[#FF5A5F]">{i + 1}</span>
                           {p}
                         </li>
@@ -120,9 +154,9 @@ export function ReviewConsent({ summary, initialChoices }: { summary: ProgressSu
                     <Empty>{a.empty}</Empty>
                   )
                 ) : (
-                  (a.value ? <span className="text-slate-900 font-medium text-sm">{a.value}</span> : <Empty>{a.empty}</Empty>)
+                  (a.value ? <span className="text-foreground font-medium text-sm">{a.value}</span> : <Empty>{a.empty}</Empty>)
                 )}
-                {a.detail && <span className="block mt-0.5 text-xs text-slate-600">{a.detail}</span>}
+                {a.detail && <span className="block mt-0.5 text-xs text-muted-foreground">{a.detail}</span>}
               </SummaryCard>
             ))}
             <SummaryCard
@@ -137,7 +171,7 @@ export function ReviewConsent({ summary, initialChoices }: { summary: ProgressSu
               className={cardCount % 2 ? "md:col-span-2" : undefined}
             >
               {summary.sources.length ? (
-                <span className="text-slate-900 font-medium text-sm">
+                <span className="text-foreground font-medium text-sm">
                   {summary.sources.map((s) => s.name).join(", ")}
                 </span>
               ) : (
@@ -147,10 +181,10 @@ export function ReviewConsent({ summary, initialChoices }: { summary: ProgressSu
           </div>
         </section>
 
-        <div className="mt-4 rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 text-sm text-slate-700 flex items-start gap-3">
+        <div className="mt-4 rounded-2xl border border-border/80 bg-muted/40 p-4 text-sm text-muted-foreground flex items-start gap-3">
           <div className="size-2 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
           <p className="leading-relaxed">
-            <span className="font-semibold text-slate-900">Your data is private & encrypted.</span> We never sell your personal information or share it with unauthorized third parties. You can update your permissions anytime in Settings.
+            <span className="font-semibold text-foreground">Your data is private & encrypted.</span> We never sell your personal information or share it with unauthorized third parties. You can update your permissions anytime in Settings.
           </p>
         </div>
       </div>
@@ -160,7 +194,7 @@ export function ReviewConsent({ summary, initialChoices }: { summary: ProgressSu
           <Button
             type="submit"
             disabled={generating}
-            className="h-11 px-7 rounded-full font-semibold bg-gradient-to-r from-[#FF5A5F] via-[#F43F5E] to-[#EA580C] text-white shadow-md shadow-rose-500/20 hover:opacity-95 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center gap-2"
+            className="h-11 px-7 rounded-full font-semibold bg-gradient-to-r from-[#FF5A5F] via-[#F43F5E] to-[#EA580C] text-white shadow-md shadow-rose-500/20 hover:opacity-95 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center gap-2 cursor-pointer"
           >
             {generating ? <LoaderCircle data-icon="inline-start" aria-hidden className="size-4 animate-spin" /> : null}
             {generating ? "Creating your profile…" : "Create my profile"}
@@ -184,13 +218,13 @@ function SummaryCard({
   children: React.ReactNode;
 }) {
   return (
-    <dl className={cn("flex min-w-0 flex-col rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs", className)}>
+    <dl className={cn("flex min-w-0 flex-col rounded-2xl border border-border/80 bg-card p-5 shadow-xs transition-colors", className)}>
       <div className="flex items-center justify-between gap-3">
-        <dt className="text-xs font-semibold text-slate-600 uppercase tracking-wider">{term}</dt>
+        <dt className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{term}</dt>
         <dd className="-my-2 -mr-2">
           <Link
             href={href}
-            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full px-3 text-xs font-semibold text-[#FF2A85] hover:bg-[#FFF5F7] transition-colors focus-visible:ring-2 focus-visible:ring-[#FF5A5F] focus-visible:outline-none"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full px-3 text-xs font-semibold text-[#FF2A85] hover:bg-[#FF2A85]/10 transition-colors focus-visible:ring-2 focus-visible:ring-[#FF5A5F] focus-visible:outline-none cursor-pointer"
           >
             Edit<span className="sr-only"> {term.toLowerCase()}</span>
           </Link>
@@ -207,16 +241,16 @@ function ResumeLine({ resume }: { resume: ProgressSummary["resume"] }) {
       return <Empty>Not uploaded</Empty>;
     case "processing":
       return (
-        <span className="flex items-center gap-2 text-xs font-medium text-amber-600">
+        <span className="flex items-center gap-2 text-xs font-medium text-amber-600 dark:text-amber-400">
           <LoaderCircle aria-hidden className="size-3.5 animate-spin" />
           Reading file. Added to profile once reviewed.
         </span>
       );
     case "failed":
-      return <span className="text-xs font-medium text-rose-600">Couldn&apos;t read file. Try another.</span>;
+      return <span className="text-xs font-medium text-rose-600 dark:text-rose-400">Couldn&apos;t read file. Try another.</span>;
     case "extracted":
       return (
-        <span className="text-xs font-medium text-slate-800">
+        <span className="text-xs font-medium text-foreground">
           {resume.confirmedFacts > 0 ? (
             <>Uploaded · {resume.confirmedFacts} fields confirmed</>
           ) : (
@@ -228,5 +262,5 @@ function ResumeLine({ resume }: { resume: ProgressSummary["resume"] }) {
 }
 
 function Empty({ children }: { children: React.ReactNode }) {
-  return <span className="text-xs text-slate-500 italic">{children}</span>;
+  return <span className="text-xs text-muted-foreground italic">{children}</span>;
 }

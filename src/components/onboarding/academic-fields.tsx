@@ -100,7 +100,7 @@ export function AcademicFields({
 
       {isOther && (
         <Field label="Institution name" field="institutionName" error={err("institutionName")} className="sm:col-span-2">
-          <Input id="institutionName" name="institutionName" defaultValue={values.institutionName} maxLength={160} className="mt-2 h-10" autoComplete="organization" {...aria("institutionName")} />
+          <Input id="institutionName" name="institutionName" defaultValue={values.institutionName} maxLength={160} className="mt-2 h-11 rounded-xl border-input bg-background text-foreground" autoComplete="organization" {...aria("institutionName")} />
         </Field>
       )}
 
@@ -117,7 +117,7 @@ export function AcademicFields({
             setGradTouched(false);
           }}
         >
-          <SelectTrigger id="degree" className="mt-2 h-10! w-full" {...aria("degree")}>
+          <SelectTrigger id="degree" className="mt-2 h-11 w-full rounded-xl border-input bg-background text-foreground" {...aria("degree")}>
             <SelectValue placeholder="Select a degree" />
           </SelectTrigger>
           <SelectContent>
@@ -137,7 +137,7 @@ export function AcademicFields({
           onValueChange={(id) => setSelection((s) => ({ ...s, specializationId: id }))}
           disabled={!degree}
         >
-          <SelectTrigger id="specialization" className="mt-2 h-10! w-full" {...aria("specialization")}>
+          <SelectTrigger id="specialization" className="mt-2 h-11 w-full rounded-xl border-input bg-background text-foreground" {...aria("specialization")}>
             <SelectValue placeholder={degree ? "Select a specialization" : "Choose a degree first"} />
           </SelectTrigger>
           <SelectContent>
@@ -152,14 +152,14 @@ export function AcademicFields({
 
       {otherSpec && (
         <Field label="Your specialization" field="specializationOther" optional className="sm:col-span-2">
-          <Input id="specializationOther" name="specializationOther" defaultValue={values.specializationOther} maxLength={120} className="mt-2 h-10" />
+          <Input id="specializationOther" name="specializationOther" defaultValue={values.specializationOther} maxLength={120} className="mt-2 h-11 rounded-xl border-input bg-background text-foreground" />
         </Field>
       )}
 
       {mode.year && (
         <Field label="Current year" field="academicYear" error={err("academicYear")}>
           <Select key={`year-${selection.degreeId}`} value={selection.academicYear || undefined} onValueChange={setYear} disabled={!degree}>
-            <SelectTrigger id="academicYear" className="mt-2 h-10! w-full" {...aria("academicYear")}>
+            <SelectTrigger id="academicYear" className="mt-2 h-11 w-full rounded-xl border-input bg-background text-foreground" {...aria("academicYear")}>
               <SelectValue placeholder={degree ? "Select your year" : "Choose a degree first"} />
             </SelectTrigger>
             <SelectContent>
@@ -182,7 +182,7 @@ export function AcademicFields({
               setGradYear(y);
             }}
           >
-            <SelectTrigger id="graduationYear" className="mt-2 h-10! w-full" {...aria("graduationYear")}>
+            <SelectTrigger id="graduationYear" className="mt-2 h-11 w-full rounded-xl border-input bg-background text-foreground" {...aria("graduationYear")}>
               <SelectValue placeholder="Select a year" />
             </SelectTrigger>
             <SelectContent>
@@ -226,10 +226,10 @@ function LocationField({
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${field}-error` : undefined}
         className={cn(
-          "mt-2 h-11",
+          "mt-2 h-11 rounded-xl transition-colors",
           editable
-            ? "bg-white border-slate-200 text-[#0F172A]"
-            : "bg-slate-50/90 border-slate-200/80 text-slate-500 shadow-none cursor-default select-none"
+            ? "bg-background border-input text-foreground focus-visible:border-[#FF2A85] focus-visible:ring-2 focus-visible:ring-[#FF2A85]/20"
+            : "bg-muted/50 border-border/70 text-muted-foreground shadow-none cursor-default select-none"
         )}
       />
     </Field>
@@ -248,9 +248,9 @@ export function Field({
 }) {
   return (
     <div className={className}>
-      <Label htmlFor={field} className="text-xs font-bold uppercase tracking-wider text-slate-700">
+      <Label htmlFor={field} className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
         {label}
-        {optional && <span className="ml-1.5 font-normal text-slate-400 normal-case">(optional)</span>}
+        {optional && <span className="ml-1.5 font-normal text-muted-foreground/60 normal-case">(optional)</span>}
       </Label>
       {children}
       {error && (

@@ -1,6 +1,5 @@
 "use client";
 
-import { Sparkles } from "lucide-react";
 import { useActionState, useEffect, useRef } from "react";
 
 import { AcademicFields, Field, type AcademicCatalog, type AcademicMode } from "@/components/onboarding/academic-fields";
@@ -54,10 +53,9 @@ export function AcademicStepForm({
   }, [state.errors]);
 
   return (
-    <form ref={formRef} action={formAction} noValidate className="mt-8">
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_16rem] xl:grid-cols-[minmax(0,1.4fr)_18rem]">
-        {/* Left: Form Fields */}
-        <div className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
+    <form ref={formRef} action={formAction} noValidate className="mt-8 max-w-3xl">
+      <div className="rounded-2xl border border-border/80 bg-card p-6 sm:p-8 md:p-10 shadow-xs backdrop-blur-xs transition-colors">
+        <div className="grid gap-x-6 gap-y-6 sm:grid-cols-2">
           <Field label="Full name" field="fullName" error={state.errors?.fullName} className="sm:col-span-2">
             <Input
               id="fullName"
@@ -69,7 +67,7 @@ export function AcademicStepForm({
               placeholder="e.g. Anant Kumar"
               aria-invalid={state.errors?.fullName ? true : undefined}
               aria-describedby={state.errors?.fullName ? "fullName-error" : undefined}
-              className="mt-1.5 h-11 rounded-xl border-slate-200 text-base md:text-sm shadow-xs transition-colors focus-visible:border-[#FF2A85] focus-visible:ring-2 focus-visible:ring-[#FF2A85]/20"
+              className="mt-1.5 h-11 rounded-xl border-input bg-background text-foreground text-base md:text-sm shadow-xs transition-colors focus-visible:border-[#FF2A85] focus-visible:ring-2 focus-visible:ring-[#FF2A85]/20"
               onBlur={(e) => {
                 const v = e.target.value.trim();
                 if (saveName && v !== lastName.current) {
@@ -92,35 +90,6 @@ export function AcademicStepForm({
           {extraFields.map((f) => (
             <FieldControl key={f.name} field={f} value={state.values[f.name] ?? ""} error={state.errors?.[f.name]} />
           ))}
-        </div>
-
-        {/* Right: "A better profile" Guidance Card from reference */}
-        <div className="space-y-6 xl:sticky xl:top-24 xl:self-start">
-          <div className="rounded-2xl border border-amber-200/80 bg-amber-50/60 p-6 shadow-xs">
-            <h3 className="font-heading text-sm font-bold text-amber-950 flex items-center gap-2">
-              <Sparkles className="size-4 text-[#FF2A85]" />
-              A better profile
-            </h3>
-            <ul className="mt-3.5 space-y-2.5 text-xs font-medium text-amber-900">
-              <li className="flex items-start gap-2">
-                <span className="text-[#FF2A85] font-bold">✦</span>
-                <span>More relevant opportunities tailored to your college & degree</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-[#FF2A85] font-bold">✦</span>
-                <span>Better recommendations for mentors, hackathons & research</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-[#FF2A85] font-bold">✦</span>
-                <span>Higher visibility on verified campus hiring directories</span>
-              </li>
-            </ul>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs text-xs text-slate-500 leading-relaxed">
-            <p className="font-bold text-slate-700 mb-1">Academic Verification</p>
-            Your institution, degree, and specialization will be cross-referenced with your connected profiles and resume.
-          </div>
         </div>
       </div>
 
