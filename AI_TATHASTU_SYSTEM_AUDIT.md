@@ -2474,3 +2474,104 @@ Implemented the official legal agreements for AI Tathastu across three dedicated
 - **Playwright E2E Suite (`npx playwright test e2e/legal-pages.spec.ts`):** Exit Code **0** (**3/3 passed** in Chromium).
 - **Landing E2E Suite (`npx playwright test e2e/landing-redesign.spec.ts`):** Exit Code **0** (**9/9 passed** in Chromium).
 - **Next.js Production Build (`npm run build`):** Exit Code **0** (104/104 static and partially prerendered routes compiled cleanly).
+
+
+---
+
+## 62. Premium Hero Animation System & Visual Refinement (2026-10-30)
+
+### 62.1 Design Objectives & Architectural Alignment
+Implemented a restrained, high-polish animation and visual refinement system for the canonical AI Tathastu landing-page hero, matching the approved reference mockup (`qa-restored-hero-desktop.png` / user specification):
+1. **Eyebrow Badge Pill:**
+   - Introduced `✦ YOUR AI CO-PILOT FOR A BRIGHTER CAREER` in a soft lavender translucent badge (`background: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.22); color: #7C3AED; border-radius: 9999px;`).
+   - Positioned above the `<h1>` with smooth ease-out entrance animation (`eyebrowEntrance`).
+2. **Phrase-by-Phrase Headline Entrance:**
+   - Replaced monolithic heading entrance with sequential phrase reveals:
+     - `Know where` (delay: 0.05s)
+     - `you stand.` (delay: 0.22s)
+     - `Know what` (delay: 0.42s)
+     - `to do next.` (delay: 0.60s)
+   - Brand-accent gradient underline (`linear-gradient(90deg, #FF6B4A, #FF2A85, #9333EA)`) expanding dynamically beneath `next.` once revealed (delay: 0.85s).
+   - Accessibility & SEO preserved: `aria-label="Know where you stand. Know what to do next."`, `.ref-phrase` spans marked with `aria-hidden="true"`, and `<span class="sr-only">Know where you stand. Know what to do next.</span>` providing full semantic text for assistive technology and crawlers.
+3. **Ecosystem Connector Curves & Resting Node Dots:**
+   - Enhanced SVG cubic bezier calculation with analytical midpoint evaluation ($B(0.5)$) along all 7 source paths and 3 destination paths.
+   - Added delicate resting node dots (`circle r="3" fill="${color}" stroke="#FFFFFF" stroke-width="1.5" class="ref-curve-resting-node"`) centered on each curve.
+   - Orchestrated sequential data-flow motion: 7 source nodes travel inward into Ananya Sharma's profile card, triggering a central profile glow pulse (`pulse-highlight`) at 1.35s, followed by 3 destination nodes traveling outward to Opportunities, Learning, and Connections at 1.4s.
+4. **Under-Card Curved Arrow & Lavender Callout Pill:**
+   - Added an animated purple curved arrow starting at the bottom-centre of Ananya Sharma's profile card (`arrowStartX = cardBottomCenterX`, `arrowStartY = cardBottomY + 2`), dropping 26px and sweeping 38px rightward into an arrowhead pointing `→`.
+   - Placed a compact lavender pill callout beside the arrowhead:
+     `From profile to`
+     `progress in minutes`
+   - Responsive dynamic recalculation in `updateSvgPaths()` keeps the arrow and callout anchored to the card bounding rect across viewport resizes.
+5. **CTA Harmony & Modal Wiring:**
+   - Header CTA: `Get Started Free →` with safe routing.
+   - Hero primary CTA: `Get Started Free →`.
+   - Hero secondary CTA: `Watch Demo (2 min)` with coral/pink play circle, wired directly to `openDemoModal()` to launch the truthful product demo coming soon dialog.
+   - Brand tagline under header logo: `Your Dreams. Our Intelligence. <span class="ref-tagline-accent">Tathastu.</span>`
+6. **Accessibility, Reduced Motion & Performance:**
+   - Complete `@media (prefers-reduced-motion: reduce)` support: disables all keyframe transitions, displays static resting nodes, renders the arrow and callout immediately without motion.
+   - Animation sequences suspend while tab is hidden (`document.hidden`).
+
+### 62.2 Verification & Quality Assurance Results
+| Verification Suite | Target | Result | Notes |
+|---|---|---|---|
+| `npm run typecheck` | Next.js & TypeScript | **Exit 0** | 0 type errors |
+| `npm run lint` | ESLint | **Exit 0** | 0 errors |
+| `npx vitest run` | Full Unit Test Suite | **Exit 0** (23/23 files, **206/206 passed**) | Including `landing-page.test.ts` (9/9) |
+| `npx playwright test e2e/landing-responsive.spec.ts` | 9 Viewports (320px to 2560px) | **Exit 0** (**27/27 passed**) | 0 overflow, 0 clipping, full clearance |
+| `npx playwright test e2e/core-flow.spec.ts` | Phase 1–3 End-to-End Onboarding Journey | **Exit 0** (**1/1 passed**, 10.8s) | Status poller with test delay optimization |
+| `npx playwright test e2e/capture-qa-screenshots.spec.ts` | Browser Visual Verification | **Exit 0** (**1/1 passed**) | Visual reference screenshot verified: `qa-restored-hero-desktop.png` |
+
+
+---
+
+## 63. Five Room Category Badge Consistency & Positioning Refinement
+
+### 63.1 Overview & Architecture
+To ensure complete visual harmony and identical badge styling across the Five Rooms section, all five category labels were positioned in the **upper-right corner** of their respective cards and styled identically using the **GROW badge** design as the canonical visual reference:
+- **Learn** — `GROW` (pink/rose: text `#E11D48`, background `rgba(225, 29, 72, 0.08)`, border `rgba(225, 29, 72, 0.24)`)
+- **Avasar** — `GET HIRED` (amber/orange: text `#D97706`, background `rgba(245, 158, 11, 0.09)`, border `rgba(245, 158, 11, 0.24)`)
+- **Collaborate** — `BUILD` (green: text `#059669`, background `rgba(16, 185, 129, 0.09)`, border `rgba(16, 185, 129, 0.24)`)
+- **Meet** — `GET GUIDANCE` (purple: text `#7C3AED`, background `rgba(139, 92, 246, 0.09)`, border `rgba(139, 92, 246, 0.24)`)
+- **IRIS** — `ASSESS` (rose/pink: text `#EC4899`, background `rgba(236, 72, 153, 0.09)`, border `rgba(236, 72, 153, 0.24)`)
+
+### 63.2 Card Composition & Structural Layout
+1. **Identical Badge Proportions & Styling:**
+   - Compact rounded-pill shape (`border-radius: 9999px; display: inline-flex; align-items: center; justify-content: center; width: fit-content;`).
+   - Sized at `font-size: 0.72rem; font-weight: 800; letter-spacing: 0.07em; line-height: 1; text-transform: uppercase;`.
+   - Proportional padding (`5px 12px;`), matching GROW badge proportions.
+   - Very light tinted background, soft matching border, and gentle restrained shadow (`box-shadow: 0 2px 8px -1px rgba(..., 0.12)`).
+   - `ASSESS` appears inside the exact same rounded pill badge structure rather than plain text.
+2. **Balanced Two-Sided Header:**
+   - `.room-top-bar`: `display: flex; align-items: center; justify-content: space-between; width: 100%; margin-bottom: 14px; position: relative; z-index: 2;`
+   - Keeps room icons on the left and badges floating to the upper right.
+   - For `card-iris`, `.room-top-bar` spans the icon and `ASSESS` badge, with `.iris-body-row` containing description/chips on left and ascending chart art + CTA on right.
+3. **Responsive Degradation:**
+   - Seamlessly responsive across desktop, tablet, and mobile viewports with no overlap or clipping, even for longer text like `GET GUIDANCE`.
+
+---
+
+## 64. How It Works Header Final Typography Correction
+
+### 64.1 Overview & Architecture
+Aligned the "How it works" section heading hierarchy precisely with the approved reference design mockup (`media_1793334491837_7122f0b9.png`):
+1. **Single Dominant Heading:**
+   - Rendered ONLY ONE visible "How it works" heading as a prominent green/mint pill: `+ How it works` (`.steps-primary-pill`).
+   - Sized at approximately 34–40px on desktop (`clamp(2.15rem, 2.7vw, 2.5rem)`), `font-weight: 800`, with proportional padding (`14px 44px`), soft green shadow (`0 10px 28px -6px rgba(16, 185, 129, 0.22)`), rounded pill border (`2px solid rgba(16, 185, 129, 0.42)`), and mint background (`#D1FAE5`).
+   - Added playful mint sparks (`.steps-pill-sparks`) on the upper-right corner matching the reference mockup.
+   - Removed duplicate plain text `How it works` and old `From your work to your next step.` headline.
+2. **Subordinate Secondary Headline:**
+   - Positioned immediately below the green pill: `From Profile To Progress in 5 Simple Steps.` (`.steps-secondary-headline`).
+   - Sized visibly smaller at approximately 30–34px on desktop (`clamp(1.8rem, 2.25vw, 2.125rem)`), `font-weight: 700`, centered.
+   - Dual-color typography: `From Profile To Progress in ` in dark navy (`#0F172A`, dark mode: `#F8FAFC`), and `5 Simple Steps.` in vivid pink-to-purple gradient (`linear-gradient(135deg, #E11D48 0%, #EC4899 42%, #8B5CF6 100%)`).
+3. **Preserved Five-Step Timeline:**
+   - 01 Sign Up, 02 Build Your Profile, 03 AI Analysis, 04 Get Insights, and 05 Take Action remain completely unchanged with multicolor sine wave connector and concentric rings.
+
+### 64.2 Verification & Test Results
+| Verification Suite | Target | Result | Notes |
+|---|---|---|---|
+| `npm run typecheck` | Next.js & TypeScript | **Exit 0** | 0 type errors |
+| `npm run lint` | ESLint | **Exit 0** | 0 errors (110 warnings unchanged) |
+| `npx vitest run` | Full Unit Test Suite | **Exit 0** (23/23 files, **207/207 passed**) | 100% pass rate including `landing-page.test.ts` (10/10) |
+| `npx playwright test e2e/landing-responsive.spec.ts` | 9 Viewports (320px to 2560px) | **Exit 0** (**27/27 passed**) | 0 overflow, 0 clipping |
+| `npx playwright test e2e/capture-qa-screenshots.spec.ts` | Visual QA Screenshot Capture | **Exit 0** (**2/2 passed**) | Captured `qa-how-it-works.png`, `qa-how-it-works-tablet.png`, `qa-how-it-works-mobile.png`, `qa-five-rooms-desktop.png`, `qa-five-rooms-tablet.png`, `qa-five-rooms-mobile.png` |

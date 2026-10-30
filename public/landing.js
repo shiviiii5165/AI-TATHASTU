@@ -83,14 +83,23 @@ if (soundToggle) {
 /* ============================================================
    3. EXACT REFERENCE ECOSYSTEM CONNECTOR PATHS (SVG BEZIER)
 ============================================================ */
+function bezierPoint(t, p0, p1, p2, p3) {
+  const mt = 1 - t;
+  return mt * mt * mt * p0 + 3 * mt * mt * t * p1 + 3 * mt * t * t * p2 + t * t * t * p3;
+}
+
 function initReferenceEcoConnections() {
   const stage = document.getElementById('refEcoStage');
   const svgGroup = document.getElementById('refSvgConnectionsGroup');
+  const arrowGroup = document.getElementById('refSvgCalloutArrowGroup');
+  const calloutPill = document.getElementById('refProfileCallout');
   const centralCard = document.getElementById('refCentralCard');
   const sourceCards = Array.from(document.querySelectorAll('#refSourceCol .ref-source-card'));
   const destCards = Array.from(document.querySelectorAll('#refDestCol .ref-dest-card'));
 
   if (!stage || !svgGroup || !centralCard || !sourceCards.length) return;
+
+  let entranceTriggered = false;
 
   function updateSvgPaths() {
     const stageRect = stage.getBoundingClientRect();
@@ -104,8 +113,12 @@ function initReferenceEcoConnections() {
     const MIN_SPAN = 24;
     if (cardRect.left - srcRect.right < MIN_SPAN || (destRect && destRect.left - cardRect.right < MIN_SPAN)) {
       svgGroup.innerHTML = "";
+      if (arrowGroup) arrowGroup.innerHTML = "";
+      if (calloutPill) calloutPill.style.display = "none";
       return;
     }
+
+    if (calloutPill) calloutPill.style.display = "flex";
 
     const cardLeftX = cardRect.left - stageRect.left;
     const cardRightX = cardRect.right - stageRect.left;
@@ -140,6 +153,10 @@ function initReferenceEcoConnections() {
       pathsHtml += `<path d="${d}" stroke="${color}" stroke-width="2" stroke-opacity="0.55" fill="none" />`;
       // Start node
       pathsHtml += `<circle cx="${startX}" cy="${startY}" r="3.5" fill="${color}" stroke="#FFFFFF" stroke-width="1.5"/>`;
+      // Resting node dot on curve midpoint (as in canonical mockup)
+      const midX = bezierPoint(0.5, startX, cp1X, cp2X, endX);
+      const midY = bezierPoint(0.5, startY, cp1Y, cp2Y, endY);
+      pathsHtml += `<circle cx="${midX}" cy="${midY}" r="3" fill="${color}" stroke="#FFFFFF" stroke-width="1.5" class="ref-curve-resting-node"/>`;
       // End node on card
       pathsHtml += `<circle cx="${endX}" cy="${endY}" r="3" fill="${color}" stroke="#FFFFFF" stroke-width="1.5"/>`;
 
@@ -179,6 +196,10 @@ function initReferenceEcoConnections() {
       pathsHtml += `<path d="${d}" stroke="${color}" stroke-width="4.5" stroke-opacity="0.18" fill="none" filter="url(#ecoGlow)"/>`;
       pathsHtml += `<path d="${d}" stroke="${color}" stroke-width="2.2" stroke-opacity="0.6" fill="none" />`;
       pathsHtml += `<circle cx="${startX}" cy="${startY}" r="3.5" fill="${color}" stroke="#FFFFFF" stroke-width="1.5"/>`;
+      // Resting node dot on curve midpoint
+      const midX = bezierPoint(0.5, startX, cp1X, cp2X, endX);
+      const midY = bezierPoint(0.5, startY, cp1Y, cp2Y, endY);
+      pathsHtml += `<circle cx="${midX}" cy="${midY}" r="3.2" fill="${color}" stroke="#FFFFFF" stroke-width="1.5" class="ref-curve-resting-node"/>`;
       pathsHtml += `<circle cx="${endX}" cy="${endY}" r="3" fill="${color}" stroke="#FFFFFF" stroke-width="1.5"/>`;
 
       if (!RM) {
@@ -194,6 +215,81 @@ function initReferenceEcoConnections() {
     });
 
     svgGroup.innerHTML = pathsHtml;
+
+    // 3. Purple Curved Arrow & Callout Pill
+    if (arrowGroup && calloutPill) {
+      const cardBottomCenterX = cardRect.left - stageRect.left + cardRect.width / 2;
+      const cardBottomY = cardRect.bottom - stageRect.top;
+
+      const arrowStartX = cardBottomCenterX;
+      const arrowStartY = cardBottomY + 2;
+
+      const arrowDrop = 26;
+      const arrowSweep = 38;
+      const arrowEndX = arrowStartX + arrowSweep;
+      const arrowEndY = arrowStartY + arrowDrop;
+
+      const cp1X = arrowStartX;
+      const cp1Y = arrowStartY + arrowDrop * 0.72;
+      const cp2X = arrowStartX + arrowSweep * 0.38;
+      const cp2Y = arrowEndY;
+
+      const arrowD = `M ${arrowStartX} ${arrowStartY} C ${cp1X} ${cp1Y}, ${cp2X} ${cp2Y}, ${arrowEndX} ${arrowEndY}`;
+      const headSize = 5;
+      const headD = `M ${arrowEndX} ${arrowEndY - headSize} L ${arrowEndX + headSize + 1} ${arrowEndY} L ${arrowEndX} ${arrowEndY + headSize} Z`;
+
+      const isDrawn = RM || (calloutPill.classList.contains('callout-visible'));
+
+      arrowGroup.innerHTML = `
+        <path d="${arrowD}" class="ref-arrow-path${isDrawn ? ' arrow-drawn' : ''}" id="refCalloutArrowPath"/>
+        <path d="${headD}" class="ref-arrow-head${isDrawn ? ' arrow-drawn' : ''}" id="refCalloutArrowHead"/>
+      `;
+
+      calloutPill.style.left = `${arrowEndX + 9}px`;
+      calloutPill.style.top = `${arrowEndY - 18}px`;
+      if (RM) calloutPill.classList.add('callout-visible');
+    }
+
+    triggerHeroEntranceSequence();
+  }
+
+  function triggerHeroEntranceSequence() {
+    if (entranceTriggered) return;
+    entranceTriggered = true;
+
+    if (RM) {
+      if (calloutPill) calloutPill.classList.add('callout-visible');
+      const arrowPath = document.getElementById('refCalloutArrowPath');
+      const arrowHead = document.getElementById('refCalloutArrowHead');
+      if (arrowPath) arrowPath.classList.add('arrow-drawn');
+      if (arrowHead) arrowHead.classList.add('arrow-drawn');
+      return;
+    }
+
+    // Choreographed entrance:
+    // Profile card pulse at 1.35s
+    setTimeout(() => {
+      if (document.hidden) return;
+      if (centralCard) {
+        centralCard.classList.add('pulse-highlight');
+        if (typeof sfx !== 'undefined' && sfx.chime) sfx.chime(659.25, 0.1, 'sine');
+      }
+    }, 1350);
+
+    // Arrow draws at 1.85s
+    setTimeout(() => {
+      if (document.hidden) return;
+      const arrowPath = document.getElementById('refCalloutArrowPath');
+      const arrowHead = document.getElementById('refCalloutArrowHead');
+      if (arrowPath) arrowPath.classList.add('arrow-drawn');
+      if (arrowHead) arrowHead.classList.add('arrow-drawn');
+    }, 1850);
+
+    // Callout fades in at 2.15s
+    setTimeout(() => {
+      if (document.hidden) return;
+      if (calloutPill) calloutPill.classList.add('callout-visible');
+    }, 2150);
   }
 
   // Interactive card audio and feedback
@@ -939,6 +1035,13 @@ function initLandingModals() {
   const demoPlayTrigger = document.getElementById('demoPlayTrigger');
 
   if (watchDemoBtn) watchDemoBtn.addEventListener('click', openDemoModal);
+  const seeHowItWorksBtn = document.getElementById('seeHowItWorksBtn');
+  if (seeHowItWorksBtn) {
+    seeHowItWorksBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      openDemoModal();
+    });
+  }
   if (demoPlayTrigger) demoPlayTrigger.addEventListener('click', openDemoModal);
   if (demoModalCloseBtn) demoModalCloseBtn.addEventListener('click', closeDemoModal);
   if (demoModalActionBtn) {

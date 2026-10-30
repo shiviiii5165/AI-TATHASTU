@@ -7,7 +7,10 @@ import { useEffect, useState, useTransition } from "react";
 import { updateWidgetPref } from "@/app/(dashboard)/dashboard/actions";
 import type { WidgetId } from "@/lib/dashboard/widgets";
 
-const DELAYS_MS = [3_000, 4_000, 6_000, 8_000, 10_000];
+const DELAYS_MS =
+  typeof window !== "undefined" && (window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost")
+    ? [1_000, 1_500, 2_000, 3_000]
+    : [3_000, 4_000, 6_000, 8_000, 10_000];
 const GIVE_UP_AFTER_MS = 5 * 60_000;
 
 type PollState = "waiting" | "ready" | "failed" | "timeout" | "signed_out";

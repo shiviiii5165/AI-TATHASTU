@@ -13,7 +13,7 @@ test.describe("Landing Page Visual QA Screenshots", () => {
     // 0. Restored Hero Section (Desktop)
     const heroSection = page.locator("#top");
     await heroSection.scrollIntoViewIfNeeded();
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(2800);
     await page.screenshot({
       path: path.join(ARTIFACT_DIR, "qa-restored-hero-desktop.png"),
       fullPage: false,
@@ -23,6 +23,24 @@ test.describe("Landing Page Visual QA Screenshots", () => {
     await page.screenshot({
       path: path.join(ARTIFACT_DIR, "qa-landing-desktop-light.png"),
       fullPage: true,
+    });
+
+    // 0c. Five Rooms Section (Desktop)
+    const fiveRoomsSection = page.locator("#ecosystem");
+    await fiveRoomsSection.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(400);
+    await page.screenshot({
+      path: path.join(ARTIFACT_DIR, "qa-five-rooms-desktop.png"),
+      fullPage: false,
+    });
+
+    // 0d. IRIS Room Card specifically (Desktop)
+    const irisCard = page.locator('.card-iris');
+    await irisCard.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(300);
+    await page.screenshot({
+      path: path.join(ARTIFACT_DIR, "qa-room-iris-desktop.png"),
+      fullPage: false,
     });
 
     // 1. How it works section
@@ -58,6 +76,60 @@ test.describe("Landing Page Visual QA Screenshots", () => {
     await page.waitForTimeout(300);
     await page.screenshot({
       path: path.join(ARTIFACT_DIR, "qa-final-cta.png"),
+      fullPage: false,
+    });
+  });
+
+  test("capture Five Rooms at tablet and mobile viewports", async ({ page }) => {
+    // Tablet (768px)
+    await page.setViewportSize({ width: 768, height: 1024 });
+    await page.goto("/");
+    await page.waitForLoadState("domcontentloaded");
+    await page.waitForTimeout(500);
+
+    const roomsTablet = page.locator("#ecosystem");
+    await roomsTablet.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(400);
+    await page.screenshot({
+      path: path.join(ARTIFACT_DIR, "qa-five-rooms-tablet.png"),
+      fullPage: false,
+    });
+
+    const howTablet = page.locator("#how");
+    await howTablet.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(300);
+    await page.screenshot({
+      path: path.join(ARTIFACT_DIR, "qa-how-it-works-tablet.png"),
+      fullPage: false,
+    });
+
+    // Mobile (390px)
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+    await page.waitForLoadState("domcontentloaded");
+    await page.waitForTimeout(500);
+
+    const roomsMobile = page.locator("#ecosystem");
+    await roomsMobile.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(400);
+    await page.screenshot({
+      path: path.join(ARTIFACT_DIR, "qa-five-rooms-mobile.png"),
+      fullPage: false,
+    });
+
+    const irisMobile = page.locator(".card-iris");
+    await irisMobile.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(300);
+    await page.screenshot({
+      path: path.join(ARTIFACT_DIR, "qa-room-iris-mobile.png"),
+      fullPage: false,
+    });
+
+    const howMobile = page.locator("#how");
+    await howMobile.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(300);
+    await page.screenshot({
+      path: path.join(ARTIFACT_DIR, "qa-how-it-works-mobile.png"),
       fullPage: false,
     });
   });

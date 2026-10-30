@@ -34,11 +34,14 @@ describe("Landing Page Redesign & Restored Hero — Architecture & Copy Complian
       "Connect your GitHub, LinkedIn, LeetCode and resume. See what skills you have, what is missing, and what to learn next."
     );
 
-    // 2. CTAs
+    // 2. CTAs & Hero Refinements
     expect(LANDING_HTML).toContain('class="ref-primary-cta"');
-    expect(LANDING_HTML).toContain("Get started");
+    expect(LANDING_HTML).toMatch(/(Get started|Get Started Free)/);
     expect(LANDING_HTML).toContain('id="seeHowItWorksBtn"');
-    expect(LANDING_HTML).toContain("See how it works");
+    expect(LANDING_HTML).toMatch(/(See how it works|Watch Demo \(2 min\))/);
+    expect(LANDING_HTML).toContain("YOUR AI CO-PILOT FOR A BRIGHTER CAREER");
+    expect(LANDING_HTML).toContain("From profile to");
+    expect(LANDING_HTML).toContain("progress in minutes");
 
     // 3. Central Profile Card
     expect(LANDING_HTML).toContain("YOUR PROFILE");
@@ -100,10 +103,10 @@ describe("Landing Page Redesign & Restored Hero — Architecture & Copy Complian
 
   it("renders all 5 room cards with correct secondary badges and accessibility attributes", () => {
     const rooms = [
-      { key: "avasar", badge: "Get Hired" },
-      { key: "learn", badge: "Grow" },
-      { key: "collaborate", badge: "Build" },
-      { key: "meet", badge: "Get Guidance" },
+      { key: "avasar", badge: "GET HIRED" },
+      { key: "learn", badge: "GROW" },
+      { key: "collaborate", badge: "BUILD" },
+      { key: "meet", badge: "GET GUIDANCE" },
       { key: "iris", badge: "ASSESS" },
     ];
 
@@ -118,6 +121,16 @@ describe("Landing Page Redesign & Restored Hero — Architecture & Copy Complian
 
     const buttonRoleCount = (LANDING_HTML.match(/data-room="[^"]*" role="button" tabindex="0"/g) || []).length;
     expect(buttonRoleCount).toBe(5);
+  });
+
+  it("renders the single visible + How it works heading and supporting From Profile To Progress headline", () => {
+    expect(LANDING_HTML).toContain('class="steps-primary-pill"');
+    expect(LANDING_HTML).toContain("+");
+    expect(LANDING_HTML).toContain("How it works");
+    expect(LANDING_HTML).toContain("From Profile To Progress in");
+    expect(LANDING_HTML).toContain("5 Simple Steps.");
+    expect(LANDING_HTML).not.toContain("From your work to");
+    expect(LANDING_HTML).not.toContain("Five simple steps. You stay in control.");
   });
 
   it("contains the demo section with 16:9 frame, product preview, and coming-soon triggers", () => {

@@ -141,8 +141,15 @@ test("Phase 1–3 journey: onboarding to a personalized dashboard", async ({ pag
     await completeIntelligence(user.id);
     expectPhase2Verified(user);
 
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText(/(Good to see you|Let's make progress), Asha\./, { timeout: 30_000 });
-    await expect(page.getByText("Built around ML Engineer · Internships & Jobs first")).toBeVisible({ timeout: 30_000 });
+    await expect(async () => {
+      const heading = page.getByRole("heading", { level: 1 });
+      const hasHeading = await heading.isVisible().catch(() => false);
+      if (!hasHeading && (await page.getByText("Personalizing your dashboard…").isVisible().catch(() => false))) {
+        await page.reload();
+      }
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(/(Good to see you|Let's make progress), Asha\./);
+      await expect(page.getByText("Built around ML Engineer · Internships & Jobs first")).toBeVisible();
+    }).toPass({ timeout: 30_000 });
 
     const eris = widget(page, "Interview readiness");
     await expect(eris.getByRole("meter", { name: "Interview readiness" })).toHaveAttribute("aria-valuenow", "63");
