@@ -1,12 +1,10 @@
-import { CheckCircle2, Sliders, ToggleLeft, ToggleRight } from "lucide-react";
-import { revalidatePath } from "next/cache";
+import { Sliders } from "lucide-react";
 
 import { db } from "@/db";
 import { featureFlags } from "@/db/schema";
 import { requireAdmin } from "@/lib/admin";
-import { recordAdminAudit } from "@/lib/admin/audit";
 import { requireAdminPermission } from "@/lib/admin/rbac";
-import { eq } from "drizzle-orm";
+import { toggleFlagAction } from "./actions";
 
 export const metadata = {
   title: "Feature Flags · Admin Control Center",
@@ -14,36 +12,10 @@ export const metadata = {
 };
 
 export default async function AdminFlagsPage() {
-  const admin = await requireAdmin();
+  await requireAdmin();
   await requireAdminPermission("flags.manage");
 
   const flags = await db.select().from(featureFlags).orderBy(featureFlags.key);
-
-  async function toggleFlag(formData: FormData) {
-    "use server";
-    const key = String(formData.get("key"));
-    const currentEnabled = formData.get("enabled") === "true";
-    const nextEnabled = !currentEnabled;
-
-    await db
-      .update(featureFlags)
-      .set({
-        enabled: nextEnabled,
-        updatedBy: admin.email || "admin",
-        updatedAt: new Date(),
-      })
-      .where(eq(featureFlags.key, key));
-
-    await recordAdminAudit({
-      actorEmail: admin.email || "admin",
-      action: "flag.toggle",
-      resource: "feature_flags",
-      targetId: key,
-      details: { previous: currentEnabled, next: nextEnabled },
-    });
-
-    revalidatePath("/admin/flags");
-  }
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -82,7 +54,7 @@ export default async function AdminFlagsPage() {
                   </div>
                 </div>
 
-                <form action={toggleFlag}>
+                <form action={toggleFlagAction}>
                   <input type="hidden" name="key" value={flag.key} />
                   <input type="hidden" name="enabled" value={String(flag.enabled)} />
                   <button
