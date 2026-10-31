@@ -161,7 +161,7 @@ test.describe("Landing Page Redesign — Interactive E2E Verification", () => {
     await expect(demoModal).not.toHaveClass(/open/);
   });
 
-  test("7. Room cards open honest Coming Soon modal via mouse and keyboard (Enter/Space)", async ({ page }) => {
+  test("7. Room cards transform in-place into animated Coming Soon experience (no external modal) via mouse and keyboard", async ({ page }) => {
     const roomModal = page.locator("#roomModal");
     await expect(roomModal).not.toHaveClass(/open/);
 
@@ -170,25 +170,32 @@ test.describe("Landing Page Redesign — Interactive E2E Verification", () => {
     await learnCard.scrollIntoViewIfNeeded();
     await learnCard.click();
 
-    await expect(roomModal).toHaveClass(/open/);
-    await expect(roomModal.locator("#modalTitle")).toContainText("Learn");
-    await expect(roomModal.locator(".coming-soon-pill")).toBeVisible();
-
-    // Close modal
-    await page.locator("#modalCloseBtn").click();
+    // Verify in-card transformation: card becomes active, shows COMING SOON, modal does NOT open
+    await expect(learnCard).toHaveClass(/is-active-cs/);
+    const learnCS = learnCard.locator(".room-cs-view");
+    await expect(learnCS).toBeVisible();
+    await expect(learnCS.locator(".room-cs-headline")).toHaveText("COMING SOON");
     await expect(roomModal).not.toHaveClass(/open/);
+
+    // Close in-card experience via close button
+    const closeBtn = learnCard.locator(".room-cs-close");
+    await closeBtn.click();
+    await expect(learnCard).not.toHaveClass(/is-active-cs/);
 
     // Keyboard trigger: focus collaborate card and hit Enter
     const collabCard = page.locator('[data-room="collaborate"]');
     await collabCard.focus();
     await page.keyboard.press("Enter");
 
-    await expect(roomModal).toHaveClass(/open/);
-    await expect(roomModal.locator("#modalTitle")).toContainText("Collaborate");
-
-    // Close via Got it button
-    await page.locator("#modalActionBtn").click();
+    await expect(collabCard).toHaveClass(/is-active-cs/);
+    const collabCS = collabCard.locator(".room-cs-view");
+    await expect(collabCS).toBeVisible();
+    await expect(collabCS.locator(".room-cs-headline")).toHaveText("COMING SOON");
     await expect(roomModal).not.toHaveClass(/open/);
+
+    // Close via Escape key
+    await page.keyboard.press("Escape");
+    await expect(collabCard).not.toHaveClass(/is-active-cs/);
   });
 
   test("8. Desktop and mobile viewports render cleanly without horizontal overflow", async ({ page }) => {

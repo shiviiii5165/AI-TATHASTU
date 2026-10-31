@@ -764,6 +764,13 @@
 .card-avasar {
   background: linear-gradient(180deg, #FFFDF5 0%, #FEFCE8 45%, #FFFBEB 100%);
   border: 1.5px solid #FDE047;
+  --cs-color: #F59E0B;
+  --cs-color-dark: #D97706;
+  --cs-color-border: rgba(245, 158, 11, 0.28);
+  --cs-glow: rgba(245, 158, 11, 0.35);
+  --cs-bg-tint: rgba(254, 252, 232, 0.94);
+  --cs-text-grad-1: #B45309;
+  --cs-text-grad-2: #F59E0B;
 }
 .card-avasar:hover {
   border-color: #FACC15;
@@ -829,6 +836,13 @@
   background: linear-gradient(135deg, #FFF5F6 0%, #FFFFFF 48%, #FFF1F2 100%);
   border: 1.5px solid #FDA4AF;
   padding: 26px 30px;
+  --cs-color: #F43F5E;
+  --cs-color-dark: #E11D48;
+  --cs-color-border: rgba(244, 63, 94, 0.28);
+  --cs-glow: rgba(244, 63, 94, 0.35);
+  --cs-bg-tint: rgba(255, 241, 242, 0.94);
+  --cs-text-grad-1: #BE123C;
+  --cs-text-grad-2: #FB7185;
 }
 .card-learn:hover {
   border-color: #FB7185;
@@ -909,6 +923,13 @@
 .card-collab {
   background: linear-gradient(135deg, #F0FDF4 0%, #FFFFFF 55%, #DCFCE7 100%);
   border: 1.5px solid #86EFAC;
+  --cs-color: #10B981;
+  --cs-color-dark: #059669;
+  --cs-color-border: rgba(16, 185, 129, 0.28);
+  --cs-glow: rgba(16, 185, 129, 0.35);
+  --cs-bg-tint: rgba(236, 253, 245, 0.94);
+  --cs-text-grad-1: #047857;
+  --cs-text-grad-2: #34D399;
 }
 .card-collab:hover {
   border-color: #4ADE80;
@@ -947,6 +968,13 @@
 .card-meet {
   background: linear-gradient(135deg, #FAF5FF 0%, #FFFFFF 55%, #F3E8FF 100%);
   border: 1.5px solid #C4B5FD;
+  --cs-color: #8B5CF6;
+  --cs-color-dark: #7C3AED;
+  --cs-color-border: rgba(139, 92, 246, 0.28);
+  --cs-glow: rgba(139, 92, 246, 0.35);
+  --cs-bg-tint: rgba(245, 243, 255, 0.94);
+  --cs-text-grad-1: #6D28D9;
+  --cs-text-grad-2: #A78BFA;
 }
 .card-meet:hover {
   border-color: #A78BFA;
@@ -989,6 +1017,13 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  --cs-color: #EC4899;
+  --cs-color-dark: #DB2777;
+  --cs-color-border: rgba(236, 72, 153, 0.28);
+  --cs-glow: rgba(236, 72, 153, 0.35);
+  --cs-bg-tint: rgba(253, 242, 248, 0.94);
+  --cs-text-grad-1: #BE185D;
+  --cs-text-grad-2: #F472B6;
 }
 .card-iris:hover {
   border-color: #EC4899;
@@ -1063,6 +1098,351 @@
 .iris-bar.b2 { height: 55%; }
 .iris-bar.b3 { height: 75%; }
 .iris-bar.b4 { height: 100%; }
+
+/* ============================================================
+   PREMIUM IN-CARD GAME-INSPIRED COMING SOON EXPERIENCE
+============================================================ */
+
+/* Active Transformed Card State (Strict boundary preservation, zero layout shifts) */
+.room-card.is-active-cs {
+  cursor: default !important;
+  transform: scale(1.012) translateY(-2px) !important;
+  box-shadow: 0 20px 48px -10px var(--cs-glow), 0 0 0 1.5px var(--cs-color) !important;
+  border-color: var(--cs-color) !important;
+  z-index: 10;
+}
+.room-card.is-active-cs:hover {
+  transform: scale(1.012) translateY(-2px) !important;
+  box-shadow: 0 22px 50px -10px var(--cs-glow), 0 0 0 1.5px var(--cs-color) !important;
+}
+
+/* Idle Content Wrapper */
+.room-idle-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  flex: 1;
+  position: relative;
+  z-index: 1;
+  transition: opacity 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+              filter 0.32s ease,
+              visibility 0s 0s;
+}
+
+.room-card.is-active-cs .room-idle-view {
+  opacity: 0;
+  transform: scale(0.96) translateY(4px);
+  filter: blur(5px);
+  pointer-events: none;
+  visibility: hidden;
+  transition: opacity 0.22s ease,
+              transform 0.22s ease,
+              filter 0.22s ease,
+              visibility 0s 0.22s;
+}
+
+/* Transformed Coming Soon View (Absolute within card boundaries) */
+.room-cs-view {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 20px;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  transform: scale(1.05);
+  filter: blur(6px);
+  transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              filter 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              visibility 0s 0.35s;
+  z-index: 12;
+  overflow: hidden;
+  background: var(--cs-bg-tint);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.room-card.is-active-cs .room-cs-view {
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
+  transform: scale(1);
+  filter: blur(0);
+  transition: opacity 0.38s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.38s cubic-bezier(0.16, 1, 0.3, 1),
+              filter 0.38s cubic-bezier(0.16, 1, 0.3, 1),
+              visibility 0s 0s;
+}
+
+/* Minimalist Glassmorphic Close Control */
+.room-cs-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid var(--cs-color-border, rgba(0, 0, 0, 0.08));
+  color: #475569;
+  cursor: pointer;
+  transition: transform 0.22s var(--spring), background-color 0.2s, color 0.2s, box-shadow 0.2s;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+  z-index: 15;
+}
+.room-cs-close:hover {
+  background: #FFFFFF;
+  color: var(--cs-color);
+  transform: scale(1.1) rotate(90deg);
+  box-shadow: 0 6px 16px var(--cs-glow);
+}
+.room-cs-close:focus-visible {
+  outline: 2px solid var(--cs-color);
+  outline-offset: 2px;
+}
+
+/* Ambient Pulse Aura and Sparkle Mesh */
+.room-cs-ambient {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 1;
+}
+.room-cs-pulse-aura {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 280px;
+  height: 280px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--cs-glow) 0%, transparent 68%);
+  filter: blur(20px);
+  animation: csPulseAura 4s ease-in-out infinite;
+}
+.room-cs-grid-sparkle {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle at 1px 1px, var(--cs-color) 0.8px, transparent 0);
+  background-size: 24px 24px;
+  opacity: 0.12;
+  mask-image: radial-gradient(circle at 50% 50%, black 30%, transparent 75%);
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, black 30%, transparent 75%);
+}
+
+/* Futuristic Game-Inspired HUD & Orbital Energy Core */
+.room-cs-hud {
+  position: relative;
+  width: clamp(68px, 11vw, 82px);
+  height: clamp(68px, 11vw, 82px);
+  display: grid;
+  place-items: center;
+  margin-bottom: 14px;
+  flex-shrink: 0;
+  z-index: 2;
+}
+.room-cs-orbit-ring {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+.room-cs-orbit-ring.ring-outer {
+  animation: csOrbitSpin 14s linear infinite;
+}
+.room-cs-orbit-ring.ring-inner {
+  animation: csOrbitCounterSpin 8.5s linear infinite;
+}
+.cs-svg-spin, .cs-svg-counter-spin {
+  width: 100%;
+  height: 100%;
+}
+.cs-orbit-track {
+  fill: none;
+  stroke: var(--cs-color);
+  stroke-width: 1.2;
+  opacity: 0.22;
+}
+.cs-orbit-arc {
+  fill: none;
+  stroke: var(--cs-color);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-dasharray: 60 215;
+  opacity: 0.88;
+  filter: drop-shadow(0 0 5px var(--cs-color));
+}
+.cs-orbit-satellite {
+  fill: #FFFFFF;
+  stroke: var(--cs-color);
+  stroke-width: 1.5;
+  filter: drop-shadow(0 0 6px var(--cs-color));
+}
+.cs-orbit-dash {
+  fill: none;
+  stroke: var(--cs-color);
+  stroke-width: 1.4;
+  stroke-dasharray: 4 5;
+  opacity: 0.45;
+}
+.cs-orbit-satellite-inner {
+  fill: var(--cs-color);
+  filter: drop-shadow(0 0 4px var(--cs-color));
+}
+.room-cs-glyph {
+  width: clamp(38px, 6.5vw, 44px);
+  height: clamp(38px, 6.5vw, 44px);
+  border-radius: 12px;
+  background: #FFFFFF;
+  display: grid;
+  place-items: center;
+  color: var(--cs-color);
+  box-shadow: 0 4px 16px -2px var(--cs-glow), 0 0 0 1px rgba(255, 255, 255, 0.85);
+  position: relative;
+  z-index: 2;
+  animation: csGlyphFloat 3.6s ease-in-out infinite;
+}
+
+/* Typography & Glowing Gradient Treatment */
+.room-cs-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+  z-index: 2;
+}
+.room-cs-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--ref-font-head, 'Plus Jakarta Sans', sans-serif);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--cs-color-dark);
+  opacity: 0.95;
+}
+.cs-spark-icon {
+  font-size: 0.65rem;
+  color: var(--cs-color);
+  animation: csSparkle 2.2s ease-in-out infinite;
+}
+.room-cs-headline {
+  font-family: var(--ref-font-head, 'Plus Jakarta Sans', sans-serif);
+  font-size: clamp(1.15rem, 2.4vw, 1.55rem);
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  line-height: 1.15;
+  background: linear-gradient(135deg, var(--cs-text-grad-1) 0%, var(--cs-color) 45%, var(--cs-text-grad-2) 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: csTextShimmer 4s ease-in-out infinite;
+  filter: drop-shadow(0 2px 12px var(--cs-glow));
+}
+
+/* Keyframe Animations */
+@keyframes csOrbitSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes csOrbitCounterSpin {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+@keyframes csGlyphFloat {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-3px) scale(1.04); }
+}
+@keyframes csSparkle {
+  0%, 100% { opacity: 0.5; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.25); }
+}
+@keyframes csTextShimmer {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes csPulseAura {
+  0%, 100% { transform: translate(-50%, -50%) scale(0.85); opacity: 0.45; }
+  50% { transform: translate(-50%, -50%) scale(1.2); opacity: 0.85; }
+}
+
+/* Dark Mode Overrides */
+.dark .card-avasar, [data-theme="dark"] .card-avasar {
+  --cs-bg-tint: rgba(24, 21, 14, 0.94);
+  --cs-text-grad-1: #FBBF24;
+  --cs-text-grad-2: #FDE047;
+  --cs-color-border: rgba(245, 158, 11, 0.4);
+}
+.dark .card-learn, [data-theme="dark"] .card-learn {
+  --cs-bg-tint: rgba(26, 15, 20, 0.94);
+  --cs-text-grad-1: #FB7185;
+  --cs-text-grad-2: #FDA4AF;
+  --cs-color-border: rgba(244, 63, 94, 0.4);
+}
+.dark .card-collab, [data-theme="dark"] .card-collab {
+  --cs-bg-tint: rgba(12, 26, 20, 0.94);
+  --cs-text-grad-1: #34D399;
+  --cs-text-grad-2: #6EE7B7;
+  --cs-color-border: rgba(16, 185, 129, 0.4);
+}
+.dark .card-meet, [data-theme="dark"] .card-meet {
+  --cs-bg-tint: rgba(22, 16, 32, 0.94);
+  --cs-text-grad-1: #A78BFA;
+  --cs-text-grad-2: #C4B5FD;
+  --cs-color-border: rgba(139, 92, 246, 0.4);
+}
+.dark .card-iris, [data-theme="dark"] .card-iris {
+  --cs-bg-tint: rgba(28, 14, 24, 0.94);
+  --cs-text-grad-1: #F472B6;
+  --cs-text-grad-2: #FBCFE8;
+  --cs-color-border: rgba(236, 72, 153, 0.4);
+}
+.dark .room-cs-glyph, [data-theme="dark"] .room-cs-glyph {
+  background: #1E293B;
+  color: var(--cs-color);
+  box-shadow: 0 4px 16px -2px var(--cs-glow), 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+.dark .room-cs-close, [data-theme="dark"] .room-cs-close {
+  background: rgba(30, 41, 59, 0.9);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #E2E8F0;
+}
+.dark .room-cs-close:hover, [data-theme="dark"] .room-cs-close:hover {
+  background: #1E293B;
+  color: var(--cs-color);
+}
+
+/* Reduced Motion Respect */
+@media (prefers-reduced-motion: reduce) {
+  .room-cs-orbit-ring.ring-outer,
+  .room-cs-orbit-ring.ring-inner,
+  .room-cs-glyph,
+  .cs-spark-icon,
+  .room-cs-headline,
+  .room-cs-pulse-aura {
+    animation: none !important;
+  }
+  .room-card.is-active-cs .room-cs-view,
+  .room-idle-view,
+  .room-cs-view {
+    transition-duration: 0.05s !important;
+  }
+}
 
 
 

@@ -2771,3 +2771,17 @@ New tests were not mutation-checked against the old code. Lighthouse and fronten
 ## 67. Scalability and reliability pass (2026-10-31)
 
 Reports are in `docs/engineering/`; start with `FINAL_ENGINEERING_REPORT.md`. New P1: queue threads shared one worker id, so fencing did not separate them (fixed and reproduced). Supersedes the §66.7 note on the People threshold. Capacity, classroom and live integrations stay unverified. The final `npm run build` ran with `.env.local` loaded; pages using the database are behind auth, so a Neon read is unlikely but was not ruled out. No writes, migrations or deployment.
+
+## 68. Five Rooms In-Card Game-Inspired Coming Soon Experience (2026-10-31)
+
+- **Eliminated external modal:** Completely removed informational modal popups (`#roomModal`) when clicking any of the Five Rooms platform cards (`Avasar`, `Learn`, `Collaborate`, `Meet`, `IRIS`).
+- **In-card boundary transformation:** When activated, cards transform directly within their own exact dimensions, preserving border-radius and the entire bento-grid layout without external overlays or layout shifts.
+- **Game-inspired visual aesthetic:** Equipped each card with rotating orbital HUD rings, satellite particles, a room-specific glowing glyph, ambient radial aura, and shimmering gradient `COMING SOON` typography.
+- **Card-specific palettes:**
+  - Avasar: Amber/golden energy effects (`#F59E0B`, `#D97706`).
+  - Learn: Crimson/rose gradient energy (`#F43F5E`, `#E11D48`).
+  - Collaborate: Emerald/green nexus energy (`#10B981`, `#059669`).
+  - Meet: Violet/purple portal energy (`#8B5CF6`, `#7C3AED`).
+  - IRIS: Magenta/pink aperture reticle energy (`#EC4899`, `#DB2777`).
+- **Reversible & accessible interaction:** Clean glassmorphic top-right close button restores the idle view with soft scale/fade animation. Full keyboard support (`Enter`/`Space` to activate, `Escape` to revert). Reduced-motion media query supported.
+- **Verification:** 253/253 unit tests passed, all 9 landing E2E tests passed, and multi-viewport visual QA screenshots captured.

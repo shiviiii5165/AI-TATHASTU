@@ -988,24 +988,126 @@ function closeDemoModal() {
   }
 }
 
+/* ============================================================
+   IN-CARD COMING SOON EXPERIENCE CONTROLLER
+============================================================ */
+function activateRoomComingSoon(card) {
+  if (!card) return;
+  // If another card is active, smoothly revert it first
+  document.querySelectorAll('.room-card.is-active-cs').forEach(c => {
+    if (c !== card) closeRoomComingSoon(c, true);
+  });
+
+  card.classList.add('is-active-cs');
+  card.setAttribute('aria-expanded', 'true');
+
+  const idleView = card.querySelector('.room-idle-view');
+  if (idleView) idleView.setAttribute('aria-hidden', 'true');
+
+  const csView = card.querySelector('.room-cs-view');
+  if (csView) csView.setAttribute('aria-hidden', 'false');
+
+  const closeBtn = card.querySelector('.room-cs-close');
+  if (closeBtn) {
+    closeBtn.removeAttribute('tabindex');
+    closeBtn.focus();
+  }
+
+  if (window.sfx && typeof window.sfx.chime === 'function') {
+    window.sfx.chime(659.25, 0.16, 'sine');
+  }
+}
+
+function closeRoomComingSoon(card, silent) {
+  if (!card) return;
+  card.classList.remove('is-active-cs');
+  card.setAttribute('aria-expanded', 'false');
+
+  const idleView = card.querySelector('.room-idle-view');
+  if (idleView) idleView.setAttribute('aria-hidden', 'false');
+
+  const csView = card.querySelector('.room-cs-view');
+  if (csView) csView.setAttribute('aria-hidden', 'true');
+
+  const closeBtn = card.querySelector('.room-cs-close');
+  if (closeBtn) {
+    closeBtn.setAttribute('tabindex', '-1');
+  }
+
+  // Restore keyboard focus to the card container
+  if (card.contains(document.activeElement) || document.activeElement === closeBtn) {
+    card.focus();
+  }
+
+  if (!silent && window.sfx && typeof window.sfx.chime === 'function') {
+    window.sfx.chime(440, 0.12, 'triangle');
+  }
+}
+
+function initRoomComingSoonCards() {
+  const roomCards = document.querySelectorAll('.bento-card[data-room]');
+  if (!roomCards.length) return;
+
+  roomCards.forEach(card => {
+    card.addEventListener('click', (e) => {
+      // If user clicked close button, handle close
+      if (e.target.closest('.room-cs-close')) {
+        e.stopPropagation();
+        closeRoomComingSoon(card);
+        return;
+      }
+      // If card is already active, don't re-trigger
+      if (card.classList.contains('is-active-cs')) return;
+      activateRoomComingSoon(card);
+    });
+
+    card.addEventListener('keydown', (e) => {
+      if (card.classList.contains('is-active-cs')) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          e.stopPropagation();
+          closeRoomComingSoon(card);
+        }
+        return;
+      }
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        activateRoomComingSoon(card);
+      }
+    });
+
+    const closeBtn = card.querySelector('.room-cs-close');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeRoomComingSoon(card);
+      });
+      closeBtn.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          e.stopPropagation();
+          closeRoomComingSoon(card);
+        }
+      });
+    }
+  });
+
+  // Global escape listener to revert any active card
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const activeCard = document.querySelector('.room-card.is-active-cs');
+      if (activeCard) {
+        closeRoomComingSoon(activeCard);
+      }
+    }
+  });
+}
+initRoomComingSoonCards();
+
 function initLandingModals() {
   const roomModal = document.getElementById('roomModal');
   const modalCloseBtn = document.getElementById('modalCloseBtn');
   const modalActionBtn = document.getElementById('modalActionBtn');
-
-  document.querySelectorAll('.bento-card[data-room]').forEach(card => {
-    card.addEventListener('click', () => {
-      const key = card.getAttribute('data-room');
-      openModal(ROOM_DETAILS[key]);
-    });
-    card.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        const key = card.getAttribute('data-room');
-        openModal(ROOM_DETAILS[key]);
-      }
-    });
-  });
 
   document.querySelectorAll('[data-policy]').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -2653,6 +2755,7 @@ if (typeof window !== 'undefined') {
     try { if (typeof initTourAndSubmission === 'function') initTourAndSubmission(); } catch (_) {}
     try { if (typeof initFooterInteractions === 'function') initFooterInteractions(); } catch (_) {}
     try { if (typeof initBackToTop === 'function') initBackToTop(); } catch (_) {}
+    try { if (typeof initRoomComingSoonCards === 'function') initRoomComingSoonCards(); } catch (_) {}
     try { if (typeof initLandingModals === 'function') initLandingModals(); } catch (_) {}
     try { if (typeof initFaqAccordion === 'function') initFaqAccordion(); } catch (_) {}
   };

@@ -133,4 +133,84 @@ test.describe("Landing Page Visual QA Screenshots", () => {
       fullPage: false,
     });
   });
+
+  test("capture Five Rooms In-Card Coming Soon visual transformations", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/");
+    await page.waitForLoadState("domcontentloaded");
+    await page.waitForTimeout(800);
+
+    const fiveRooms = page.locator("#ecosystem");
+    await fiveRooms.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(400);
+
+    // 1. Avasar transformed
+    const avasarCard = page.locator('[data-room="avasar"]');
+    await avasarCard.scrollIntoViewIfNeeded();
+    await avasarCard.click();
+    await page.waitForTimeout(600);
+    await avasarCard.screenshot({
+      path: path.join(ARTIFACT_DIR, "qa-cs-avasar.png"),
+    });
+
+    // 2. Learn transformed (clicking Learn should close Avasar and open Learn)
+    const learnCard = page.locator('[data-room="learn"]');
+    await learnCard.click();
+    await page.waitForTimeout(600);
+    await learnCard.screenshot({
+      path: path.join(ARTIFACT_DIR, "qa-cs-learn.png"),
+    });
+
+    // 3. Collaborate transformed
+    const collabCard = page.locator('[data-room="collaborate"]');
+    await collabCard.click();
+    await page.waitForTimeout(600);
+    await collabCard.screenshot({
+      path: path.join(ARTIFACT_DIR, "qa-cs-collaborate.png"),
+    });
+
+    // 4. Meet transformed
+    const meetCard = page.locator('[data-room="meet"]');
+    await meetCard.click();
+    await page.waitForTimeout(600);
+    await meetCard.screenshot({
+      path: path.join(ARTIFACT_DIR, "qa-cs-meet.png"),
+    });
+
+    // 5. IRIS transformed
+    const irisCard = page.locator('[data-room="iris"]');
+    await irisCard.click();
+    await page.waitForTimeout(600);
+    await irisCard.screenshot({
+      path: path.join(ARTIFACT_DIR, "qa-cs-iris.png"),
+    });
+
+    // Capture entire Five Rooms section with IRIS active
+    await page.screenshot({
+      path: path.join(ARTIFACT_DIR, "qa-five-rooms-active-iris.png"),
+      fullPage: false,
+    });
+
+    // 6. Close IRIS and verify return to idle state
+    const irisCloseBtn = irisCard.locator(".room-cs-close");
+    await irisCloseBtn.click();
+    await page.waitForTimeout(500);
+    await irisCard.screenshot({
+      path: path.join(ARTIFACT_DIR, "qa-cs-iris-reverted.png"),
+    });
+
+    // 7. Mobile Viewport Transformation
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+    await page.waitForLoadState("domcontentloaded");
+    await page.waitForTimeout(600);
+
+    const mobileLearnCard = page.locator('[data-room="learn"]');
+    await mobileLearnCard.scrollIntoViewIfNeeded();
+    await mobileLearnCard.click();
+    await page.waitForTimeout(600);
+    await mobileLearnCard.screenshot({
+      path: path.join(ARTIFACT_DIR, "qa-cs-mobile-learn.png"),
+    });
+  });
 });
