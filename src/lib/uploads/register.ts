@@ -52,7 +52,10 @@ export async function registerResume(userId: string, upload: ResumeUpload): Prom
     })
     .onConflictDoNothing({ target: [files.userId, files.sha256] })
     .returning({ id: files.id });
-  const fileId = inserted?.id ?? (await findExistingResume(userId, upload.sha256))!.id;
+  const fileId = inserted?.id ?? (await findExistingResume(userId, upload.sha256))?.id;
+  if (!fileId) {
+    throw new Error(`Failed to resolve file ID for resume upload: ${userId}:${upload.sha256}`);
+  }
 
   const idempotencyKey = resumeJobKey(userId, upload.sha256);
   const [job] = await db
@@ -72,9 +75,19 @@ export async function registerResume(userId: string, upload: ResumeUpload): Prom
     })
     .onConflictDoNothing({ target: jobs.idempotencyKey })
     .returning({ id: jobs.id });
-  const jobId =
-    job?.id ??
-    (await db.select({ id: jobs.id }).from(jobs).where(eq(jobs.idempotencyKey, idempotencyKey)))[0].id;
+
+  let jobId = job?.id;
+  if (!jobId) {
+    const existingJobs = await db
+      .select({ id: jobs.id })
+      .from(jobs)
+      .where(eq(jobs.idempotencyKey, idempotencyKey));
+    const existingJob = existingJobs[0];
+    if (!existingJob?.id) {
+      throw new Error(`Failed to resolve job ID for resume upload: ${idempotencyKey}`);
+    }
+    jobId = existingJob.id;
+  }
 
   // The same file again after a failed run (a provider outage, say) is the user's retry:
   // without this they'd get the failed job back, and those bytes could never be read.
