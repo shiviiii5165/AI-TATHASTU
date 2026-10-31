@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomInt } from "node:crypto";
 
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -77,8 +77,8 @@ export async function POST(request: Request) {
   const cleanName = singleLine(name);
   const cleanSubject = singleLine(subject);
 
-  // Generate unique confirmation reference code
-  const referenceId = `#TAT-${Math.floor(1000 + Math.random() * 9000)}`;
+  // Generate unique confirmation reference code via CSPRNG
+  const referenceId = `#TAT-${randomInt(1000, 10000)}`;
 
   // The message is only stored by being emailed, so "sent" means delivered to
   // the support inbox: never report success for a message that went nowhere.

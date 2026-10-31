@@ -70,6 +70,19 @@ describe("POST /api/contact", () => {
     expect(email.sendEmail).toHaveBeenCalledTimes(1);
   });
 
+  it("generates CSPRNG reference IDs conforming to #TAT-XXXX format across multiple submissions", async () => {
+    const refs = new Set<string>();
+    for (let i = 0; i < 5; i++) {
+      const res = await POST(createRequest(valid));
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.referenceId).toMatch(/^#TAT-[1-9]\d{3}$/);
+      refs.add(data.referenceId);
+    }
+    // High probability of distinct CSPRNG values
+    expect(refs.size).toBeGreaterThan(1);
+  });
+
   it("delivers non-Latin text intact and escapes markup instead of deleting it", async () => {
     const res = await POST(
       createRequest({
