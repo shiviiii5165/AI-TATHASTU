@@ -73,6 +73,8 @@ export async function hitRateLimit(key: string, { limit, windowSeconds, onDbErro
   }
 }
 
+let proxyWarningLogged = false;
+
 /**
  * The caller's IP, from headers only a trusted edge can set. Vercel overwrites
  * these on every request, so a client can't choose its bucket there. Anywhere
@@ -82,7 +84,17 @@ export async function hitRateLimit(key: string, { limit, windowSeconds, onDbErro
  * letting a spoofed header buy a fresh count per request.
  */
 export function clientIp(request: Request): string {
-  if (!process.env.VERCEL && process.env.TRUST_PROXY_HEADERS !== "1") return "unknown";
+  if (!process.env.VERCEL && process.env.TRUST_PROXY_HEADERS !== "1") {
+    if (process.env.NODE_ENV === "production" && !proxyWarningLogged) {
+      proxyWarningLogged = true;
+      console.warn(
+        "[rate-limit] Running off-Vercel in production without TRUST_PROXY_HEADERS=1. " +
+        "Client IPs fall back to 'unknown', collapsing rate limit buckets across all users. " +
+        "Set TRUST_PROXY_HEADERS=1 behind a trusted reverse proxy (see DEPLOYMENT.md)."
+      );
+    }
+    return "unknown";
+  }
   const { headers } = request;
   return (
     headers.get("x-vercel-forwarded-for")?.split(",")[0]?.trim() ||
