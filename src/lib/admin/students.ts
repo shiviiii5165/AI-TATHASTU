@@ -5,6 +5,7 @@ import { and, desc, eq, ilike, isNull, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   connections,
+  jobs,
   sessions,
   type User,
   users,
@@ -141,7 +142,8 @@ export async function revokeStudentSessions(
 
 /**
  * Executes a safeguarded student account soft-deletion workflow.
- * Sets deletedAt timestamp, unlinks active connections, and invalidates sessions.
+ * Sets deletedAt, removes stored connector credentials, cancels queued jobs and
+ * invalidates sessions. Uploaded files and profile data remain until purged.
  */
 export async function executeStudentDeletionWorkflow(
   userId: string,
@@ -158,19 +160,22 @@ export async function executeStudentDeletionWorkflow(
     throw new Error("Cannot delete an administrator account via student management");
   }
 
-  // 1. Soft-tombstone the user row
-  await db
-    .update(users)
-    .set({
-      deletedAt: new Date(),
-      updatedAt: new Date(),
-    })
-    .where(eq(users.id, userId));
+  const now = new Date();
+  await db.batch([
+    // 1. Soft-tombstone the user row
+    db.update(users).set({ deletedAt: now, updatedAt: now }).where(eq(users.id, userId)),
+    // 2. Revoke all active sessions
+    db.delete(sessions).where(eq(sessions.userId, userId)),
+    // 3. Stop further processing: stored connector credentials go, and jobs that
+    // haven't started won't run (the worker refuses a deleted user's job itself too).
+    db.delete(connections).where(eq(connections.userId, userId)),
+    db
+      .update(jobs)
+      .set({ status: "failed", finishedAt: now, lastError: "Account deleted" })
+      .where(and(eq(jobs.userId, userId), eq(jobs.status, "queued"))),
+  ]);
 
-  // 2. Revoke all active sessions
-  await db.delete(sessions).where(eq(sessions.userId, userId));
-
-  // 3. Record immutable audit entry
+  // 4. Record immutable audit entry
   await recordAdminAudit({
     actorEmail,
     action: "student.delete_workflow",

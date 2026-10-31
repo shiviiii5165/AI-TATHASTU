@@ -1,11 +1,10 @@
-import { timingSafeEqual } from "node:crypto";
-
 import { NextResponse, type NextRequest } from "next/server";
 
 import { getApiUserAtStep } from "@/lib/dal";
 import { connectSource } from "@/lib/connectors/connections";
 import { exchangeGithubCode, fetchGithubUser, GITHUB_STATE_COOKIE, githubCallbackUrl } from "@/lib/connectors/github";
 import { connectorReturnPath } from "@/lib/connectors/sources";
+import { safeEqual } from "@/lib/internal-auth";
 
 function finish(request: NextRequest, query: string, from: string | undefined) {
   const path = connectorReturnPath(from === "connections" ? "connections" : "onboarding");
@@ -13,9 +12,6 @@ function finish(request: NextRequest, query: string, from: string | undefined) {
   res.cookies.delete({ name: GITHUB_STATE_COOKIE, path: "/api/connectors/github" });
   return res;
 }
-
-const sameString = (a: string, b: string) =>
-  a.length === b.length && timingSafeEqual(Buffer.from(a), Buffer.from(b));
 
 /**
  * GitHub redirects here after consent. Verifies state (CSRF), exchanges the
@@ -31,7 +27,7 @@ export async function GET(request: NextRequest) {
   const state = params.get("state") ?? "";
 
   // The cookie must exist, belong to this user, and match the returned state.
-  if (!cookieState || cookieUser !== authz.user.id || !sameString(cookieState, state)) {
+  if (!cookieState || cookieUser !== authz.user.id || !safeEqual(cookieState, state)) {
     return finish(request, "error=state", from);
   }
   if (params.get("error")) {

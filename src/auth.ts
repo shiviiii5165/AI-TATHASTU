@@ -17,6 +17,7 @@ import { importLinkedInProfileFacts } from "@/lib/connectors/linkedin";
 import { enqueueComputeIntelligence } from "@/lib/jobs-queue";
 import { sendEmail } from "@/lib/email";
 import { magicLinkEmail, welcomeEmail } from "@/lib/email/templates";
+import { assertMagicLinkAllowed } from "@/lib/magic-link-limit";
 
 const drizzleAdapter = DrizzleAdapter(db, {
   usersTable: users,
@@ -41,7 +42,19 @@ const adapter: Adapter = {
 /** Magic link: Resend if RESEND_API_KEY is set, else SMTP (Gmail app password) via Nodemailer. */
 function emailProvider() {
   const id = emailProviderId();
-  if (id === "resend") return [Resend({ apiKey: process.env.RESEND_API_KEY, from: process.env.AUTH_EMAIL_FROM })];
+  if (id === "resend") {
+    const options = { apiKey: process.env.RESEND_API_KEY, from: process.env.AUTH_EMAIL_FROM };
+    const send = Resend(options).sendVerificationRequest;
+    return [
+      Resend({
+        ...options,
+        async sendVerificationRequest(params) {
+          await assertMagicLinkAllowed(params.identifier, params.request);
+          await send(params);
+        },
+      }),
+    ];
+  }
   if (id === "nodemailer") {
     const port = Number(process.env.SMTP_PORT ?? 465);
     return [
@@ -56,7 +69,8 @@ function emailProvider() {
         // Gmail rewrites any other From to the authenticated account, so default to it.
         from: process.env.AUTH_EMAIL_FROM || `AI Tathastu <${process.env.SMTP_USER}>`,
         // Our template, sent from the auth profile (src/lib/email.ts).
-        async sendVerificationRequest({ identifier, url }) {
+        async sendVerificationRequest({ identifier, url, request }) {
+          await assertMagicLinkAllowed(identifier, request);
           await sendEmail({ profile: "auth", to: identifier, email: magicLinkEmail({ url }) });
         },
       }),

@@ -52,6 +52,20 @@ beforeAll(async () => {
 });
 
 describe("GET /api/search", () => {
+  it("reports a failed search as 503, not as no matches", async () => {
+    state.sessionUserId = ME;
+    const failing = vi.spyOn(db, "select").mockImplementation(() => {
+      throw new Error("db down");
+    });
+    try {
+      const { status, body } = await search("ne");
+      expect(status).toBe(503);
+      expect(body.results).toBeUndefined();
+    } finally {
+      failing.mockRestore();
+    }
+  });
+
   it("requires a session", async () => {
     state.sessionUserId = null;
     expect((await search("ne")).status).toBe(401);

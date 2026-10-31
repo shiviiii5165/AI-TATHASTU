@@ -26,7 +26,7 @@ vi.mock("@/lib/people", () => ({
 }));
 
 const { db } = await import("@/db");
-const { users } = await import("@/db/schema");
+const { learningResources, profileViews, roadmaps, users } = await import("@/db/schema");
 const { eq } = await import("drizzle-orm");
 const { parseIntent, POST } = await import("./route");
 
@@ -82,6 +82,15 @@ describe("Deterministic Yora Intent Router", () => {
 
   describe("POST /api/yora/chat", () => {
     const userId = "00000000-0000-4000-8000-00000000000a";
+
+    const ask = (message: string) =>
+      POST(
+        new Request("http://localhost/api/yora/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message }),
+        }),
+      );
 
     beforeEach(async () => {
       state.sessionUserId = userId;
@@ -141,7 +150,39 @@ describe("Deterministic Yora Intent Router", () => {
       const res = await POST(req);
       expect(res.status).toBe(200);
       const json = await res.json();
-      expect(json.response).toMatch(/Your current stage is .*\. Your next short-term milestone is: .*/);
+      // No roadmap row: says so, instead of inventing a stage and milestone.
+      expect(json.response).toContain("Your roadmap isn't ready yet");
+      expect(json.response).not.toContain("Your current stage");
+
+      await db.insert(roadmaps).values({
+        userId,
+        currentStage: "Applied ML",
+        shortTerm: { milestones: ["Ship a RAG demo"] } as never,
+        midTerm: {} as never,
+        longTerm: {} as never,
+      });
+      const saved = await (await ask("What is my career roadmap?")).json();
+      expect(saved.response).toBe("Your current stage is Applied ML. Your next short-term milestone is: Ship a RAG demo.");
+    });
+
+    it("answers a malformed or oversized message with 400, not a chat reply", async () => {
+      for (const body of ['{"message": 42}', "not json", JSON.stringify({ message: "x".repeat(2001) })]) {
+        const res = await POST(new Request("http://localhost/api/yora/chat", { method: "POST", body }));
+        expect(res.status).toBe(400);
+      }
+    });
+
+    it("reports a failure as a failure, not as an ordinary reply", async () => {
+      const failing = vi.spyOn(db, "select").mockImplementationOnce(() => {
+        throw new Error("db down");
+      });
+      try {
+        const res = await ask("hello");
+        expect(res.status).toBe(503);
+        expect((await res.json()).response).toBeUndefined();
+      } finally {
+        failing.mockRestore();
+      }
     });
 
     it("handles opportunities intent with database data", async () => {
@@ -153,17 +194,10 @@ describe("Deterministic Yora Intent Router", () => {
       const res = await POST(req);
       expect(res.status).toBe(200);
       const json = await res.json();
-      expect(json.response).toContain("Here are some opportunities matching your profile");
+      // A plain listing: nothing here is ranked against the profile, so it mustn't claim to be.
+      expect(json.response).toContain("Here are some opportunities:");
+      expect(json.response).not.toContain("matching your profile");
     });
-
-    const ask = (message: string) =>
-      POST(
-        new Request("http://localhost/api/yora/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message }),
-        }),
-      );
 
     it("people intent reports the real similarity of a discoverable match", async () => {
       people.result = [
@@ -213,8 +247,16 @@ describe("Deterministic Yora Intent Router", () => {
       const res = await POST(req);
       expect(res.status).toBe(200);
       const json = await res.json();
-      expect(json.response).toContain("You should focus on");
-      expect(json.response).toContain("I recommend this course:");
+      // No computed profile yet: no invented focus skill or stock course.
+      expect(json.response).toContain("I can't point to a skill gap yet");
+      expect(json.response).not.toContain("I recommend this course:");
+
+      await db.insert(profileViews).values({ userId, view: { skillGapsAndPaths: { gaps: [{ skill: "100%_rust" }] } } });
+      await db.insert(learningResources).values({ title: "Python basics", provider: "Acme", url: "https://example.com/py", description: "An intro" });
+      // "%" and "_" in the skill name match literally, so this unrelated course isn't returned.
+      const gap = await (await ask("What are my biggest skill gaps?")).json();
+      expect(gap.response).toContain("You should focus on 100%_rust");
+      expect(gap.response).not.toContain("Python basics");
     });
   });
 });

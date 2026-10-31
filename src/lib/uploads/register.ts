@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/db";
@@ -75,6 +75,26 @@ export async function registerResume(userId: string, upload: ResumeUpload): Prom
   const jobId =
     job?.id ??
     (await db.select({ id: jobs.id }).from(jobs).where(eq(jobs.idempotencyKey, idempotencyKey)))[0].id;
+
+  // The same file again after a failed run (a provider outage, say) is the user's retry:
+  // without this they'd get the failed job back, and those bytes could never be read.
+  // Only `failed`: needs_review means the file itself was the problem, and a repeat
+  // while it's queued or running must not disturb it.
+  if (!job) {
+    await db
+      .update(jobs)
+      .set({
+        status: "queued",
+        attempts: 0,
+        runAt: new Date(),
+        finishedAt: null,
+        lastError: null,
+        lockedBy: null,
+        lockedUntil: null,
+        payload: sql`${jobs.payload} - 'notified_at'`,
+      })
+      .where(and(eq(jobs.id, jobId), eq(jobs.status, "failed")));
+  }
 
   await db
     .update(onboardingState)

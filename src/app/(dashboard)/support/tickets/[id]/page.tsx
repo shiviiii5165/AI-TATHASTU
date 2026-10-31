@@ -12,6 +12,19 @@ export const metadata = {
 
 export const instant = false;
 
+const MAX_REPLY_CHARS = 5000;
+
+// IDOR protection: only the requester (or an admin) can see or answer a ticket.
+function canAccessTicket(
+  user: { id: string; email: string | null; isAdmin: boolean },
+  ticket: { requesterId: string | null; requesterEmail: string },
+) {
+  const isOwner =
+    (user.email && ticket.requesterEmail.toLowerCase() === user.email.toLowerCase()) ||
+    ticket.requesterId === user.id;
+  return Boolean(isOwner) || user.isAdmin;
+}
+
 interface StudentTicketPageProps {
   params: Promise<{ id: string }>;
 }
@@ -28,25 +41,23 @@ export default async function StudentTicketTrackingPage({ params }: StudentTicke
     notFound();
   }
 
-  // IDOR Protection: only requester can view their own ticket
-  const isOwner =
-    (user.email && ticket.requesterEmail.toLowerCase() === user.email.toLowerCase()) ||
-    ticket.requesterId === user.id;
-
-  if (!isOwner && !user.isAdmin) {
-    notFound();
-  }
+  if (!canAccessTicket(user, ticket)) notFound();
 
   async function handleStudentReply(formData: FormData) {
     "use server";
     const content = String(formData.get("content") || "").trim();
-    if (!content) return;
+    if (!content || content.length > MAX_REPLY_CHARS) return;
+
+    // Authorize the call itself, not the render that produced this form.
+    const author = await getCurrentUser();
+    const current = await getTicketDetails(id, { includeInternalNotes: false });
+    if (!current || current.status === "closed" || !canAccessTicket(author, current)) notFound();
 
     await addTicketMessage({
       ticketId: id,
-      authorId: user.id,
-      authorName: user.name || "Student",
-      authorEmail: user.email || undefined,
+      authorId: author.id,
+      authorName: author.name || "Student",
+      authorEmail: author.email || undefined,
       isInternalNote: false, // Student messages are always public
       content,
     });

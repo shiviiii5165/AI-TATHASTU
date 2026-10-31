@@ -8,6 +8,7 @@ import zipfile
 from dataclasses import dataclass
 
 MAX_BYTES = 10 * 1024 * 1024
+MAX_DOCX_UNCOMPRESSED_BYTES = 100 * 1024 * 1024  # the worker has 512 MB; real resumes are far below this
 
 DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 KINDS = {
@@ -37,6 +38,9 @@ def _is_docx(data: bytes) -> bool:
         return False
     try:
         with zipfile.ZipFile(io.BytesIO(data)) as z:
+            # Refuse decompression bombs before python-docx inflates them in memory.
+            if sum(i.file_size for i in z.infolist()) > MAX_DOCX_UNCOMPRESSED_BYTES:
+                return False
             return "word/document.xml" in z.namelist()
     except zipfile.BadZipFile:
         return False

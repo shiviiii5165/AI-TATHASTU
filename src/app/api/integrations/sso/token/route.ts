@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import { and, eq, gt, isNull } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
@@ -8,6 +10,7 @@ import { clientById } from "@/lib/integrations/clients";
 import { getConsent, isLinked } from "@/lib/integrations/consent";
 import { hashCode, mintAccessToken, pkceMatches, TOKEN_SCOPE } from "@/lib/integrations/tokens";
 import { safeEqual } from "@/lib/internal-auth";
+import { clientIp, hitRateLimit } from "@/lib/rate-limit";
 
 const NO_STORE = { "Cache-Control": "no-store", Pragma: "no-cache" };
 const oauthError = (status: number, error: string, description: string) =>
@@ -23,6 +26,15 @@ const oauthError = (status: number, error: string, description: string) =>
  * redirect_uri (the same one used to authorize), code_verifier (if PKCE).
  */
 export async function POST(request: Request) {
+  // Server-to-server, so a real client stays far below this; it slows secret and code guessing.
+  const ipHash = createHash("sha256").update(clientIp(request)).digest("hex").slice(0, 32);
+  const limited = await hitRateLimit(`sso_token:${ipHash}`, { limit: 120, windowSeconds: 60 });
+  if (!limited.ok) {
+    return NextResponse.json(
+      { error: "slow_down", error_description: "Too many requests." },
+      { status: 429, headers: { ...NO_STORE, "Retry-After": String(limited.retryAfter) } },
+    );
+  }
   const body = await readBody(request);
   const [basicId, basicSecret] = basicCredentials(request.headers.get("authorization"));
   const client = clientById(basicId ?? body.client_id);

@@ -3,6 +3,7 @@ import { connection, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { similarPeople } from "@/lib/people";
+import { hitRateLimit } from "@/lib/rate-limit";
 import {
   learningResources,
   opportunities,
@@ -86,6 +87,8 @@ export function parseIntent(message: string): YoraIntent {
   return "fallback";
 }
 
+const MAX_MESSAGE_CHARS = 2000;
+
 export async function POST(req: Request) {
   await connection();
   const session = await auth();
@@ -95,11 +98,16 @@ export async function POST(req: Request) {
 
   const userId = session.user.id;
 
-  try {
-    const body = await req.json();
-    const userMessage = (body?.message || "").trim();
+  const limited = await hitRateLimit(`yora:${userId}`, { limit: 30, windowSeconds: 60 });
+  if (!limited.ok) {
+    return NextResponse.json({ error: "Too many messages. Wait a moment and try again." }, { status: 429, headers: { "Retry-After": String(limited.retryAfter) } });
+  }
 
-    if (!userMessage) {
+  try {
+    const body = (await req.json().catch(() => null)) as { message?: unknown } | null;
+    const userMessage = typeof body?.message === "string" ? body.message.trim() : "";
+
+    if (!userMessage || userMessage.length > MAX_MESSAGE_CHARS) {
       return NextResponse.json({ error: "Message is required" }, { status: 400 });
     }
 
@@ -122,15 +130,18 @@ export async function POST(req: Request) {
     switch (intent) {
       case "opportunities": {
         // Fetch from opportunities table
-        const opps = await db.select().from(opportunities).limit(3);
+        // Not ranked against the user's profile, so don't say it is.
+        const opps = await db
+          .select({ title: opportunities.title, organization: opportunities.organization })
+          .from(opportunities)
+          .limit(3);
         if (opps.length > 0) {
           const listStr = opps
             .map((o) => `"${o.title}" at ${o.organization}`)
             .join(", ");
-          reply = `Here are some opportunities matching your profile: ${listStr}. Check the Opportunities section on your dashboard to apply!`;
+          reply = `Here are some opportunities: ${listStr}. Check the Opportunities section on your dashboard to apply!`;
         } else {
-          reply =
-            "Here are some opportunities matching your profile: We are currently updating verified opportunities—check the Opportunities section shortly for new postings.";
+          reply = "I don't have any opportunities to show right now. Check the Opportunities section later for new postings.";
         }
         break;
       }
@@ -159,22 +170,17 @@ export async function POST(req: Request) {
       case "roadmap": {
         // Fetch from roadmaps table
         const [roadmapRow] = await db
-          .select()
+          .select({ currentStage: roadmaps.currentStage, shortTerm: roadmaps.shortTerm })
           .from(roadmaps)
           .where(eq(roadmaps.userId, userId))
           .limit(1);
 
-        if (roadmapRow) {
-          const currentStage = roadmapRow.currentStage || "Foundation & Core Systems";
-          const shortTerm = roadmapRow.shortTerm as { milestones?: string[]; focus?: string } | null;
-          const milestone =
-            shortTerm?.milestones?.[0] ||
-            shortTerm?.focus ||
-            "Contribute to open-source foundation models";
-          reply = `Your current stage is ${currentStage}. Your next short-term milestone is: ${milestone}.`;
+        const shortTerm = roadmapRow?.shortTerm as { milestones?: string[]; focus?: string } | null | undefined;
+        const milestone = shortTerm?.milestones?.[0] || shortTerm?.focus;
+        if (roadmapRow?.currentStage && milestone) {
+          reply = `Your current stage is ${roadmapRow.currentStage}. Your next short-term milestone is: ${milestone}.`;
         } else {
-          reply =
-            "Your current stage is Foundation & Core Systems. Your next short-term milestone is: Complete profile verification and connect GitHub to generate your personalized career milestones.";
+          reply = "Your roadmap isn't ready yet. It appears once your profile has been processed; confirming your details and connecting your sources gives it more to work with.";
         }
         break;
       }
@@ -197,30 +203,23 @@ export async function POST(req: Request) {
 
         const profileView = (pvRow?.view || {}) as ProfileViewSubset;
         const gaps = profileView.skillGapsAndPaths?.gaps || [];
-        const focusSkill =
-          gaps[0]?.skill ||
-          profileView.skills?.[0]?.name ||
-          "Large Language Models & Distributed Systems";
+        const focusSkill = gaps[0]?.skill || profileView.skills?.[0]?.name;
+        if (!focusSkill) {
+          reply = "I can't point to a skill gap yet. Gaps appear once your profile has been processed.";
+          break;
+        }
 
-        const matchedCourses = await db
-          .select()
+        // Escape LIKE wildcards: the skill name is data, not a pattern.
+        const pattern = `%${focusSkill.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+        const [course] = await db
+          .select({ title: learningResources.title, provider: learningResources.provider })
           .from(learningResources)
-          .where(
-            or(
-              ilike(learningResources.title, `%${focusSkill}%`),
-              ilike(learningResources.description, `%${focusSkill}%`)
-            )
-          )
+          .where(or(ilike(learningResources.title, pattern), ilike(learningResources.description, pattern)))
           .limit(1);
 
-        const course =
-          matchedCourses[0] ||
-          (await db.select().from(learningResources).limit(1))[0];
-        const courseTitle = course
-          ? `"${course.title}" by ${course.provider}`
-          : `"Generative AI with Large Language Models" by DeepLearning.AI`;
-
-        reply = `You should focus on ${focusSkill}. I recommend this course: ${courseTitle}. Check your Learning Paths section to start learning!`;
+        reply = course
+          ? `You should focus on ${focusSkill}. I recommend this course: "${course.title}" by ${course.provider}. Check your Learning Paths section to start learning!`
+          : `You should focus on ${focusSkill}. I don't have a course that matches it yet; check your Learning Paths section for what's available.`;
         break;
       }
 
@@ -240,20 +239,23 @@ export async function POST(req: Request) {
         const profileView = (pvRow?.view || {}) as ProfileStatsSubset;
         const completeness = profileView.completeness?.overall ?? null;
         const skillsList = profileView.skills || [];
-        let verifiedSkillsCount = Array.isArray(skillsList) ? skillsList.length : 0;
+        let skillsCount = Array.isArray(skillsList) ? skillsList.length : 0;
 
-        if (verifiedSkillsCount === 0) {
+        if (skillsCount === 0) {
+          // One row per (skill, fact): count skills, not pieces of evidence.
           const [skillCountRow] = await db
-            .select({ count: sql<number>`count(*)::int` })
+            .select({ count: sql<number>`count(distinct ${skillEvidence.skillId})::int` })
             .from(skillEvidence)
             .where(eq(skillEvidence.userId, userId));
-          verifiedSkillsCount = skillCountRow?.count || 0;
+          skillsCount = skillCountRow?.count || 0;
         }
 
+        // These come from the user's own facts and connected sources; nothing here verifies them.
+        const skillsLine = `You have ${skillsCount} ${skillsCount === 1 ? "skill" : "skills"} on your profile.`;
         reply =
           completeness === null
-            ? `You have ${verifiedSkillsCount} verified skills. Your completeness score appears once your profile has been processed.`
-            : `Your profile is ${completeness}% complete. You have ${verifiedSkillsCount} verified skills.`;
+            ? `${skillsLine} Your completeness score appears once your profile has been processed.`
+            : `Your profile is ${completeness}% complete. ${skillsLine}`;
         break;
       }
 
@@ -272,13 +274,8 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ response: reply });
   } catch (error) {
+    // A real failure, not "I'm still learning": the chat shows its own retry message.
     console.error("Error in /api/yora/chat:", error);
-    return NextResponse.json(
-      {
-        response:
-          "I'm still learning! Please try asking about 'opportunities', 'my roadmap', 'skill gaps', or 'people to connect with'.",
-      },
-      { status: 200 }
-    );
+    return NextResponse.json({ error: "Yora is unavailable right now." }, { status: 503 });
   }
 }

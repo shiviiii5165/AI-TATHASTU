@@ -138,10 +138,27 @@ export async function saveResumeReview(input: ResumeReviewInput): Promise<SaveRe
       : db.update(profileFacts).set({ confirmation: "edited", normalizedValue: d.value }).where(where);
   });
 
-  if (additions.length) {
+  // A retry after the first attempt committed but its response was lost (or a
+  // double-submit): record keys are generated once per entry in the browser.
+  const saved = additions.length
+    ? await db
+        .select({ recordKey: profileFacts.recordKey, fieldName: profileFacts.fieldName })
+        .from(profileFacts)
+        .where(
+          and(
+            eq(profileFacts.userId, user.id),
+            eq(profileFacts.origin, "user_entered"),
+            inArray(profileFacts.recordKey, additions.map((a) => a.recordKey)),
+          ),
+        )
+    : [];
+  const savedKeys = new Set(saved.map((s) => `${s.recordKey}:${s.fieldName}`));
+  const newAdditions = additions.filter((a) => !savedKeys.has(`${a.recordKey}:${a.fieldName}`));
+
+  if (newAdditions.length) {
     writes.push(
       db.insert(profileFacts).values(
-        additions.map((a) => ({
+        newAdditions.map((a) => ({
           userId: user.id,
           fieldGroup: a.fieldGroup,
           fieldName: a.fieldName,

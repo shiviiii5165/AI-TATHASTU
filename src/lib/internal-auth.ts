@@ -4,8 +4,12 @@ import { timingSafeEqual } from "node:crypto";
 
 /** Constant-time string comparison; false for empty or different-length values. */
 export function safeEqual(given: string | null | undefined, expected: string | null | undefined) {
-  if (!given || !expected || given.length !== expected.length) return false;
-  return timingSafeEqual(Buffer.from(given), Buffer.from(expected));
+  if (!given || !expected) return false;
+  // Compare byte lengths: timingSafeEqual throws when they differ, which a
+  // non-ASCII value of the same character length would otherwise trigger.
+  const a = Buffer.from(given);
+  const b = Buffer.from(expected);
+  return a.length === b.length && timingSafeEqual(a, b);
 }
 
 const bearer = (header: string | null) => header?.match(/^Bearer\s+(.+)$/i)?.[1] ?? null;

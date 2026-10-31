@@ -292,6 +292,7 @@ export const jobs = pgTable(
   },
   (t) => [
     index("jobs_queued_run_at_idx").on(t.runAt).where(sql`${t.status} = 'queued'`),
+    index("jobs_running_locked_until_idx").on(t.lockedUntil).where(sql`${t.status} = 'running'`),
     index("jobs_user_type_idx").on(t.userId, t.type, t.createdAt),
   ],
 );

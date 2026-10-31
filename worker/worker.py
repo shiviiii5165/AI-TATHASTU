@@ -21,10 +21,12 @@ from __future__ import annotations
 
 import logging
 import os
+import random
 import signal
 import socket
 import threading
 import time
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional
@@ -46,6 +48,8 @@ load_dotenv(HERE.parent / ".env.local")
 
 WORKER_ID = os.environ.get("WORKER_ID") or f"{socket.gethostname()}:{os.getpid()}"
 LOCK_SECONDS = int(os.environ.get("WORKER_LOCK_SECONDS", "300"))
+# A job still running after this stops being renewed, so a hung one is reclaimed or failed.
+JOB_MAX_SECONDS = int(os.environ.get("WORKER_JOB_MAX_SECONDS", "1800"))
 IDLE_POLL_MIN_S = 1.0
 IDLE_POLL_MAX_S = 10.0
 RETRY_BASE_S = 30
@@ -93,6 +97,14 @@ UPDATE jobs
           AND attempts < max_attempts
           AND (   (status = 'queued' AND run_at <= now())
                OR (status = 'running' AND locked_until < now()))  -- crashed worker
+          -- One recompute per user, and one sync per connection, at a time: an older
+          -- run finishing last would overwrite the newer run's output with stale data.
+          -- It waits instead. (Recomputes have no connection_id, so that test passes.)
+          AND NOT (type IN ('compute_intelligence', 'compute_matches', 'connector_sync') AND EXISTS (
+                SELECT 1 FROM jobs other
+                 WHERE other.user_id = jobs.user_id AND other.type = jobs.type
+                   AND other.payload->>'connection_id' IS NOT DISTINCT FROM jobs.payload->>'connection_id'
+                   AND other.id <> jobs.id AND other.status = 'running' AND other.locked_until >= now()))
         ORDER BY run_at
         FOR UPDATE SKIP LOCKED
         LIMIT 1)
@@ -106,12 +118,25 @@ UPDATE jobs SET locked_until = now() + make_interval(secs => %(lock)s)
 """
 
 # Jobs whose worker died on their final attempt can't be reclaimed; close them out.
+# A connector_sync that died this way also leaves its card on 'syncing'; settle it.
 EXPIRE_SQL = """
-UPDATE jobs
-   SET status = 'failed', finished_at = now(), locked_by = NULL, locked_until = NULL,
-       last_error = 'Worker lock expired on the final attempt'
- WHERE status = 'running' AND locked_until < now() AND attempts >= max_attempts
+WITH expired AS (
+    UPDATE jobs
+       SET status = 'failed', finished_at = now(), locked_by = NULL, locked_until = NULL,
+           last_error = 'Worker lock expired on the final attempt'
+     WHERE status = 'running' AND locked_until < now() AND attempts >= max_attempts
+    RETURNING type, user_id, payload
+)
+UPDATE connections c
+   SET status = 'failed'
+  FROM expired e
+ WHERE e.type = 'connector_sync' AND c.user_id = e.user_id AND c.status = 'syncing'
+   AND c.source_id::text = e.payload->>'source_id'
 """
+
+# Account deletion cancels queued jobs; this covers one claimed in that same moment
+# and rows queued afterwards, so a deleted user's data is never sent anywhere.
+ACCOUNT_DELETED_SQL = "SELECT 1 FROM users WHERE id = %(user)s AND deleted_at IS NOT NULL"
 
 # Every outcome write is fenced on locked_by, so a worker whose lock expired
 # (and whose job was reclaimed) can't overwrite the new owner's result.
@@ -146,21 +171,26 @@ class Heartbeat(threading.Thread):
     healthy job isn't reclaimed by another worker. Uses its own connection,
     opened only if the job outlives the first beat."""
 
-    def __init__(self, dsn: str, job_id: str) -> None:
+    def __init__(self, dsn: str, job_id: str, worker_id: str = WORKER_ID) -> None:
         super().__init__(name=f"heartbeat-{job_id}", daemon=True)
         self.dsn = dsn
         self.job_id = job_id
+        self.worker_id = worker_id
+        self.deadline = time.monotonic() + JOB_MAX_SECONDS
         self._stopped = threading.Event()
 
     def run(self) -> None:
         conn: Optional[Any] = None
         try:
             while not self._stopped.wait(max(5.0, LOCK_SECONDS / 3)):
+                if time.monotonic() >= self.deadline:
+                    log.error("job %s exceeded %ds; no longer renewing its lock", self.job_id, JOB_MAX_SECONDS)
+                    return
                 try:
                     if conn is None or conn.closed:
                         conn = psycopg2.connect(self.dsn, application_name=f"ait-worker-heartbeat {WORKER_ID}")
                     with conn, conn.cursor() as cur:
-                        cur.execute(HEARTBEAT_SQL, {"id": self.job_id, "worker": WORKER_ID, "lock": LOCK_SECONDS})
+                        cur.execute(HEARTBEAT_SQL, {"id": self.job_id, "worker": self.worker_id, "lock": LOCK_SECONDS})
                         if cur.rowcount == 0:
                             return  # finished or taken over; nothing to extend
                 except psycopg2.Error:
@@ -179,6 +209,10 @@ class Worker:
         self.dsn = dsn
         self.conn: Optional[Any] = None
         self.stopping = False
+        # Unique per queue thread: server.py runs several in one process, and outcome
+        # writes are fenced on this, so a shared id would let a stale thread overwrite
+        # the result of the sibling that reclaimed its job.
+        self.worker_id = f"{WORKER_ID}:{uuid.uuid4().hex[:8]}"
 
     # ── connection ──────────────────────────────────────────────────────────
 
@@ -208,7 +242,7 @@ class Worker:
         self.execute(EXPIRE_SQL)
         row = self.execute(
             CLAIM_SQL,
-            {"worker": WORKER_ID, "lock": LOCK_SECONDS, "types": list(HANDLERS), "sources": SUPPORTED_SOURCES},
+            {"worker": self.worker_id, "lock": LOCK_SECONDS, "types": list(HANDLERS), "sources": SUPPORTED_SOURCES},
             fetch=True,
         )
         return Job(**row) if row else None
@@ -228,7 +262,7 @@ class Worker:
                 pass
         log.info("job %s (%s) attempt %d/%d%s", job.id, job.type, job.attempts, job.max_attempts, queue_delay_str)
         started = time.monotonic()
-        heartbeat = Heartbeat(self.dsn, job.id)
+        heartbeat = Heartbeat(self.dsn, job.id, self.worker_id)
         heartbeat.start()
         try:
             self._run_one(job)
@@ -237,8 +271,12 @@ class Worker:
             log.info("job %s (%s) took %dms", job.id, job.type, (time.monotonic() - started) * 1000)
 
     def _run_one(self, job: Job) -> None:
-        params: Dict[str, Any] = {"id": job.id, "worker": WORKER_ID}
+        params: Dict[str, Any] = {"id": job.id, "worker": self.worker_id}
         try:
+            if self.execute(ACCOUNT_DELETED_SQL, {"user": job.user_id}, fetch=True):
+                log.info("job %s dropped: account deleted", job.id)
+                self.execute(FAIL_SQL, {**params, "error": "Account deleted"})
+                return
             HANDLERS[job.type](self.connect(), job)
         except LockLost as exc:
             # Another worker owns the job now; its run records the outcome.
@@ -260,7 +298,8 @@ class Worker:
                 if self.execute(FAIL_SQL, {**params, "error": error}):
                     self.notify(job, "failed")
             else:
-                delay = RETRY_BASE_S * 2 ** (job.attempts - 1)
+                # Jitter: jobs that failed together (a provider outage) don't all return together.
+                delay = RETRY_BASE_S * 2 ** (job.attempts - 1) * random.uniform(1.0, 1.25)
                 self.execute(RETRY_SQL, {**params, "error": error, "delay": delay})
                 log.info("job %s retrying in %ds", job.id, delay)
             return
@@ -287,19 +326,19 @@ class Worker:
         while not self.stopping:
             try:
                 job = self.claim()
-            except psycopg2.OperationalError:
-                log.exception("database unavailable; reconnecting in %.0fs", IDLE_POLL_MAX_S)
+                if job is None:
+                    self.sleep(idle)
+                    idle = min(idle * 2, IDLE_POLL_MAX_S)  # back off while the queue is empty
+                    continue
+                idle = IDLE_POLL_MIN_S
+                self.run_one(job)
+            except Exception:  # noqa: BLE001 - the outermost boundary of this thread
+                # Neon closes idle connections, so this also fires while recording a
+                # job's outcome. The thread must survive it: the unrecorded job comes
+                # back through lock expiry, while a dead thread stays dead.
+                log.exception("queue loop error; reconnecting in %.0fs", IDLE_POLL_MAX_S)
                 self.conn = None
                 self.sleep(IDLE_POLL_MAX_S)
-                continue
-
-            if job is None:
-                self.sleep(idle)
-                idle = min(idle * 2, IDLE_POLL_MAX_S)  # back off while the queue is empty
-                continue
-
-            idle = IDLE_POLL_MIN_S
-            self.run_one(job)
         log.info("stopped")
 
     def sleep(self, seconds: float) -> None:

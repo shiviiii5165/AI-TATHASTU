@@ -44,6 +44,8 @@ beforeEach(() => {
 });
 
 describe("POST /api/contact", () => {
+  // These simulate Vercel's edge, the only place forwarding headers are trusted by default.
+  beforeEach(() => vi.stubEnv("VERCEL", "1"));
   it("rejects non-JSON payload", async () => {
     const res = await POST(createRequest("invalid-json"));
     expect(res.status).toBe(400);
@@ -66,6 +68,28 @@ describe("POST /api/contact", () => {
     expect(data.referenceId).toMatch(/^#TAT-\d{4}$/);
     expect(data.timestamp).toBeDefined();
     expect(email.sendEmail).toHaveBeenCalledTimes(1);
+  });
+
+  it("delivers non-Latin text intact and escapes markup instead of deleting it", async () => {
+    const res = await POST(
+      createRequest({
+        ...valid,
+        name: "प्रियंशु <b>Sharma</b>",
+        subject: "नमस्ते\r\nBcc: victim@example.com",
+        message: "मुझे सहायता चाहिए। <script>alert(1)</script> & thanks",
+      }),
+    );
+    expect(res.status).toBe(200);
+    const [{ email: sent }] = email.sendEmail.mock.calls[0] as unknown as [{ email: { subject: string; html: string; text: string } }];
+    expect(sent.text).toContain("मुझे सहायता चाहिए।");
+    expect(sent.text).toContain("प्रियंशु");
+    expect(sent.html).toContain("मुझे सहायता चाहिए।");
+    expect(sent.html).not.toContain("<script>");
+    expect(sent.html).toContain("&#60;script&#62;");
+    expect(sent.html).not.toContain("<b>Sharma");
+    // One header line, so the subject can't add headers.
+    expect(sent.subject).toContain("नमस्ते Bcc: victim@example.com");
+    expect(sent.subject).not.toMatch(/[\r\n]/);
   });
 
   it("never reports success when email isn't configured (the message would be lost)", async () => {

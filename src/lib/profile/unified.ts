@@ -35,6 +35,7 @@ export const API_ORIGINS: FactOrigin[] = [
   "portfolio",
   "leetcode",
   "hackerrank",
+  "orcid",
   "linkedin_oidc",
   "linkedin_scrape",
 ];

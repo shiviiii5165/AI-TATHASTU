@@ -11,7 +11,7 @@ from connectors.linkedin import sync_linkedin
 from connectors.orcid import sync_orcid
 from connectors.portfolio import sync_portfolio
 from connectors.stack_exchange import sync_stack_exchange
-from jobs import Job, NeedsReview
+from jobs import Job, LockLost, NeedsReview
 
 SYNCERS: Dict[str, Callable[[Any, Job], None]] = {
     "github": sync_github,
@@ -34,4 +34,22 @@ def process_connector_sync(conn: Any, job: Job) -> None:
     syncer = SYNCERS.get(str(source))
     if not syncer:
         raise NeedsReview(f"no syncer for source {source!r}")
-    syncer(conn, job)
+    try:
+        syncer(conn, job)
+    except LockLost:
+        raise
+    except Exception as exc:
+        # Syncers mark the failures they recognise; a timeout or bad response body
+        # would otherwise leave the card on 'syncing' after the last retry.
+        if isinstance(exc, NeedsReview) or job.attempts >= job.max_attempts:
+            _settle_stuck_connection(conn, job)
+        raise
+
+
+def _settle_stuck_connection(conn: Any, job: Job) -> None:
+    conn.rollback()
+    with conn, conn.cursor() as cur:
+        cur.execute(
+            "UPDATE connections SET status = 'failed' WHERE id = %s AND user_id = %s AND status = 'syncing'",
+            (job.payload.get("connection_id"), job.user_id),
+        )

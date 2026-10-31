@@ -2,7 +2,7 @@ import { lt } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 import { db } from "@/db";
-import { integrationAuthCodes } from "@/db/schema";
+import { integrationAuthCodes, rateLimits, verificationTokens } from "@/db/schema";
 import { dispatchWebhooks } from "@/lib/integrations/webhooks";
 import { isCronCall } from "@/lib/internal-auth";
 
@@ -19,7 +19,13 @@ async function handle(request: Request) {
     .delete(integrationAuthCodes)
     .where(lt(integrationAuthCodes.expiresAt, new Date(Date.now() - 24 * 3600_000)))
     .returning({ codeHash: integrationAuthCodes.codeHash });
-  return NextResponse.json({ ...result, purgedCodes: purged.length });
+  // Both grow one row per key or address forever otherwise, and strangers can create them.
+  const dayAgo = new Date(Date.now() - 24 * 3600_000);
+  const [counters, tokens] = await db.batch([
+    db.delete(rateLimits).where(lt(rateLimits.windowStart, dayAgo)).returning({ key: rateLimits.key }),
+    db.delete(verificationTokens).where(lt(verificationTokens.expires, dayAgo)).returning({ token: verificationTokens.token }),
+  ]);
+  return NextResponse.json({ ...result, purgedCodes: purged.length, purgedRateLimits: counters.length, purgedTokens: tokens.length });
 }
 
 export const GET = handle;

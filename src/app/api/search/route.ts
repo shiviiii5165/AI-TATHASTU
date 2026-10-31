@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { codeRepositories, skills, unifiedProjects, users } from "@/db/schema";
 import { discoverableBy } from "@/lib/discovery";
 import { viewerFor } from "@/lib/people";
+import { hitRateLimit } from "@/lib/rate-limit";
 
 const CURATED_OPPORTUNITIES = [
   { title: "Advanced LLMs: From Foundations to Agents", category: "Learning", url: "/learning" },
@@ -22,12 +23,18 @@ export async function GET(req: Request) {
   }
 
   const { searchParams } = new URL(req.url);
-  const q = (searchParams.get("q") || "").trim();
+  const q = (searchParams.get("q") || "").trim().slice(0, 100);
 
   if (q.length < 2) {
     return NextResponse.json({
       results: { people: [], skills: [], projects: [], opportunities: [] },
     });
+  }
+
+  // Each search scans several tables with leading-wildcard patterns.
+  const limited = await hitRateLimit(`search:${session.user.id}`, { limit: 60, windowSeconds: 60 });
+  if (!limited.ok) {
+    return NextResponse.json({ error: "Too many searches. Wait a moment and try again." }, { status: 429, headers: { "Retry-After": String(limited.retryAfter) } });
   }
 
   // Escape LIKE wildcards so "%" or "_" in the query match literally.
@@ -147,9 +154,8 @@ export async function GET(req: Request) {
       },
     });
   } catch (err) {
+    // Not an empty result: "no matches" would be untrue when the search never ran.
     console.error("Global search error:", err);
-    return NextResponse.json({
-      results: { people: [], skills: [], projects: [], opportunities: [] },
-    });
+    return NextResponse.json({ error: "Search is unavailable right now." }, { status: 503 });
   }
 }

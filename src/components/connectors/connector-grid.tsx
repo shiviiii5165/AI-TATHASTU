@@ -157,7 +157,7 @@ export function ConnectorCards({ cards, flash, context }: { cards: CardView[]; f
     let polls = 0;
     const timer = setInterval(() => {
       if (++polls > REFRESH_MAX_POLLS) return clearInterval(timer);
-      router.refresh();
+      if (!document.hidden) router.refresh(); // a full page re-render; pointless in a background tab
     }, REFRESH_MS);
     return () => clearInterval(timer);
   }, [importing, router]);

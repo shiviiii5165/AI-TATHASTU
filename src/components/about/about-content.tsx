@@ -264,7 +264,6 @@ export function AboutContent() {
   const activeRoom = ROOMS_DATA.find((r) => r.id === activeRoomId) ?? null;
 
   const handleCardClick = (id: RoomDetail["id"]) => {
-    console.log("handleCardClick called with:", id);
     // If already pinned, clicking it again unpins it (returns to compact overview)
     if (pinnedRoom === id) {
       setPinnedRoom(null);
@@ -628,7 +627,6 @@ export function AboutContent() {
                     }
                     onClick={() => handleCardClick(room.id)}
                     onMouseEnter={() => {
-                      console.log("onMouseEnter called with:", room.id);
                       setHoveredRoom(room.id);
                     }}
                     onKeyDown={(e) => handleCardKeyDown(e, room.id)}

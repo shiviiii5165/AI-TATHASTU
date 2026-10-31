@@ -34,10 +34,14 @@ const contactSchema = z.object({
   consent: z.literal(true),
 });
 
-function sanitize(input: string): string {
-  return input
-    .replace(/<[^>]*>?/gm, "") // strip html tags
-    .replace(/[^\w\s\d.,!?'"@#%&*()_\-+:;/]/gi, ""); // strip suspicious scripting chars
+/** Escapes for the HTML body; the plain-text copy keeps what the person typed, in any script. */
+function escapeHtml(input: string): string {
+  return input.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+}
+
+/** A subject is one header line: no control characters, so no injected headers. */
+function singleLine(input: string): string {
+  return input.replace(/[\p{Cc}\p{Zl}\p{Zp}]+/gu, " ").trim();
 }
 
 export async function POST(request: Request) {
@@ -70,9 +74,8 @@ export async function POST(request: Request) {
   }
 
   const { name, email, category, subject, message } = result.data;
-  const cleanName = sanitize(name);
-  const cleanSubject = sanitize(subject);
-  const cleanMessage = sanitize(message);
+  const cleanName = singleLine(name);
+  const cleanSubject = singleLine(subject);
 
   // Generate unique confirmation reference code
   const referenceId = `#TAT-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -95,15 +98,15 @@ export async function POST(request: Request) {
         html: `
           <h2>New Contact Form Submission</h2>
           <p><strong>Reference:</strong> ${referenceId}</p>
-          <p><strong>Name:</strong> ${cleanName}</p>
-          <p><strong>Email:</strong> ${email}</p>
+          <p><strong>Name:</strong> ${escapeHtml(cleanName)}</p>
+          <p><strong>Email:</strong> ${escapeHtml(email)}</p>
           <p><strong>Category:</strong> ${category}</p>
-          <p><strong>Subject:</strong> ${cleanSubject}</p>
+          <p><strong>Subject:</strong> ${escapeHtml(cleanSubject)}</p>
           <hr />
           <p><strong>Message:</strong></p>
-          <p style="white-space: pre-wrap;">${cleanMessage}</p>
+          <p style="white-space: pre-wrap;">${escapeHtml(message)}</p>
         `,
-        text: `Reference: ${referenceId}\nName: ${cleanName}\nEmail: ${email}\nCategory: ${category}\nSubject: ${cleanSubject}\n\nMessage:\n${cleanMessage}`,
+        text: `Reference: ${referenceId}\nName: ${cleanName}\nEmail: ${email}\nCategory: ${category}\nSubject: ${cleanSubject}\n\nMessage:\n${message}`,
       },
     });
   } catch (err) {

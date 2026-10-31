@@ -43,13 +43,13 @@ test.describe("Landing Page Redesign — Interactive E2E Verification", () => {
     // Primary & secondary CTAs
     const primaryCta = hero.locator(".ref-primary-cta");
     await expect(primaryCta).toBeVisible();
-    await expect(primaryCta).toContainText("Get started");
+    await expect(primaryCta).toContainText("Get Started Free");
     await expect(primaryCta).toHaveAttribute("href", "/login");
 
     const secondaryCta = hero.locator("#seeHowItWorksBtn");
     await expect(secondaryCta).toBeVisible();
-    await expect(secondaryCta).toContainText("See how it works");
-    await expect(secondaryCta).toHaveAttribute("href", "#how");
+    await expect(secondaryCta).toContainText("Watch Demo (2 min)");
+    await expect(secondaryCta).toHaveAttribute("href", "#demo");
 
     // Central Profile Card
     const profileCard = hero.locator("#refCentralCard");

@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 
 import { db } from "@/db";
 import { jobs, profileViews } from "@/db/schema";
+import { guarded } from "@/lib/api-guard";
 import { getApiOnboardedUser } from "@/lib/dal";
 
 export type DashboardStatus = {
@@ -19,7 +20,7 @@ export type DashboardStatus = {
  * your dashboard…" poller. Minimal payload, always scoped to the session user,
  * ETag-gated so an unchanged status answers 304 with no body.
  */
-export async function GET(request: Request) {
+export const GET = guarded(async (request: Request) => {
   const authz = await getApiOnboardedUser();
   if (!authz.ok) return NextResponse.json({ error: authz.error }, { status: authz.status });
   const userId = authz.user.id;
@@ -40,4 +41,4 @@ export async function GET(request: Request) {
   const headers = { ETag: etag, "Cache-Control": "private, no-cache" };
   if (request.headers.get("if-none-match") === etag) return new NextResponse(null, { status: 304, headers });
   return new NextResponse(body, { status: 200, headers: { ...headers, "Content-Type": "application/json" } });
-}
+});

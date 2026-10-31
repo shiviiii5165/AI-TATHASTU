@@ -14,7 +14,7 @@ import psycopg2.extras
 
 from crypto_box import open_credential
 from db import enqueue_compute_intelligence, fetch_one, has_consent, jsonb
-from jobs import Job
+from jobs import Job, assert_still_owner
 from profile_urls import route_contact_url
 
 log = logging.getLogger("worker.connectors")
@@ -139,6 +139,7 @@ def still_connected(cur: Any, connection_id: str, user_id: str) -> bool:
 
 def finish_sync(conn: Any, job: Job, connection_id: str, source: str, facts: Facts, consent: Optional[str] = None) -> None:
     with conn, conn.cursor() as cur:
+        assert_still_owner(cur, job)  # An expired run must not overwrite the newer run's facts.
         if not still_connected(cur, connection_id, job.user_id):
             log.info("%s connection %s was disconnected mid-sync; results discarded", source, connection_id)
             return

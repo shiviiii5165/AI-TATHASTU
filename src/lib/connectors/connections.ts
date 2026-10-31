@@ -9,6 +9,23 @@ import { sourceById } from "@/lib/connectors/sources";
 import { wakeWorker } from "@/lib/worker-ping";
 
 /**
+ * Queues a sync unless one for this connection is already waiting: it reads the
+ * current credential when it runs, so a second one would only repeat the work
+ * (and spend the source's API quota). Double-clicks collapse here.
+ */
+export function queueConnectorSync(userId: string, connectionId: string, sourceId: SourceId, syncKey: string) {
+  return db.execute(sql`
+    INSERT INTO jobs (type, user_id, idempotency_key, payload)
+    SELECT 'connector_sync', ${userId}, ${`connector_sync:${connectionId}:${syncKey}`},
+           ${JSON.stringify({ source_id: sourceId, connection_id: connectionId })}::jsonb
+     WHERE NOT EXISTS (
+       SELECT 1 FROM jobs
+        WHERE user_id = ${userId} AND type = 'connector_sync' AND status = 'queued'
+          AND payload->>'connection_id' = ${connectionId})
+    ON CONFLICT (idempotency_key) DO NOTHING`);
+}
+
+/**
  * Stores (or replaces) the user's connection to a source and queues its first
  * sync. `credential` is sealed into token_enc; `syncKey` makes the job
  * idempotent per connect attempt (an OAuth state, a form submission id).
@@ -58,17 +75,7 @@ export async function connectSource(input: {
       .where(eq(onboardingState.userId, input.userId)),
     ...(input.queueSync === false
       ? []
-      : [
-          db
-            .insert(jobs)
-            .values({
-              type: "connector_sync",
-              userId: input.userId,
-              idempotencyKey: `connector_sync:${connection.id}:${input.syncKey}`,
-              payload: { source_id: input.sourceId, connection_id: connection.id },
-            })
-            .onConflictDoNothing({ target: jobs.idempotencyKey }),
-        ]),
+      : [queueConnectorSync(input.userId, connection.id, input.sourceId, input.syncKey)]),
   ]);
 
   if (input.queueSync !== false) wakeWorker(`connector_sync:${input.sourceId}`);

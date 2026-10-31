@@ -9,6 +9,7 @@ from typing import List
 MAX_PAGES = 4  # resumes past page 4 are rare; keeps requests well under provider limits
 DPI = 130  # legible for vision models at ~1100x1430 px per A4 page
 MAX_SIDE = 2000  # uploaded photos/scans are downscaled to this
+MAX_PIXELS = 40_000_000  # same limit as OCR (resume/text.py); larger decodes can exhaust a 512 MB worker
 
 
 def render_pages(data: bytes, kind: str) -> List[str]:
@@ -27,6 +28,8 @@ def render_pages(data: bytes, kind: str) -> List[str]:
         from PIL import Image
 
         img = Image.open(io.BytesIO(data))
+        if img.width * img.height > MAX_PIXELS:  # read from the header; nothing decoded yet
+            raise ValueError("image is too large to process")
         img = img.convert("RGB")
         img.thumbnail((MAX_SIDE, MAX_SIDE))
         buf = io.BytesIO()

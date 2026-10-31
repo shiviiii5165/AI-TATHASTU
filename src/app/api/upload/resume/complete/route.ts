@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { guarded } from "@/lib/api-guard";
 import { getApiUserAtStep } from "@/lib/dal";
 import { headObject, isR2Configured } from "@/lib/r2";
 import { registerResume, resumeUploadSchema } from "@/lib/uploads/register";
@@ -10,7 +11,7 @@ import { hexToBase64, resumeStorageKey } from "@/lib/uploads/resume";
  * object really is in R2 with the declared size, type and checksum, then
  * record the file and enqueue `resume_extract`.
  */
-export async function POST(request: Request) {
+export const POST = guarded(async (request: Request) => {
   const authz = await getApiUserAtStep("resume");
   if (!authz.ok) return NextResponse.json({ error: authz.error }, { status: authz.status });
   if (!isR2Configured()) return NextResponse.json({ error: "Uploads aren't configured." }, { status: 503 });
@@ -31,4 +32,4 @@ export async function POST(request: Request) {
 
   const { jobId } = await registerResume(authz.user.id, upload);
   return NextResponse.json({ jobId }, { status: 201 });
-}
+});

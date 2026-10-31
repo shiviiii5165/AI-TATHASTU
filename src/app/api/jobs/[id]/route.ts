@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { connection, NextResponse } from "next/server";
 
 import { auth } from "@/auth";
+import { guarded } from "@/lib/api-guard";
 import { getJobForUser } from "@/lib/dal";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -11,7 +12,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
  * Job status for the polling client. ETag-gated: an unchanged status answers
  * 304 with no body, so a long poll costs one small query and no payload.
  */
-export async function GET(request: Request, { params }: RouteContext<"/api/jobs/[id]">) {
+export const GET = guarded(async (request: Request, { params }: RouteContext<"/api/jobs/[id]">) => {
   await connection();
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Sign in to continue." }, { status: 401 });
@@ -26,4 +27,4 @@ export async function GET(request: Request, { params }: RouteContext<"/api/jobs/
 
   if (request.headers.get("if-none-match") === etag) return new NextResponse(null, { status: 304, headers });
   return new NextResponse(body, { status: 200, headers: { ...headers, "Content-Type": "application/json" } });
-}
+});

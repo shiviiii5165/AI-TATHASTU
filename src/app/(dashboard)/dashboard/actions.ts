@@ -7,7 +7,8 @@ import { refresh } from "next/cache";
 
 import type { SaveResult } from "@/app/onboarding/actions";
 import { db } from "@/db";
-import { connections, jobs } from "@/db/schema";
+import { connections } from "@/db/schema";
+import { queueConnectorSync } from "@/lib/connectors/connections";
 import { requireOnboardedUser } from "@/lib/dal";
 import { setWidgetPref, widgetPrefSchema, type WidgetPrefInput } from "@/lib/dashboard/prefs";
 import { wakeWorker } from "@/lib/worker-ping";
@@ -30,15 +31,7 @@ export async function refreshGithub(): Promise<SaveResult> {
     .from(connections)
     .where(and(eq(connections.userId, user.id), eq(connections.sourceId, "github")));
   if (!connection) return { ok: false, error: "GitHub isn't connected." };
-  await db
-    .insert(jobs)
-    .values({
-      type: "connector_sync",
-      userId: user.id,
-      idempotencyKey: `connector_sync:${connection.id}:manual:${randomUUID()}`,
-      payload: { source_id: "github", connection_id: connection.id },
-    })
-    .onConflictDoNothing({ target: jobs.idempotencyKey });
+  await queueConnectorSync(user.id, connection.id, "github", `manual:${randomUUID()}`);
   wakeWorker("connector_sync:github:manual");
   refresh();
   return { ok: true };

@@ -45,7 +45,7 @@ from resume.deterministic import _PATTERNS
 
 log = logging.getLogger("worker.intelligence")
 
-API_ORIGINS = ("github", "kaggle", "stack_exchange", "portfolio", "leetcode", "hackerrank", "linkedin_oidc", "linkedin_scrape")
+API_ORIGINS = ("github", "kaggle", "stack_exchange", "portfolio", "leetcode", "hackerrank", "orcid", "linkedin_oidc", "linkedin_scrape")
 VIEW_VERSION = 1
 
 

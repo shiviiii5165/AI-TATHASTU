@@ -25,7 +25,18 @@ export function connectLocal<S extends Record<string, unknown>>(url: string, sch
   const { Pool } = load("pg") as typeof import("pg");
   const { drizzle } = load("drizzle-orm/node-postgres") as typeof import("drizzle-orm/node-postgres");
 
-  const db = drizzle({ client: new Pool({ connectionString: url, max: 4 }), schema }) as NodePgDatabase<S> & {
+  // Same deadline as production's timedFetch, so failure tests behave alike. The pool
+  // size is only raised for load tests against a real Postgres (PGlite is one connection).
+  const timeout = Number(process.env.DB_QUERY_TIMEOUT_MS) || 20_000;
+  const pool = new Pool({
+    connectionString: url,
+    max: Number(process.env.LOCAL_DB_POOL_MAX) || 4,
+    query_timeout: timeout,
+    connectionTimeoutMillis: timeout,
+  });
+  // An idle client losing its connection must not crash the process.
+  pool.on("error", (error) => console.error("db pool error", { kind: error.name }));
+  const db = drizzle({ client: pool, schema }) as NodePgDatabase<S> & {
     batch?: (queries: PromiseLike<unknown>[]) => Promise<unknown[]>;
   };
   db.batch = async (queries) => {

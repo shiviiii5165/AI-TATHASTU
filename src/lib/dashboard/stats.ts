@@ -1,16 +1,15 @@
-import { count, desc, eq, sql } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   codeRepositories,
-  collaborationEmbeddings,
   githubScores,
   opportunities,
   profileFacts,
   skillEvidence,
   skills,
-  users,
 } from "@/db/schema";
-import { discoverableBy, type Viewer } from "@/lib/discovery";
+import type { Viewer } from "@/lib/discovery";
+import { discoverableCount } from "@/lib/dashboard/network-count";
 import { usableFactsOf } from "@/lib/profile/unified";
 
 // Every number here comes from stored data. Where a value isn't known it is
@@ -120,11 +119,7 @@ export async function getLiveDashboardData(viewer: Viewer): Promise<LiveDashboar
       .from(githubScores)
       .where(eq(githubScores.userId, userId)),
     // People this user can actually discover (mentor_discovery consent).
-    db
-      .select({ count: count() })
-      .from(collaborationEmbeddings)
-      .innerJoin(users, eq(users.id, collaborationEmbeddings.userId))
-      .where(discoverableBy(viewer)),
+    discoverableCount(viewer),
     db
       .select({
         fieldGroup: profileFacts.fieldGroup,
@@ -337,7 +332,7 @@ export async function getLiveDashboardData(viewer: Viewer): Promise<LiveDashboar
     quickActions.push({ id: "project", title: "Add your latest engineering project", iconName: "Plus", iconBg: "bg-[#EDF5FF] text-[#2878F0]", href: "/projects" });
   }
 
-  const networkCount = networkRes[0]?.count ?? 0;
+  const networkCount = networkRes;
 
   // Fallback completeness (the worker's profile_completeness widget wins when present).
   let profilePercent = 0;

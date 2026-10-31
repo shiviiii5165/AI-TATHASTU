@@ -20,6 +20,15 @@ export type SimilarPerson = {
 /**
  * Discoverable people (src/lib/discovery.ts) ordered by pgvector cosine
  * distance to the viewer's collaboration embedding, in one query.
+ *
+ * The `+ 0` keeps the planner off the HNSW index on purpose. That index yields
+ * only hnsw.ef_search (40) nearest rows and the discovery filter runs after, so
+ * it returned 4 of 24 requested with 3,000 eligible at 20k users, and could
+ * return none. The exact sort is linear in users: 24 ms for a student and 101 ms
+ * for a mentor at 20k (local Postgres). When that gets slow, move to pgvector's
+ * hnsw.iterative_scan = strict_order (24/24 correct at 20k in about the same time;
+ * relaxed_order got 13/24), which needs a batch transaction to SET LOCAL and
+ * pgvector >= 0.8 on Neon.
  */
 export async function similarPeople(viewer: Viewer, limit: number): Promise<SimilarPerson[]> {
   const viewerVec = sql`(select ${ce.embedding} from ${ce} where ${ce.userId} = ${viewer.id})`;
@@ -37,7 +46,7 @@ export async function similarPeople(viewer: Viewer, limit: number): Promise<Simi
     .from(ce)
     .innerJoin(users, eq(users.id, ce.userId))
     .where(and(discoverableBy(viewer), isNotNull(ce.embedding)))
-    .orderBy(sql`${distance} asc nulls last`)
+    .orderBy(sql`${distance} + 0 asc nulls last`)
     .limit(limit);
   return rows.map(({ distance: d, ...r }) => ({
     ...r,

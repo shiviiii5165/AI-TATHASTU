@@ -42,6 +42,7 @@ export function DashboardHeader({
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [searchFailed, setSearchFailed] = useState(false);
   const [searchResults, setSearchResults] = useState<{
     people: Array<{ id: string; title: string; subtitle: string; url: string }>;
     skills: Array<{ id: string; title: string; subtitle: string; url: string }>;
@@ -71,12 +72,18 @@ export function DashboardHeader({
       setIsSearching(true);
       try {
         const res = await fetch(`/api/search?q=${encodeURIComponent(trimmed)}`);
-        if (res.ok && !cancelled) {
-          const data = await res.json();
-          setSearchResults(data.results);
-        }
+        if (cancelled) return;
+        if (!res.ok) throw new Error(`search responded ${res.status}`);
+        const data = await res.json();
+        if (cancelled) return;
+        setSearchResults(data.results);
+        setSearchFailed(false);
       } catch (e) {
         console.error("Search fetch failed", e);
+        if (!cancelled) {
+          setSearchResults(null); // never show the previous query's results for this one
+          setSearchFailed(true);
+        }
       } finally {
         if (!cancelled) {
           setIsSearching(false);
@@ -268,7 +275,11 @@ export function DashboardHeader({
                   </div>
                 ) : (
                   <div className="py-6 text-center text-slate-500 text-xs">
-                    {isSearching ? "Searching catalogue…" : `No matches found for "${searchQuery}"`}
+                    {isSearching
+                      ? "Searching catalogue…"
+                      : searchFailed
+                        ? "Search isn't available right now. Try again in a moment."
+                        : `No matches found for "${searchQuery}"`}
                   </div>
                 )}
               </div>

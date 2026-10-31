@@ -2575,3 +2575,199 @@ Aligned the "How it works" section heading hierarchy precisely with the approved
 | `npx vitest run` | Full Unit Test Suite | **Exit 0** (23/23 files, **207/207 passed**) | 100% pass rate including `landing-page.test.ts` (10/10) |
 | `npx playwright test e2e/landing-responsive.spec.ts` | 9 Viewports (320px to 2560px) | **Exit 0** (**27/27 passed**) | 0 overflow, 0 clipping |
 | `npx playwright test e2e/capture-qa-screenshots.spec.ts` | Visual QA Screenshot Capture | **Exit 0** (**2/2 passed**) | Captured `qa-how-it-works.png`, `qa-how-it-works-tablet.png`, `qa-how-it-works-mobile.png`, `qa-five-rooms-desktop.png`, `qa-five-rooms-tablet.png`, `qa-five-rooms-mobile.png` |
+
+---
+
+## 65. Full-system reliability, security and performance pass (2026-10-30)
+
+Base commit `9c8bdd4`, clean tree. Nothing was committed, pushed or deployed, no migration was applied, and no production system was contacted. Runtime tests used the isolated e2e stack (PGlite + fake R2).
+
+### 65.1 Defects fixed
+
+| Sev | Defect | Evidence | Fix | Regression test |
+|---|---|---|---|---|
+| P1 | `/api/session/refresh` re-issued the session JWT with only `Path=/` (no HttpOnly/SameSite), and copied other request cookies, including OAuth state, to `Path=/`. Production's `__Secure-` name also requires `Secure`, so browsers should reject that header | Reproduced with a live probe | Removed the copy loop; Next merges Auth.js's own cookie | `e2e/session-refresh.spec.ts` |
+| P1 | A DB error while recording a job outcome escaped `run_forever`, killing the queue thread; the health check stays 200 while any other thread lives | Source; failure path covered by unit test | Thread-level boundary | `test_reliability.py` |
+| P1 | Deletion left connector credentials and queued jobs, despite its docstring; the worker had no deleted-account check, so a deleted user's data could still reach providers | Source; tested after fix | Atomic batch; worker refuses the job | `students.test.ts`, `test_reliability.py` |
+| P1 | Resource exhaustion risk on the 512 MB worker: DOCX zip bombs, unbounded PDF pages/page size, undecoded image size in vision | Bomb fixtures fit under the 10 MB limit | Limits at intake/extract/render, ending in `needs_review` | `test_reliability.py` |
+| P2 | Two recomputes for one user could run together; the older could overwrite the newer | Source | Claim SQL waits for a live run | `test_queue_sql.py` (real SQL) |
+| P2 | Connector card stuck on `syncing` after an unrecognised final failure or worker death | Source | Settled in `sync.py` and `EXPIRE_SQL` | `test_reliability.py`, `test_queue_sql.py` |
+| P2 | `orcid` missing from `API_ORIGINS` on both sides, so imported ORCID facts were never usable | Source | Added both sides | Parity test in `test_reliability.py` |
+| P2 | `safeEqual` threw on non-ASCII input of equal character length (500 instead of rejection) | Source; unit test | Compare byte lengths; GitHub callback reuses it | `internal-auth.test.ts` |
+| P2 | Contact form deleted non-ASCII text, so Hindi messages were lost; subject could carry line breaks | Source; unit test | HTML-escape; single-line subject | `contact/route.test.ts` |
+| P2 | `/api/search` returned 200 empty on failure; client showed "no matches" or stale results | Source; unit test | 503; client failure state | `search/route.test.ts` |
+| P2 | Yora answered failures with 200, invented a stage, milestone, focus skill and course, claimed "matching your profile" and "verified skills", and counted evidence rows as skills | Source; unit tests | Honest replies, 503, 400, LIKE escaping, distinct count | `yora/chat/route.test.ts` |
+| P3 | Ticket reply action relied on render-time authorization and accepted closed tickets or unbounded text | Source only; no dedicated test | Re-authorizes inside the action | None |
+| P3 | Debug `console.log` on About hover/click; connector poll re-rendered hidden tabs; retries had no jitter | Source | Removed; paused; jittered | Jitter only |
+
+Two e2e assertions were stale, not app bugs: §62 deliberately changed the hero CTAs to "Get Started Free" and "Watch Demo (2 min)". The spec now matches. That was the sole baseline failure.
+
+### 65.2 Measurements (labelled)
+
+Query plans use PGlite with 200,000 finished jobs, median of 5 (locally measured, not Neon). Both "before" and "after" include the new claim condition.
+
+| Query | Before | After 0018 |
+|---|---|---|
+| Worker claim | 33.2 ms | 0.043 ms |
+| Lock expiry | 14.6 ms (Seq Scan) | 0.014 ms |
+
+Landing page, production build, local stack, median of 3. Mobile = 390 px, 4x CPU, 1.6 Mbps/150 ms.
+
+| Metric | Before | After |
+|---|---|---|
+| Total transfer | 442 KB | 384 KB |
+| Images | 110 KB | 52 KB |
+| Desktop LCP / TBT | 260 / 64 ms | 220 / 92 ms |
+| Mobile LCP / TBT | 1888 / 247 ms | 2120 / 187 ms |
+
+The byte saving is real. Timing differences are mixed, look like run-to-run variation, and are not claimed as an improvement. Mobile baselines (LCP/TBT ms, CLS): dashboard 1740/973/0, profile 1428/597/0, projects 1516/435/0, skills 2068/801/0.017, people 1700/569/0, learning 1324/532/0, login 2012/234/0. Authenticated routes were not re-measured after the fixes. One isolated run recorded mobile landing CLS 0.43 and one earlier run timed out at 120 s; neither reproduced (CLS 0 in the next 3 runs, and every later load completed), so neither is a confirmed defect.
+
+### 65.3 Verification
+
+| Command | Baseline | Final |
+|---|---|---|
+| `npm run typecheck` | exit 0 | exit 0 |
+| `npm run lint` | not run | exit 0 (0 errors, 110 warnings) |
+| `npx vitest run` | exit 0, 207 | exit 0, 216 |
+| `python -m pytest worker/tests -q` | exit 0, 98 + 1 skipped | exit 0, 115 + 5 skipped |
+| `test_queue_sql.py` on local Postgres | n/a | 4 passed |
+| `npx playwright test` (includes `next build`) | exit 1, 72 passed, 1 failed | exit 0, 74 passed |
+
+### 65.4 Open items
+
+| Pri | Item | Needed to close |
+|---|---|---|
+| P1 | Privacy Policy and Terms promise under-18 safeguards, but the code has no age or date-of-birth field, so they aren't enforced | Product/legal decision on an age policy |
+| P1 | Faculty/alumni role is self-selected at onboarding, and that role unlocks consenting students' profiles in discovery | Decide on role verification |
+| P1 | Deletion is soft: profile data and R2 resumes stay, no purge exists, and there is no self-service deletion | Retention decision, then a purge job |
+| P2 | Demo opportunities that name real institutions are seeded by migration 0014 and shown as real | Product decision on labelling |
+| P2 | "Watch Demo (2 min)" opens a coming-soon dialog | Product decision |
+| P2 | Apply `0018` (and `0016` if outstanding), then re-check plans on a Neon staging branch | Staging URL |
+| P2 | Production latency, field vitals, pgvector plans, live OAuth/LinkedIn, live AI quality, OCR, Firefox/WebKit, screen readers: not verified here | Staging and device access |
+| P3 | Rate limiter fails open and trusts `x-forwarded-for`, correct only behind Vercel's edge; 110 lint warnings; large unused `public/` files | Follow-up |
+
+## 66. Production engineering pass: functional defects, failure handling and load (2026-10-30)
+
+Base commit `9c8bdd4`, with the uncommitted §65 work preserved. Nothing was committed, pushed or deployed. No migration was applied to Neon, and neither Neon nor production was contacted. No staging Neon branch exists, so `.env.local`'s unlabelled Neon endpoint was not used. Runtime evidence comes from a local Docker Postgres 17 with pgvector 0.8.7, 20,000 synthetic users and stubbed providers. **Supersedes** §43's load results and §65.4's limiter item.
+
+### 66.1 Defects fixed
+
+| Sev | Defect | Reproduction | Root cause | Fix | Regression test |
+|---|---|---|---|---|---|
+| P1 | `db:migrate` failed at 0017 on any database that had run 0014, which also blocked 0018 | Migrating from empty on real Postgres failed with `opportunities_type_idx already exists` | Unguarded repeat of the index; the PGlite test loaders swallow "already exists" | `IF NOT EXISTS` (Drizzle's ledger compares timestamps, so applied databases are unaffected). All 19 migrations now apply from empty | `src/db/migrations.test.ts` |
+| P1 | Anyone could trigger unlimited magic-link emails to any address | Source: no limit on the send path, which `/api/auth/signin/*` reaches directly | No limit in the provider's send step | 5 per address and 60 per IP per 15 min, refused if the DB is down. Live: 8 attempts sent 5 emails; login form sent 5 of 7 and showed an honest message | `rate-limit.test.ts`; browser run with a fake SMTP server |
+| P1 | No error boundary: a DB failure during render gave Next's generic crash screen with no retry | No `error.tsx` existed; not observed before the fix | Missing boundaries | `app/error.tsx`, `app/global-error.tsx`. Browser: boundary shown on /dashboard, /people, /profile with the DB paused; Try again recovered | Browser run only (`global-error.tsx` not exercised) |
+| P2 | People, Yora and matches returned too few people: 4 of 24 requested with 3,000 eligible | `EXPLAIN ANALYZE`, 20k users | HNSW yields `ef_search` (40) rows before the discovery filter | Exact sort. 4 → 24 rows; student 3 → 24 ms, mentor 101 ms | Measured on pgvector only; **no automated test** (PGlite has no HNSW) |
+| P2 | Re-uploading the same file after a failed run returned the failed job forever | Source | Idempotency key returned the existing job | Only `failed` is re-queued, on the same job | `reliability-writes.test.ts` |
+| P2 | Refresh or connect double-clicks queued unbounded syncs, and two syncs of one connection could run together | Source | Random idempotency key; no claim guard | One queued sync per connection; claim SQL serializes per connection | `reliability-writes.test.ts`, `test_queue_sql.py` |
+| P2 | Re-saving a review stored hand-added entries twice | Source | No duplicate check on the insert | Skips saved record key + field. Sequential retries only: truly simultaneous saves can still race | `reliability-writes.test.ts` |
+| P2 | Neon HTTP queries had no deadline | Source; a stalled socket never answers | Driver sets none | `timedFetch`, 20 s default. Slow-query and failure logs carry timings only | `timed-fetch.test.ts` (real driver, stalled socket) |
+| P2 | Limiter trusted spoofable headers off Vercel, failed fully open, and could add a full query deadline to each request | Paused DB: search 6.1 s, now 4.7 s (3 s query deadline) | Header handling and no fallback | See 66.2 | `rate-limit.test.ts` |
+| P2 | Search, Yora, analytics and institutions had no rate limit; search `q` was unbounded | Source | Missing | 60, 30, 60 and 120 per user per minute; `q` capped at 100 chars | Limiter tested directly; route wiring not separately tested |
+| P3 | Unhandled outages gave an empty 500 on polling and write routes | Paused DB | No handler | `guarded()` returns 503 + `Retry-After` on status, widget-prefs, consents, analytics, institutions, jobs, upload | `api-guard.test.ts`; live on status and widget-prefs |
+| P3 | `rate_limits` and expired verification tokens grew forever | Source | No purge | Daily cron deletes rows older than a day | None; not executed |
+
+Not defects: a route-table check of internal links found none broken (its one hit was a regex artifact), and all OAuth `fetch` calls have timeouts.
+
+### 66.2 Rate-limit decisions
+
+| Route | If the DB is unavailable | Why |
+|---|---|---|
+| Magic link | Deny | Spends quota and reaches third parties; needs the DB for its token anyway |
+| Contact, search, Yora, analytics, institutions, resume presign | Per-instance memory count, after a 1.5 s limiter deadline | Stays available and still bounds a burst. Weaker than the shared count |
+
+Client IP: on Vercel, `x-vercel-forwarded-for` then `x-forwarded-for` then `x-real-ip`. Elsewhere, ignored unless `TRUST_PROXY_HEADERS=1`, so callers share one bucket. That Vercel overwrites these headers comes from its documentation and was **not verified on a live deployment**.
+
+### 66.3 Load harness corrections (`load/`)
+
+- `/me` now sends `X-AIT-Module`, and asserts the returned name.
+- The old `http_req_failed{expected_5xx:no}` threshold matched no request and could never fail. Replaced by `journey_failures`.
+- Isolation checks are counted, and a run with none fails. A positive control confirmed mentors do see consented students, so the checks aren't vacuous.
+- First run reported 3 "leaks" and 72 stale writes at high load. All were failed connections counted as violations: the three leaks matched failed requests to the ownership probe. After correcting the assertions, every rerun recorded 0 of each.
+
+### 66.4 Load results: LOCAL ONLY, not production capacity
+
+i5-13450HX, 16 threads; k6, Docker, Postgres and every Node process share this one machine. Sessions think 3–8 s. Latency is p50/p95/p99 ms. "Net" is status-0 failures (`dial: i/o timeout`, `EOF`, request timeout), which come at least partly from the Docker-to-host path. Worker queue delay was not measured during these runs.
+
+| Run | Sessions | req/s | Read | Write | Fail | 5xx | Net | Leaks | Stale |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 instance | 25 | 4.9 | 24/69/90 | 15/55/59 | 0% | 0 | 0 | 0 | 0 |
+| 1 instance | 50 | 9.7 | 28/70/109 | 45/60/79 | 0% | 0 | 0 | 0 | 0 |
+| 1 instance | 100 | 19.5 | 30/156/665 | 40/94/457 | 0% | 0 | 0 | 0 | 0 |
+| 1 instance | 250 | 44.6 | 48/1678/2265 | 46/1039/1295 | 0.52% | 0 | 37 | see 66.3 | see 66.3 |
+| 1 instance | 500 | 83.1 | 192/994/1286 | 150/587/723 | 1.02% | 0 | 136 | see 66.3 | see 66.3 |
+| 1 instance, corrected | 1000 | 54.1 | 3654/33899/35928 | 3209/10725/15490 | 1.26% | 0 | 109 | 0 | 0 |
+| 4 instances | 250 | 48.1 | 48/153/276 | 31/88/112 | 0.16% | 0 | 12 | 0 | 0 |
+| 4 instances | 500 | 77.4 | 67/8379/14062 | 39/4174/9041 | 0.21% | 0 | 26 | 0 | 0 |
+| 4 instances | 1000 | 19.1 | 31467/59995/59996 | 32604/57619/59995 | **28.26%** | 21 | 844 | 0 | 0 |
+| 4, write-heavy | 250 | 61.5 | 119/5960/7551 | 41/3312/4715 | 0.33% | 0 | 32 | 0 | 0 |
+| 4, spike | 200→1000 | 127.8 | 47/387/723 | 25/165/370 | 0.35% | 0 | 89 | 0 | 0 |
+| 4, soak 5 min | 250 | 62.1 | 22/665/2253 | 11/430/1347 | 0.22% | 0 | 45 | 0 | 0 |
+
+Rows 1–5 ran before the error boundaries and route guards were added. Reading the table:
+
+- Only **up to 100 sessions on one instance** met every latency target with no failures. The first 250-on-4 run also met them, but the soak at the same level did not, so 250 isn't a stable result.
+- Results are noisy: 4 instances at 500 was worse than 1 instance at 500, and the spike to 1000 did better than sustained 1000. The host is the likely cause, but that isn't proven, because per-process CPU wasn't sampled.
+- Postgres was not the limit here: it peaked at 9 active queries, 0 deadlocks. In the 1000 collapse it averaged 0.2 active while the app logged pool-connect timeouts, which points to host or event-loop saturation.
+- Node memory grew from about 145 MB to 237–292 MB over the soak. Five minutes can't distinguish a leak from warm-up.
+- These results say nothing about Neon latency, HTTP-driver concurrency or Vercel scaling.
+
+### 66.5 Query plans (local Postgres, 200,000 jobs)
+
+| Query | Result |
+|---|---|
+| Claim, without → with 0018 | 28.5 → 0.03 ms |
+| Lock expiry, without → with 0018 | 16 → 0.007 ms |
+| Network count on each dashboard load | Student 5 ms, mentor 51 ms; linear in users. Not changed; becomes a problem well above 20k users |
+
+**0018 recommendation:** apply after a staging check; it is additive. Use `CREATE INDEX CONCURRENTLY` by hand first if `jobs` is large. Not tested on Neon.
+
+### 66.6 Failure and recovery results
+
+| Scenario | Result |
+|---|---|
+| DB paused, 3 s deadline | APIs 503 within about 3–5 s; pages show the boundary; `/` unaffected; automatic recovery |
+| DB stopped, then restarted | Fast 503s; recovery with no app restart |
+| Worker hard-killed with 2 jobs running (15 s lock, real `server.py`, 2 threads) | 200/200 done, 0 stuck, max 2 attempts, 9.2 jobs/s. No AI calls, so this is an upper bound |
+
+**Not run:** provider timeout or fallback injection against the live worker path, R2 errors, webhook duplication, aborted requests, overload recovery, DB latency injection (as opposed to a full stall), queue backlog under web load. Provider behaviour rests on existing unit tests. Live integrations were not exercised: Google, LinkedIn, GitHub, ORCID, Kaggle, Stack Exchange, LeetCode, HackerRank, Firecrawl, Apify, Groq, Gemini, OpenRouter, R2, email.
+
+### 66.7 Capacity assessment
+
+| Objective | Status |
+|---|---|
+| 50,000 concurrent users | **Unverified** |
+| 100-participant classroom | **Unverified; no classroom code exists in `src`**, so it needs a product and real-time infrastructure decision |
+
+Rough model from the measured mix, to be replaced by staging data: about 0.2 req/s per session gives about **10,000 req/s** at 50,000 sessions. About 5.4 DB transactions per request gives about **54,000 queries/s** if traffic were the same mix, which is the first number to challenge. Vercel's scale-out, Neon compute and connection limits, and any read replica or caching need real measurement. Worker capacity depends on AI quotas: Render's free plan sleeps, and the audit's "one job at a time" (§44) is outdated because `server.py` defaults to 2 threads.
+
+Staged path: staging Neon branch → 100, 250, 500, 1000 sessions from a separate load-generator machine → distributed generators beyond that. Each stage must meet its targets before the next. Costs need owner approval.
+
+### 66.8 Verification
+
+| Command | Result |
+|---|---|
+| `npm run typecheck` | exit 0 |
+| `npm run lint` | exit 0; 0 errors, 110 warnings (unchanged) |
+| `npx vitest run` | exit 0; 243 passed (was 216) |
+| `python -m pytest worker/tests -q` | exit 0; 116 passed, 5 skipped |
+| `test_queue_sql.py`, local Postgres 17 | 5 passed |
+| `npx playwright test` | exit 0; 74 passed, Chromium only. Ran before the later contact-test and k6-only edits |
+| `next build` | exit 0 |
+
+New tests were not mutation-checked against the old code. Lighthouse and frontend profiling were not re-run, and no frontend optimization was made.
+
+### 66.9 Open items
+
+| Type | Item |
+|---|---|
+| Needs staging Neon | Migration chain and 0018, HTTP-driver latency, pgvector plans, load, recovery |
+| Infrastructure | Render plan and worker count, Vercel region, separate load generators |
+| Live checks | All integrations in 66.6; OCR; live AI quality |
+| Observability gap | Only DB timing logs were added. Per-route timings, query counts, correlation IDs and AI-provider metrics are not implemented |
+| Scale limits | Exact People sort and dashboard network count are linear in users |
+| Product/legal, unchanged | Under-18 policy, faculty/alumni verification, retention and erasure, labelling demo opportunities, "Watch Demo" |
+
+## 67. Scalability and reliability pass (2026-10-31)
+
+Reports are in `docs/engineering/`; start with `FINAL_ENGINEERING_REPORT.md`. New P1: queue threads shared one worker id, so fencing did not separate them (fixed and reproduced). Supersedes the §66.7 note on the People threshold. Capacity, classroom and live integrations stay unverified. The final `npm run build` ran with `.env.local` loaded; pages using the database are behind auth, so a Neon read is unlikely but was not ruled out. No writes, migrations or deployment.

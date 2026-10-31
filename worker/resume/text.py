@@ -21,6 +21,9 @@ MIN_TEXT_CHARS = 40
 # Image resumes: refuse decompression bombs, downscale huge photos before OCR.
 MAX_IMAGE_PIXELS = 40_000_000
 MAX_IMAGE_SIDE = 3500
+# PDFs: a 10 MB file can hold thousands of pages, or pages far larger than paper.
+MAX_PDF_PAGES = 50
+MAX_PDF_PAGE_POINTS = 2000  # about 28 inches; A0 is 3370, A3 is 1191
 
 BBox = Tuple[float, float, float, float]
 
@@ -115,7 +118,11 @@ def _pdf(data: bytes, force_ocr: bool = False) -> Document:
     pages: List[PageInfo] = []
     blank = 0
     with fitz.open(stream=data, filetype="pdf") as pdf:
+        if pdf.page_count > MAX_PDF_PAGES:
+            raise ValueError(f"PDF has {pdf.page_count} pages (limit {MAX_PDF_PAGES})")
         for index, page in enumerate(pdf):
+            if max(page.rect.width, page.rect.height) > MAX_PDF_PAGE_POINTS:
+                raise ValueError("PDF page is too large to process")  # its bitmap wouldn't fit in memory
             number = index + 1
             text_blocks = [b for b in page.get_text("blocks", sort=True) if b[6] == 0]
             raw = [b for b in text_blocks if b[4].strip()]

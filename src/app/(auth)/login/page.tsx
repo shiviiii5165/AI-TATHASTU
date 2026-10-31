@@ -39,6 +39,8 @@ const ERRORS: Record<string, string> = {
     "Sign-in was cancelled or denied. Please try again.",
   InvalidEmail:
     "Please enter a valid email address.",
+  EmailSignInError:
+    "We couldn't send your sign-in link. If you've asked for several, wait 15 minutes and try again.",
 };
 
 export default function LoginPage({ searchParams }: PageProps<"/login">) {

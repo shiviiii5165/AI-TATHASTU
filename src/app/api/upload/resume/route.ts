@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { guarded } from "@/lib/api-guard";
 import { getApiUserAtStep } from "@/lib/dal";
 import { isR2Configured, presignResumeUpload } from "@/lib/r2";
 import { hitRateLimit } from "@/lib/rate-limit";
@@ -12,7 +13,7 @@ import { hexToBase64, resumeStorageKey } from "@/lib/uploads/resume";
  * pass through this function. If the user already uploaded these bytes, skip
  * the upload and hand back the existing job.
  */
-export async function POST(request: Request) {
+export const POST = guarded(async (request: Request) => {
   const authz = await getApiUserAtStep("resume");
   if (!authz.ok) return NextResponse.json({ error: authz.error }, { status: authz.status });
 
@@ -48,4 +49,4 @@ export async function POST(request: Request) {
     sha256Base64: hexToBase64(upload.sha256),
   });
   return NextResponse.json({ duplicate: false, upload: { url, method: "PUT", headers } });
-}
+});

@@ -101,7 +101,10 @@ def extract_facts(data: bytes, mime: str, sha256: str, consent: bool) -> Tuple[L
         reason = needs_whole_document(usable, doc.blank_ratio, candidates)
         diag["reason"] = reason
         if reason:
-            images = render_pages(data, info.kind) if (not usable or doc.blank_ratio > 0 or not doc.text) else []
+            try:
+                images = render_pages(data, info.kind) if (not usable or doc.blank_ratio > 0 or not doc.text) else []
+            except ValueError as exc:  # oversized upload; not retryable
+                raise NeedsReview(f"could not render {info.kind}: {exc}") from exc
             facts, diag["tier"] = _whole_document(doc, sections, candidates, usable, images, diag)
         else:
             facts, diag["tier"] = _section_recovery(doc, candidates, sections), "sections"
