@@ -76,7 +76,10 @@ export function isAllowedRedirect(client: IntegrationClient, redirectUri: string
     return false;
   }
   if (url.hash || url.username || url.password) return false;
-  if (client.redirectUris) return client.redirectUris.includes(redirectUri);
+  if (client.redirectUris && client.redirectUris.length > 0) {
+    return client.redirectUris.includes(redirectUri);
+  }
   const local = url.hostname === "localhost" || url.hostname === "127.0.0.1";
-  return url.origin === client.origin && (url.protocol === "https:" || local);
+  const isAllowedOrigin = url.origin === client.origin && (url.protocol === "https:" || local);
+  return isAllowedOrigin && url.pathname === "/api/auth/tathastu/callback";
 }
