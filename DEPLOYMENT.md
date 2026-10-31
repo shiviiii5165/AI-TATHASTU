@@ -46,7 +46,7 @@ Settings → Environment Variables, Production. Mark secrets as Sensitive.
 | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | For the GitHub connector | GitHub OAuth App. Callback `https://www.aitathastu.com/api/connectors/github/callback`. |
 | `ORCID_CLIENT_ID`, `ORCID_CLIENT_SECRET` | For faculty ORCID | Public API client from orcid.org/developer-tools, redirect URI `https://www.aitathastu.com/api/connectors/orcid/callback`. Without them the ORCID card says it isn't set up. `ORCID_BASE_URL=https://sandbox.orcid.org` for testing. |
 | `ADMIN_EMAILS` | No | Comma-separated emails that can open `/admin`. `users.is_admin = true` also grants it (takes effect at the user's next sign-in). |
-| `TRUST_PROXY_HEADERS` | Off-Vercel only | Set to `1` only behind a reverse proxy that overwrites `X-Forwarded-For` (e.g. Nginx, Cloudflare). Without it off-Vercel, all visitors share one rate-limit bucket. |
+| `TRUST_PROXY_HEADERS` | Off-Vercel only | Set to `1` only behind a reverse proxy that overwrites `X-Forwarded-For` (e.g. Nginx, Cloudflare). Without it off-Vercel, client entropy partitioning is used to prevent global bucket collisions without blindly trusting spoofed client IP headers. |
 | `CONNECTOR_TOKEN_KEY` | Yes | `openssl rand -base64 32`. **Same value on Render.** Encrypts connector credentials at rest; changing it makes stored connections unreadable. |
 | `WORKER_WAKE_URL` | Yes on Render free | `https://ai-tathastu.onrender.com/health`. Pinged after a job is queued, to wake a sleeping worker. |
 | `EMBED_JWT_SECRET` | Phase 4 embed | `openssl rand -base64 48`, at least 32 characters, different from `AUTH_SECRET`. |

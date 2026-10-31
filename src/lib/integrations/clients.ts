@@ -79,6 +79,8 @@ export function isAllowedRedirect(client: IntegrationClient, redirectUri: string
   if (client.redirectUris && client.redirectUris.length > 0) {
     return client.redirectUris.includes(redirectUri);
   }
+  // Unconfigured fallback: reject query parameters to prevent parameter pollution/open redirects
+  if (url.search || redirectUri.includes("?")) return false;
   const local = url.hostname === "localhost" || url.hostname === "127.0.0.1";
   const isAllowedOrigin = url.origin === client.origin && (url.protocol === "https:" || local);
   return isAllowedOrigin && url.pathname === "/api/auth/tathastu/callback";

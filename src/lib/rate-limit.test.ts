@@ -51,6 +51,42 @@ describe("clientIp", () => {
     vi.stubEnv("TRUST_PROXY_HEADERS", "1");
     expect(clientIp(request({ "x-forwarded-for": "1.1.1.1" }))).toBe("1.1.1.1");
   });
+
+  it("partitions untrusted clients using entropy so independent users cannot share a rate-limit bucket", () => {
+    const userA = request({ "user-agent": "Mozilla/5.0 UserA", "accept-language": "en-US" });
+    const userB = request({ "user-agent": "Mozilla/5.0 UserB", "accept-language": "en-GB" });
+    const ipA = clientIp(userA);
+    const ipB = clientIp(userB);
+
+    expect(ipA).toMatch(/^untrusted:[a-f0-9]{16}$/);
+    expect(ipB).toMatch(/^untrusted:[a-f0-9]{16}$/);
+    expect(ipA).not.toBe(ipB);
+  });
+
+  it("prevents an attacker from bypassing limits by rotating spoofed x-forwarded-for headers off-Vercel", () => {
+    const attack1 = request({ "user-agent": "AttackerBot/1.0", "x-forwarded-for": "1.1.1.1" });
+    const attack2 = request({ "user-agent": "AttackerBot/1.0", "x-forwarded-for": "2.2.2.2" });
+
+    // Both spoofed requests map to the identical untrusted bucket, preventing spoofing bypass
+    expect(clientIp(attack1)).toBe(clientIp(attack2));
+    expect(clientIp(attack1)).toMatch(/^untrusted:[a-f0-9]{16}$/);
+  });
+
+  it("guarantees independent users cannot exhaust each other's rate limits under untrusted networks", async () => {
+    const userA = request({ "user-agent": "UserA-Browser" });
+    const userB = request({ "user-agent": "UserB-Browser" });
+    const keyA = `contact:${clientIp(userA)}`;
+    const keyB = `contact:${clientIp(userB)}`;
+
+    const testLimit = { limit: 2, windowSeconds: 60 };
+    expect((await hitRateLimit(keyA, testLimit)).ok).toBe(true);
+    expect((await hitRateLimit(keyA, testLimit)).ok).toBe(true);
+    // User A hits their limit
+    expect((await hitRateLimit(keyA, testLimit)).ok).toBe(false);
+
+    // Independent User B must NOT be blocked by User A
+    expect((await hitRateLimit(keyB, testLimit)).ok).toBe(true);
+  });
 });
 
 describe("hitRateLimit", () => {

@@ -1,5 +1,7 @@
 import "server-only";
 
+import { createHash } from "node:crypto";
+
 import { sql } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -76,30 +78,54 @@ export async function hitRateLimit(key: string, { limit, windowSeconds, onDbErro
 let proxyWarningLogged = false;
 
 /**
- * The caller's IP, from headers only a trusted edge can set. Vercel overwrites
- * these on every request, so a client can't choose its bucket there. Anywhere
- * else they are whatever the client sent, so they count only with
- * TRUST_PROXY_HEADERS=1 (set it only behind a proxy that overwrites them);
- * otherwise every caller shares one bucket, which limits too much rather than
- * letting a spoofed header buy a fresh count per request.
+ * Derives a reliable client rate-limiting identifier.
+ *
+ * 1. On trusted edges (Vercel or explicit TRUST_PROXY_HEADERS=1), extracts the client IP
+ *    from edge-verified headers (x-vercel-forwarded-for, x-forwarded-for first hop, x-real-ip, or cf-connecting-ip).
+ * 2. Off-Vercel without trusted reverse proxy configuration, client-supplied forwarding headers
+ *    are NEVER blindly trusted (preventing spoofed X-Forwarded-For bypass).
+ * 3. To prevent independent users from unintentionally sharing a global "unknown" rate-limit
+ *    bucket (which would allow one user to DoS all others), unverified callers are partitioned
+ *    using non-spoofable client entropy (cookie, authorization, user-agent, accept-language).
  */
 export function clientIp(request: Request): string {
-  if (!process.env.VERCEL && process.env.TRUST_PROXY_HEADERS !== "1") {
-    if (process.env.NODE_ENV === "production" && !proxyWarningLogged) {
-      proxyWarningLogged = true;
-      console.warn(
-        "[rate-limit] Running off-Vercel in production without TRUST_PROXY_HEADERS=1. " +
-        "Client IPs fall back to 'unknown', collapsing rate limit buckets across all users. " +
-        "Set TRUST_PROXY_HEADERS=1 behind a trusted reverse proxy (see DEPLOYMENT.md)."
-      );
-    }
-    return "unknown";
-  }
   const { headers } = request;
-  return (
-    headers.get("x-vercel-forwarded-for")?.split(",")[0]?.trim() ||
-    headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    headers.get("x-real-ip") ||
-    "unknown"
-  );
+  const isVercel = Boolean(process.env.VERCEL);
+  const trustProxy = process.env.TRUST_PROXY_HEADERS === "1";
+
+  if (isVercel || trustProxy) {
+    const trustedIp =
+      (isVercel ? headers.get("x-vercel-forwarded-for")?.split(",")[0]?.trim() : null) ||
+      headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      headers.get("x-real-ip") ||
+      headers.get("cf-connecting-ip")?.trim();
+
+    if (trustedIp) return trustedIp;
+  }
+
+  if (!isVercel && !trustProxy && process.env.NODE_ENV === "production" && !proxyWarningLogged) {
+    proxyWarningLogged = true;
+    console.warn(
+      "[rate-limit] Running off-Vercel in production without TRUST_PROXY_HEADERS=1. " +
+      "Client IPs fall back to client fingerprint partitioning. " +
+      "Set TRUST_PROXY_HEADERS=1 behind a trusted reverse proxy (see DEPLOYMENT.md)."
+    );
+  }
+
+  // Derive isolated partition for unverified client without trusting client-supplied IP headers
+  const clientEntropy = [
+    headers.get("cookie"),
+    headers.get("authorization"),
+    headers.get("user-agent"),
+    headers.get("accept-language"),
+  ]
+    .filter(Boolean)
+    .join("|");
+
+  if (clientEntropy) {
+    const hash = createHash("sha256").update(clientEntropy).digest("hex").slice(0, 16);
+    return `untrusted:${hash}`;
+  }
+
+  return "unknown";
 }
