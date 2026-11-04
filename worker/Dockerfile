@@ -7,7 +7,7 @@
 
 # 3.12 on Debian bookworm: patch releases flow in on rebuild. Every dependency
 # ships a manylinux wheel for it, so no compiler toolchain is installed.
-FROM python:3.12-slim-bookworm
+FROM python:3.15-slim-bookworm
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
