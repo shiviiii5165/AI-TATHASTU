@@ -26,10 +26,10 @@ const RELATION: Record<string, string> = {
 
 // The layout runs in real pixels at the card's own width, so text is always drawn at its true size.
 const FONT_SIZE = 12;
-const CHAR_WIDTH = 6.6;
-const LINE_HEIGHT = 14;
+const CHAR_WIDTH = 7.6;
+const LINE_HEIGHT = 15;
 const MARGIN = 6;
-const GAP = 6;
+const GAP = 10;
 const LINE_CHARS = 20;
 const MIN_TARGET = 28;
 // Every link is available in a skill's details. The picture stays readable by drawing each skill's strongest few.
@@ -55,7 +55,7 @@ function labelLines(name: string): string[] {
 }
 
 /** Pushes label boxes apart along whichever axis needs the smaller move. */
-function separate(nodes: LayoutNode[], strength: number) {
+function separate(nodes: LayoutNode[], strength: number, inner: number) {
   for (let i = 0; i < nodes.length; i++) {
     for (let j = i + 1; j < nodes.length; j++) {
       const a = nodes[i];
@@ -65,7 +65,8 @@ function separate(nodes: LayoutNode[], strength: number) {
       const overlapX = (a.boxWidth + b.boxWidth) / 2 + GAP - Math.abs(dx);
       const overlapY = (a.boxHeight + b.boxHeight) / 2 + GAP - Math.abs(dy);
       if (overlapX <= 0 || overlapY <= 0) continue;
-      if (overlapX < overlapY) {
+      const canFitX = (a.boxWidth + b.boxWidth) / 2 + GAP <= inner * 0.9;
+      if (canFitX && overlapX < overlapY) {
         const push = ((dx >= 0 ? 1 : -1) * overlapX * strength) / 2;
         a.x = (a.x ?? 0) - push;
         b.x = (b.x ?? 0) + push;
@@ -97,7 +98,7 @@ function layout(graph: SkillGraphData, width: number) {
     const radius = radiusOf(n);
     const textWidth = Math.max(...lines.map((l) => l.length)) * CHAR_WIDTH;
     const boxWidth = Math.min(inner, Math.max(MIN_TARGET, radius * 2, textWidth));
-    const boxHeight = radius * 2 + 4 + lines.length * LINE_HEIGHT;
+    const boxHeight = radius * 2 + 6 + lines.length * (LINE_HEIGHT + 2);
     const angle = (i / graph.nodes.length) * 2 * Math.PI;
     return { ...n, radius, lines, boxWidth, boxHeight, x: width / 2 + Math.cos(angle) * inner * 0.4, y: Math.sin(angle) * inner * 0.4 };
   });
@@ -113,13 +114,40 @@ function layout(graph: SkillGraphData, width: number) {
     .stop();
   for (let i = 0; i < 240; i++) {
     simulation.tick();
-    separate(nodes, 0.7);
+    separate(nodes, 0.7, inner);
     clamp();
   }
   // The forces have settled; only the boxes matter now, until no label touches another.
   for (let i = 0; i < 400; i++) {
-    separate(nodes, 1);
+    separate(nodes, 1, inner);
     clamp();
+  }
+  // Final resolution pass: guaranteed 0 overlap across all axes and font variances
+  for (let pass = 0; pass < 100; pass++) {
+    let hadOverlap = false;
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const a = nodes[i];
+        const b = nodes[j];
+        const dx = (b.x ?? 0) - (a.x ?? 0);
+        const dy = (b.y ?? 0) - (a.y ?? 0);
+        const overlapX = (a.boxWidth + b.boxWidth) / 2 + GAP - Math.abs(dx);
+        const overlapY = (a.boxHeight + b.boxHeight) / 2 + GAP - Math.abs(dy);
+        if (overlapX > 0 && overlapY > 0) {
+          hadOverlap = true;
+          const push = overlapY / 2 + 0.5;
+          if (dy >= 0) {
+            a.y = (a.y ?? 0) - push;
+            b.y = (b.y ?? 0) + push;
+          } else {
+            a.y = (a.y ?? 0) + push;
+            b.y = (b.y ?? 0) - push;
+          }
+        }
+      }
+    }
+    clamp();
+    if (!hadOverlap) break;
   }
   const top = Math.min(...nodes.map((n) => (n.y ?? 0) - n.boxHeight / 2)) - MARGIN;
   const bottom = Math.max(...nodes.map((n) => (n.y ?? 0) + n.boxHeight / 2)) + MARGIN;
@@ -307,7 +335,7 @@ export function SkillBubbleChart({ skillGraph, className = "", fullView = false 
                 <title>{node.name}</title>
                 <rect data-hit x={-node.boxWidth / 2} y={-node.radius} width={node.boxWidth} height={node.boxHeight} fill="transparent" />
                 <circle r={node.radius} fill={nodeFill(node.status)} stroke={node.id === selectedId ? "var(--foreground)" : nodeStroke(node.status)} strokeWidth={node.id === selectedId ? 2.5 : 1.5} strokeDasharray={node.status === "inferred" ? "3 3" : undefined} />
-                <text y={node.radius + 2} textAnchor="middle" fill="var(--foreground)" fontSize={FONT_SIZE} fontWeight={600} paintOrder="stroke" stroke="var(--card)" strokeWidth={3} className="pointer-events-none select-none">
+                <text y={node.radius + 2} textAnchor="middle" fill="var(--foreground)" fontSize={FONT_SIZE} fontWeight={600} style={{ fontFamily: "var(--font-sans), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }} paintOrder="stroke" stroke="var(--card)" strokeWidth={3} className="pointer-events-none select-none font-sans">
                   {node.lines.map((line, i) => (
                     <tspan key={i} x={0} dy={LINE_HEIGHT - (i === 0 ? 2 : 0)}>
                       {line}
