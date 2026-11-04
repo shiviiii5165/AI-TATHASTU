@@ -13,6 +13,7 @@ import { db } from "@/db";
 import { accounts, adminTeamMembers, onboardingState, sessions, users, verificationTokens } from "@/db/schema";
 import { configuredProviders, emailProviderId } from "@/lib/auth-providers";
 import { connectSource } from "@/lib/connectors/connections";
+import { autoProvisionCollaborate } from "@/lib/integrations/auto-provision";
 import { importLinkedInProfileFacts } from "@/lib/connectors/linkedin";
 import { enqueueComputeIntelligence } from "@/lib/jobs-queue";
 import { sendEmail } from "@/lib/email";
@@ -186,6 +187,9 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
         .insert(onboardingState)
         .values({ userId: user.id, currentStep: "role" }) // Step 0: choose a persona
         .onConflictDoNothing();
+      // Automatic (private) Collaborate profile, after the response so sign-in never waits on it.
+      const newUserId = user.id;
+      after(() => autoProvisionCollaborate(newUserId).catch((error) => console.error("collaborate auto-provision failed", error)));
       const { email, name } = user;
       if (email) {
         // After the response: a slow or failing SMTP server never delays sign-in.
