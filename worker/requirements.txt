@@ -1,6 +1,6 @@
 psycopg2-binary==2.9.11
 python-dotenv==1.2.2
-boto3==1.35.99
+boto3==1.43.123
 PyMuPDF==1.24.14
 python-docx==1.1.2
 pytesseract==0.3.13
