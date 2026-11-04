@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { guarded } from "@/lib/api-guard";
 import { getApiUserAtStep } from "@/lib/dal";
+import { allowPaidWork } from "@/lib/paid-work";
 import { headObject, isR2Configured } from "@/lib/r2";
 import { hitRateLimit } from "@/lib/rate-limit";
 import { registerResume, resumeUploadSchema } from "@/lib/uploads/register";
@@ -40,6 +41,9 @@ export const POST = guarded(async (request: Request) => {
     return NextResponse.json({ error: "The uploaded file didn't match what we expected. Try again." }, { status: 422 });
   }
 
+  if (!(await allowPaidWork(authz.user.id, "resume_extract")).ok) {
+    return NextResponse.json({ error: "Too many uploads today. Try again tomorrow." }, { status: 429 });
+  }
   const { jobId } = await registerResume(authz.user.id, upload);
   return NextResponse.json({ jobId }, { status: 201 });
 });

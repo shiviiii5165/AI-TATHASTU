@@ -9,6 +9,7 @@ import { neon } from "@neondatabase/serverless";
 import { config } from "dotenv";
 
 import { academicSeedStatements } from "../src/db/seeds/academic-seed-sql";
+import { assertWriteAllowed } from "./lib/db-target.mjs";
 
 async function main() {
   const statements = academicSeedStatements();
@@ -22,6 +23,7 @@ async function main() {
     console.error("DATABASE_URL is not set.");
     return 2;
   }
+  assertWriteAllowed(url);
   if (/@(localhost|127\.0\.0\.1)[:/]/.test(url)) {
     const { default: pg } = await import("pg");
     const pool = new pg.Pool({ connectionString: url, max: 1 });

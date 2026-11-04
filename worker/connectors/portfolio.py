@@ -7,6 +7,7 @@ from __future__ import annotations
 import logging
 from typing import Any, List
 
+import ai_budget
 import provider_router
 from connectors.common import Facts, HttpError, finish_sync, http_json, load_connection, set_status
 from db import has_consent
@@ -35,17 +36,23 @@ def scrape(url: str) -> str:
         key = pool.acquire()
         if key is None:
             break
+        reservation = ai_budget.reserve_flat("firecrawl", "portfolio_scrape", ai_budget.flat_cost("AI_FIRECRAWL_CALL_USD", ai_budget.FIRECRAWL_CALL_USD), 90)
         try:
             out = http_json("POST", "https://api.firecrawl.dev/v1/scrape", {"Authorization": f"Bearer {key.secret}"},
                             {"url": url, "formats": ["markdown"], "onlyMainContent": True}, timeout=90)
+            ai_budget.settle_used(reservation)
             return ((out or {}).get("data") or {}).get("markdown") or ""
         except HttpError as exc:
+            ai_budget.settle_rejected(reservation)
             if exc.status in (402, 429):
                 pool.report(key, 429, 600 if exc.status == 402 else 60)
                 continue
             if exc.status in (401, 403):
                 pool.report(key, 401)
                 continue
+            raise
+        except Exception:
+            ai_budget.settle_used(reservation)  # A timeout may have been billed. A second settle does nothing.
             raise
     raise RuntimeError("no Firecrawl key available (all rate limited or out of credits)")
 

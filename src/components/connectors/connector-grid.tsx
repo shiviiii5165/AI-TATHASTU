@@ -51,6 +51,8 @@ function flashMessage(sourceName: string, error: string) {
       return "That connection attempt expired. Try again.";
     case "not_configured":
       return `${sourceName} connect isn't set up on this server yet.`;
+    case "limited":
+      return "Too many connection attempts today. Try again later.";
     default:
       return `${sourceName} didn't respond as expected. Try again.`;
   }

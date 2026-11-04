@@ -26,21 +26,25 @@ const oauthError = (status: number, error: string, description: string) =>
  * redirect_uri (the same one used to authorize), code_verifier (if PKCE).
  */
 export async function POST(request: Request) {
-  // Server-to-server, so a real client stays far below this; it slows secret and code guessing.
-  const ipHash = createHash("sha256").update(clientIp(request)).digest("hex").slice(0, 32);
-  const limited = await hitRateLimit(`sso_token:${ipHash}`, { limit: 120, windowSeconds: 60 });
+  // Before the secret is checked, or guessing it would be free. Without a trusted address, callers
+  // share one bucket, stricter rather than absent. Refused if the count can't be made.
+  const ip = clientIp(request);
+  const bucket = ip ? createHash("sha256").update(ip).digest("hex").slice(0, 32) : "unverified";
+  const limited = await hitRateLimit(`sso_token:${bucket}`, { limit: 120, windowSeconds: 60, onDbError: "deny" });
   if (!limited.ok) {
     return NextResponse.json(
       { error: "slow_down", error_description: "Too many requests." },
       { status: 429, headers: { ...NO_STORE, "Retry-After": String(limited.retryAfter) } },
     );
   }
+
   const body = await readBody(request);
   const [basicId, basicSecret] = basicCredentials(request.headers.get("authorization"));
   const client = clientById(basicId ?? body.client_id);
   if (!client || !client.secret || !safeEqual(basicSecret ?? body.client_secret, client.secret)) {
     return oauthError(401, "invalid_client", "Unknown client or wrong client secret.");
   }
+
   if (!(await isFeatureEnabled(client.flag))) return oauthError(403, "unauthorized_client", `${client.name} isn't enabled.`);
   if (body.grant_type !== "authorization_code") return oauthError(400, "unsupported_grant_type", "Use authorization_code.");
   if (!body.code || !body.redirect_uri) return oauthError(400, "invalid_request", "code and redirect_uri are required.");
@@ -60,15 +64,26 @@ export async function POST(request: Request) {
     .returning();
   const invalid = () => oauthError(400, "invalid_grant", "The code is invalid, expired or already used.");
   if (!grant || grant.redirectUri !== body.redirect_uri) return invalid();
+  // Rechecked here as well as at authorize: the setting may have changed, or the code may predate it.
+  if (!grant.codeChallenge && client.pkceRequired) return invalid();
   if (grant.codeChallenge && !(body.code_verifier && pkceMatches(body.code_verifier, grant.codeChallenge))) return invalid();
 
   const [user] = await db
-    .select({ id: users.id, email: users.email, name: users.name, deletedAt: users.deletedAt })
+    .select({ id: users.id, email: users.email, name: users.name, deletedAt: users.deletedAt, sessionVersion: users.sessionVersion })
     .from(users)
     .where(eq(users.id, grant.userId));
   if (!user || user.deletedAt || !isLinked(await getConsent(user.id, client.id))) return invalid();
+  if (grant.sessionVersion !== null && grant.sessionVersion !== user.sessionVersion) return invalid();
 
-  const { token, expiresIn } = await mintAccessToken({ userId: user.id, email: user.email, name: user.name, clientId: client.id });
+  let minted: Awaited<ReturnType<typeof mintAccessToken>>;
+  try {
+    minted = await mintAccessToken({ userId: user.id, email: user.email, name: user.name, clientId: client.id, sessionVersion: user.sessionVersion });
+  } catch (e) {
+    // Signing key missing or invalid. The message never contains key material.
+    console.error("[sso/token] cannot sign access token:", e instanceof Error ? e.message : "unknown error");
+    return oauthError(503, "temporarily_unavailable", "Signing is not available. Try again later.");
+  }
+  const { token, expiresIn } = minted;
   return NextResponse.json(
     {
       access_token: token,

@@ -5,6 +5,7 @@ import { connection, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { guarded } from "@/lib/api-guard";
 import { getJobForUser } from "@/lib/dal";
+import { hitRateLimit } from "@/lib/rate-limit";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -16,6 +17,10 @@ export const GET = guarded(async (request: Request, { params }: RouteContext<"/a
   await connection();
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Sign in to continue." }, { status: 401 });
+
+  // Well above any honest polling, which this route exists to serve.
+  const limited = await hitRateLimit(`jobs_poll:${session.user.id}`, { limit: 600, windowSeconds: 60 });
+  if (!limited.ok) return NextResponse.json({ error: "Too many requests." }, { status: 429, headers: { "Retry-After": String(limited.retryAfter) } });
 
   const { id } = await params;
   const job = UUID.test(id) ? await getJobForUser(session.user.id, id) : null;

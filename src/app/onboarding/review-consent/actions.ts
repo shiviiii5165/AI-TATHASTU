@@ -26,7 +26,8 @@ export async function generateProfile(choices: ConsentChoices): Promise<SaveResu
     // Records every purpose under the current policy version: purposes the
     // user never answered (mentor discovery and analytics are only in
     // Settings now) are saved as false, an explicit opt-out.
-    await appendConsents(user.id, parsed.data);
+    const { refused } = await appendConsents(user.id, parsed.data);
+    if (refused.length) return { ok: false, error: "Too many changes in a short time. Try again later." };
     await db.batch([
       db
         .update(onboardingState)

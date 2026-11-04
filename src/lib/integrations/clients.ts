@@ -13,6 +13,10 @@ import type { FlagKey } from "@/lib/feature-flags";
  *   INTEGRATION_<ID>_ORIGIN          override the origin (local development)
  *   INTEGRATION_<ID>_WEBHOOK_URL     where profile.updated events are POSTed
  *   INTEGRATION_<ID>_WEBHOOK_SECRET  HMAC key for those events
+ *   INTEGRATION_<ID>_PKCE_OPTIONAL   "1" lets the app authorize without PKCE (temporary)
+ *
+ * The dashboard launches an app via /integrations/launch/<id>, which sends the
+ * browser to <origin>/api/auth/tathastu/start so the app runs its own flow.
  *
  * Each app is also gated by its feature flag, so it can be switched off
  * without a deploy (403 from every integration endpoint).
@@ -62,8 +66,14 @@ export function clientById(id: string | null | undefined) {
     redirectUris: env(def.id, "REDIRECT_URIS")?.split(",").map((u) => u.trim()).filter(Boolean) ?? null,
     webhookUrl: env(def.id, "WEBHOOK_URL"),
     webhookSecret: env(def.id, "WEBHOOK_SECRET"),
+    // A temporary way out for an app not yet sending PKCE. Not for leaving on.
+    pkceRequired: env(def.id, "PKCE_OPTIONAL") !== "1",
   };
 }
+
+/** Where the app starts its own OAuth flow (it creates state + PKCE). Always on the app's origin. */
+export const LAUNCH_PATH = "/api/auth/tathastu/start";
+export const launchUrl = (client: IntegrationClient) => `${client.origin}${LAUNCH_PATH}`;
 
 export type IntegrationClient = NonNullable<ReturnType<typeof clientById>>;
 

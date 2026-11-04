@@ -14,6 +14,44 @@ CI (`.github/workflows/ci.yml`) runs typecheck, lint, Vitest, the Playwright E2E
 
 ---
 
+## Security follow-ups
+
+**Before deploying session revocation:** apply `0019_session_version.sql` to production first. Every `users` read and session check selects the new column, so code deployed ahead of the migration takes sign-in down.
+
+**Before deploying the LinkedIn check:** sign up once with a new LinkedIn account on a preview. New LinkedIn identities now need `email_verified: true`; accounts that are already linked are unaffected.
+
+**Before deploying account deletion and recovery codes:** apply `0021_account_deletion_and_mfa_recovery.sql` first. Deletion now keeps its state in `account_deletions` and finishes from the daily cron, so a user whose cleanup failed never has to sign in again. `/api/internal/queue-health` raises `account_deletions` when one keeps failing or is more than three days old. Point your uptime monitor at it.
+
+**Before deploying AI spend limits:** apply `0022_ai_spend_enforcement.sql` and `0023_paid_work_hardening.sql` before the web app and worker. Without 0023 queueing a recompute fails. Without it the worker refuses every AI, Firecrawl and Apify call and jobs fall back to rules. Check the limits at `/admin/ai-ops/costs` (defaults: $1 a day and $5 a month per user). The rates in `worker/ai_budget.py` are placeholders on the high side: set real ones with `AI_MODEL_PRICES`, `AI_FIRECRAWL_CALL_USD` and `AI_APIFY_CALL_USD` on Render, and compare the page with provider billing after a week.
+
+**Before deploying the auth and RBAC hardening:** apply `0024_auth_code_session_version.sql` first, then:
+- Confirm Collaborate and Meet send PKCE. It's now required; `docs/collaborate-integration-prompt.md` already tells Collaborate to, Meet is unconfirmed. For an app that doesn't yet, set `INTEGRATION_<ID>_PKCE_OPTIONAL=1` until it does.
+- Run `SELECT u.email, m.role, m.is_active FROM admin_team_members m JOIN users u ON u.id = m.user_id WHERE u.is_admin`. Those rows now limit `is_admin` users, who were all full super-admins before. Fix any that don't reflect intent. `ADMIN_EMAILS` always stays super-admin.
+- Operators must sign in again daily, and everyone with a session older than this deploy must once on reaching `/admin`.
+
+**Turning on admin two-factor:** apply `0020_admin_mfa.sql` and `0021`, set `ADMIN_MFA_SECRET` in Vercel (`openssl rand -base64 32`, different from `AUTH_SECRET`), deploy, then have every operator set up an authenticator app at `/admin-mfa` while the flag is off, and save their recovery codes. Setup needs a sign-in from the last 15 minutes. Then set `ADMIN_MFA_REQUIRED=1`. With the flag on and no valid key, nobody can pass the check.
+
+**Lost authenticator:** a recovery code, typed where the 6-digit code goes, removes the authenticator and signs that person out everywhere, so they sign in and set up again. **Last-resort lockout (no authenticator, no codes):** unset `ADMIN_MFA_REQUIRED` in Vercel and redeploy, which takes the second factor off for all operators, have them re-enroll, then set it back. For one person, a database operator can instead run `DELETE FROM admin_mfa WHERE user_id = '...'`. Both bypass the audit log, so record them by hand.
+
+**Rotating `ADMIN_MFA_SECRET`:** set the old value as `ADMIN_MFA_SECRET_PREVIOUS` and a new `ADMIN_MFA_SECRET`, deploy, wait 12 hours for proofs to expire, then clear the previous value.
+
+**DNS at BigRock.** Mail is sent from Gmail addresses, so nothing legitimate sends as `@aitathastu.com`. Publish this so the domain can't be spoofed. If Resend or another service sends from the domain, use that service's SPF and DKIM records and start DMARC at `p=none` instead.
+
+| Host | Type | Value |
+| --- | --- | --- |
+| `aitathastu.com` | TXT | `v=spf1 -all` |
+| `_dmarc.aitathastu.com` | TXT | `v=DMARC1; p=reject; adkim=s; aspf=s` |
+| `aitathastu.com` | CAA | `0 issue "letsencrypt.org"` (confirm Vercel's current issuers first; a wrong record blocks renewal) |
+
+**Known and accepted for now:**
+
+- `nodemailer` has high advisories fixed only after 10.1.3, while Auth.js accepts `^7.0.7 || ^8.0.5`. Upgrade when Auth.js widens the range.
+- Account deletion is permanent and available in Settings → Privacy. Support message text stays (address removed), and the audit log keeps the user id and the admin's reason. Connected apps (Collaborate, Meet) aren't told, and Neon and R2 backups expire on their own schedule. Accounts soft-deleted before this change stay until an admin clicks "Finish Permanent Deletion".
+- An upload URL issued just before deletion can still create a file for up to 5 minutes. Add an R2 lifecycle rule on `resumes/` as a backstop if that matters.
+- Parser subprocesses have no secrets, but they do have network access. Tesseract and PyMuPDF run under the same container user.
+
+---
+
 ## Environment variables
 
 Never commit real values. `.env*` is gitignored except `.env.example`, which is the template.
@@ -46,7 +84,7 @@ Settings → Environment Variables, Production. Mark secrets as Sensitive.
 | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | For the GitHub connector | GitHub OAuth App. Callback `https://www.aitathastu.com/api/connectors/github/callback`. |
 | `ORCID_CLIENT_ID`, `ORCID_CLIENT_SECRET` | For faculty ORCID | Public API client from orcid.org/developer-tools, redirect URI `https://www.aitathastu.com/api/connectors/orcid/callback`. Without them the ORCID card says it isn't set up. `ORCID_BASE_URL=https://sandbox.orcid.org` for testing. |
 | `ADMIN_EMAILS` | No | Comma-separated emails that can open `/admin`. `users.is_admin = true` also grants it (takes effect at the user's next sign-in). |
-| `TRUST_PROXY_HEADERS` | Off-Vercel only | Set to `1` only behind a reverse proxy that overwrites `X-Forwarded-For` (e.g. Nginx, Cloudflare). Without it off-Vercel, client entropy partitioning is used to prevent global bucket collisions without blindly trusting spoofed client IP headers. |
+| `TRUST_PROXY_HEADERS` | Off-Vercel only | Set to `1` only behind a reverse proxy that overwrites `X-Forwarded-For` (e.g. Nginx, Cloudflare). Off-Vercel without it, client forwarding headers are never trusted; sensitive unauthenticated routes fail safely (503) rather than allowing spoofing bypass. |
 | `CONNECTOR_TOKEN_KEY` | Yes | `openssl rand -base64 32`. **Same value on Render.** Encrypts connector credentials at rest; changing it makes stored connections unreadable. |
 | `WORKER_WAKE_URL` | Yes on Render free | `https://ai-tathastu.onrender.com/health`. Pinged after a job is queued, to wake a sleeping worker. |
 | `EMBED_JWT_SECRET` | Phase 4 embed | `openssl rand -base64 48`, at least 32 characters, different from `AUTH_SECRET`. |
@@ -66,7 +104,7 @@ Dashboard → the service → Environment. `render.yaml` lists these with `sync:
 | `GROQ_KEYS` | Yes (AI extraction) | Comma-separated key pool; first in the text chain. |
 | `GEMINI_KEYS` | Recommended | Text fallback and the primary vision model for scanned or designed PDFs. |
 | `OPENROUTER_KEYS` | Recommended | Last-resort text and vision fallback. |
-| `GROQ_MODELS`, `GEMINI_MODELS`, `OPENROUTER_MODELS`, `OPENROUTER_VISION_MODELS` | No | Model overrides (`model[:strict\|json]`, tried in order). Defaults are in `worker/provider_router.py`. |
+| `GROQ_MODELS`, `GEMINI_MODELS`, `OPENROUTER_MODELS`, `OPENROUTER_VISION_MODELS` | No | Model overrides (`model[:strict|json]`, tried in order). Defaults are in `worker/provider_router.py`. |
 | `APIFY_TOKENS` | LinkedIn scrape | Apify token pool. `APIFY_LINKEDIN_ACTOR` overrides the actor (default `harvestapi~linkedin-profile-scraper`). |
 | `FIRECRAWL_KEYS` | Portfolio connector | Firecrawl key pool. |
 | `KAGGLE_KEYS` | No | `username:key`, used only by `worker/benchmark_kaggle.py`. The Kaggle connector uses each user's own key. |
@@ -187,6 +225,20 @@ The token exchange and webhook signatures check exactly one secret per app, so e
   5. Confirm by comparing fingerprints with `--remote`.
 - **Webhook secret:** same procedure. Webhooks that fail in the gap are retried automatically (outbox backoff: 1 min, then 5 min, 30 min, 2 h and 12 h).
 - **Never rotate one side alone.** If a secret leaks, rotate immediately and accept a few minutes of failed sign-ins over leaving it valid.
+
+### Rate Limiting & Proxy Configuration
+
+Rate limits protect endpoints from brute-force guessing and denial of service:
+- **Authenticated routes** (`analytics`, `search`, `yora`, `upload`, etc.): Partitioned by server-verified user ID (`session.user.id` or `authz.user.id`). These are immune to IP rotation or spoofed headers.
+- **Integration token exchange** (`/api/integrations/sso/token`): When client IP is available, throttles by IP bucket to slow guessing. If IP cannot be verified, partitioned by server-verified `client.id`.
+- **Sensitive unauthenticated routes** (`/api/contact`, magic link sign-in): Rate-limited by verified client IP bucket (IPv4 canonical address, IPv6 canonical `/64` subnet prefix).
+
+#### Platform-provided trusted headers:
+1. **On Vercel (Production default)**: Vercel edge infrastructure manages client IP forwarding. The platform-provided `x-vercel-forwarded-for` header is prioritized because it cannot be spoofed by incoming client requests; `x-forwarded-for` (first hop) is used as fallback. `process.env.VERCEL` is automatically set by Vercel.
+2. **On Custom Hosting**: If hosting behind a reverse proxy (e.g. Nginx, AWS ALB, Cloudflare), set `TRUST_PROXY_HEADERS=1`. **Condition:** The reverse proxy MUST be configured to overwrite `X-Forwarded-For`, `X-Real-IP`, or `CF-Connecting-IP` with the true connecting client socket address, stripping any incoming client-forged headers.
+3. **Missing Proxy Configuration / Direct Connections Off-Vercel**: Forwarding headers are NEVER trusted by default. Client-supplied headers like `X-Forwarded-For` are ignored to prevent attackers from rotating fake IPs to bypass rate limits. To prevent global denial of service, requests do NOT share a global `"unknown"` bucket; instead, sensitive unauthenticated endpoints fail safely with `503 Service Unavailable` (or reject with origin verification error).
+4. **IPv6 /64 Subnet Partitioning**: Residential and mobile IPv6 providers allocate at least a `/64` subnet to end users and rotate the bottom 64 bits (RFC 4941 / RFC 8981 privacy extensions). To prevent attackers with an IPv6 allocation from rotating interface IDs to bypass rate limits, IPv6 rate limits are keyed to the canonical `/64` subnet prefix.
+5. **Privacy-Preserving Storage**: Raw IP addresses are NEVER logged or stored in the database. Rate limit keys store a one-way 32-character SHA-256 hash of the bucket key (`createHash("sha256").update(bucketKey).digest("hex").slice(0, 32)`).
 
 ### Email previews
 

@@ -17,7 +17,7 @@ import Link from "next/link";
 
 export const metadata: Metadata = { title: "Integrations" };
 
-export default function IntegrationsPage() {
+export default function IntegrationsPage({ searchParams }: PageProps<"/settings/integrations">) {
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-16">
       <header className="pb-6 border-b border-[#E7EAF3]">
@@ -44,14 +44,16 @@ export default function IntegrationsPage() {
         </div>
       </header>
       <Suspense fallback={<div role="status" aria-label="Loading integrations" className="mt-10 h-96 animate-pulse rounded-lg border bg-muted" />}>
-        <Cards />
+        <Cards searchParams={searchParams} />
       </Suspense>
     </div>
   );
 }
 
-async function Cards() {
+async function Cards({ searchParams }: Pick<PageProps<"/settings/integrations">, "searchParams">) {
   const { user } = await requireOnboardedUser();
+  // Set by /integrations/launch/<id> when the app isn't switched on yet.
+  const unavailable = clientById((await searchParams).unavailable as string | undefined);
   // Projects and the per-app reads are independent: one wave.
   const [projects, cards] = await Promise.all([
     db.select({ title: unifiedProjects.canonicalTitle }).from(unifiedProjects).where(eq(unifiedProjects.userId, user.id)),
@@ -61,6 +63,11 @@ async function Cards() {
 
   return (
     <div className="mt-10 space-y-6">
+      {unavailable && (
+        <p role="alert" className="rounded-md border border-border bg-muted px-4 py-3 text-sm text-foreground">
+          Couldn&apos;t open {unavailable.name}: signing in with AI Tathastu isn&apos;t switched on yet. Try again later.
+        </p>
+      )}
       {cards.map((card) => (
         <IntegrationCard key={card.id} card={card} projects={projectList} />
       ))}

@@ -1,0 +1,452 @@
+{
+  "checkedAt": "2026-11-01",
+  "requests": 46,
+  "resources": {
+    "AI Ethics and Governance in Practice": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": null,
+      "httpStatus": 403,
+      "provider": "The Alan Turing Institute",
+      "status": "blocked",
+      "title": "AI Ethics and Governance in Practice",
+      "url": "https://www.turing.ac.uk/"
+    },
+    "AI Product Management Specialization": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": null,
+      "httpStatus": 404,
+      "provider": "Duke University",
+      "status": "dead",
+      "title": "AI Product Management Specialization",
+      "url": "https://www.coursera.org/specializations/ai-product-management"
+    },
+    "AI Safety, Alignment and Governance Fundamentals": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "BlueDot Impact",
+      "status": "generic",
+      "title": "AI Safety, Alignment and Governance Fundamentals",
+      "url": "https://bluedot.org/"
+    },
+    "AI for Medicine Specialization": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "DeepLearning.AI",
+      "status": "ok",
+      "title": "AI for Medicine Specialization",
+      "url": "https://www.coursera.org/specializations/ai-for-medicine"
+    },
+    "Accelerated Computing with CUDA C/C++": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "NVIDIA Deep Learning Institute",
+      "status": "ok",
+      "title": "Accelerated Computing with CUDA C/C++",
+      "url": "https://www.nvidia.com/en-us/training/"
+    },
+    "Advanced SQL for Data Scientists & Analysts": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": "https://www.thoughtspot.com/sql-tutorial",
+      "httpStatus": 200,
+      "provider": "Mode Analytics",
+      "status": "redirected",
+      "title": "Advanced SQL for Data Scientists & Analysts",
+      "url": "https://mode.com/sql-tutorial/"
+    },
+    "Automated Testing and CI/CD for Data Science": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": null,
+      "httpStatus": 403,
+      "provider": "DataCamp",
+      "status": "blocked",
+      "title": "Automated Testing and CI/CD for Data Science",
+      "url": "https://www.datacamp.com/"
+    },
+    "Building Applications with Vector Databases": {
+      "checkedAt": "2026-11-01",
+      "duplicateOf": "LangChain & LangGraph: Developing AI Agents",
+      "provider": "DeepLearning.AI",
+      "status": "duplicate",
+      "title": "Building Applications with Vector Databases",
+      "url": "https://www.deeplearning.ai/short-courses/"
+    },
+    "C++ for High Performance and Scientific Computing": {
+      "checkedAt": "2026-11-01",
+      "duplicateOf": "Microservices Architecture with Docker & gRPC",
+      "provider": "Coursera & EPFL",
+      "status": "duplicate",
+      "title": "C++ for High Performance and Scientific Computing",
+      "url": "https://www.coursera.org/"
+    },
+    "CS189: Introduction to Machine Learning": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "UC Berkeley",
+      "status": "generic",
+      "title": "CS189: Introduction to Machine Learning",
+      "url": "https://eecs189.org/"
+    },
+    "CS224N: Natural Language Processing with Deep Learning": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Stanford University",
+      "status": "ok",
+      "title": "CS224N: Natural Language Processing with Deep Learning",
+      "url": "https://web.stanford.edu/class/cs224n/"
+    },
+    "CS231n: Deep Learning for Computer Vision": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Stanford University",
+      "status": "ok",
+      "title": "CS231n: Deep Learning for Computer Vision",
+      "url": "https://cs231n.stanford.edu/"
+    },
+    "CS25: Transformers United": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Stanford University",
+      "status": "ok",
+      "title": "CS25: Transformers United",
+      "url": "https://web.stanford.edu/class/cs25/"
+    },
+    "CUDA Mode & GPU Kernel Programming": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": "https://github.com/gpu-mode/lectures",
+      "httpStatus": 200,
+      "provider": "CUDA MODE",
+      "status": "redirected",
+      "title": "CUDA Mode & GPU Kernel Programming",
+      "url": "https://github.com/cuda-mode/lectures"
+    },
+    "Cloud Computing Specialization: AWS & GCP": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "University of Illinois Urbana-Champaign",
+      "status": "ok",
+      "title": "Cloud Computing Specialization: AWS & GCP",
+      "url": "https://www.coursera.org/specializations/cloud-computing"
+    },
+    "Computational Linear Algebra for Coders": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Fast.ai & Rachel Thomas",
+      "status": "ok",
+      "title": "Computational Linear Algebra for Coders",
+      "url": "https://github.com/fastai/numerical-linear-algebra"
+    },
+    "Computer Systems: A Programmer Perspective (15-213)": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Carnegie Mellon University",
+      "status": "ok",
+      "title": "Computer Systems: A Programmer Perspective (15-213)",
+      "url": "https://www.cs.cmu.edu/~213/"
+    },
+    "Cybersecurity in the Era of AI & Machine Learning": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "MIT xPRO",
+      "status": "generic",
+      "title": "Cybersecurity in the Era of AI & Machine Learning",
+      "url": "https://xpro.mit.edu/"
+    },
+    "Data Engineering Zoomcamp": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "DataTalks.Club",
+      "status": "ok",
+      "title": "Data Engineering Zoomcamp",
+      "url": "https://github.com/DataTalksClub/data-engineering-zoomcamp"
+    },
+    "Data Structures and Algorithms Specialization": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "UC San Diego & HSE",
+      "status": "ok",
+      "title": "Data Structures and Algorithms Specialization",
+      "url": "https://www.coursera.org/specializations/data-structures-algorithms"
+    },
+    "Deep Learning Specialization": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "DeepLearning.AI",
+      "status": "ok",
+      "title": "Deep Learning Specialization",
+      "url": "https://www.coursera.org/specializations/deep-learning"
+    },
+    "Deep Reinforcement Learning Course": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": "https://huggingface.co/learn/deep-rl-course/unit0/introduction",
+      "httpStatus": 200,
+      "provider": "Hugging Face",
+      "status": "redirected",
+      "title": "Deep Reinforcement Learning Course",
+      "url": "https://huggingface.co/learn/deep-rl-course"
+    },
+    "Design of Interactive Systems for Human-AI Interaction": {
+      "checkedAt": "2026-11-01",
+      "duplicateOf": "Microservices Architecture with Docker & gRPC",
+      "provider": "University of Washington",
+      "status": "duplicate",
+      "title": "Design of Interactive Systems for Human-AI Interaction",
+      "url": "https://www.coursera.org/"
+    },
+    "Distributed Computing for Machine Learning": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "UC Berkeley Sky Computing",
+      "status": "generic",
+      "title": "Distributed Computing for Machine Learning",
+      "url": "https://sky.cs.berkeley.edu/"
+    },
+    "Fast.ai: From Deep Learning Foundations to Stable Diffusion": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Fast.ai",
+      "status": "ok",
+      "title": "Fast.ai: From Deep Learning Foundations to Stable Diffusion",
+      "url": "https://course.fast.ai/Lessons/part2.html"
+    },
+    "Full Stack Deep Learning & LLM Bootcamp": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "FSDL",
+      "status": "generic",
+      "title": "Full Stack Deep Learning & LLM Bootcamp",
+      "url": "https://fullstackdeeplearning.com/"
+    },
+    "Generative AI with Large Language Models": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "DeepLearning.AI & AWS",
+      "status": "ok",
+      "title": "Generative AI with Large Language Models",
+      "url": "https://www.coursera.org/learn/generative-ai-with-llms"
+    },
+    "Graph Neural Networks and Geometric Deep Learning": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Stanford CS224W",
+      "status": "ok",
+      "title": "Graph Neural Networks and Geometric Deep Learning",
+      "url": "https://web.stanford.edu/class/cs224w/"
+    },
+    "High Performance Python for Data Science and ML": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Real Python",
+      "status": "generic",
+      "title": "High Performance Python for Data Science and ML",
+      "url": "https://realpython.com/"
+    },
+    "Hugging Face Transformers & Diffusion Course": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": "https://huggingface.co/learn/llm-course/chapter1/1",
+      "httpStatus": 200,
+      "provider": "Hugging Face",
+      "status": "redirected",
+      "title": "Hugging Face Transformers & Diffusion Course",
+      "url": "https://huggingface.co/learn/nlp-course"
+    },
+    "Kubernetes for Machine Learning Engineers": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Linux Foundation",
+      "status": "generic",
+      "title": "Kubernetes for Machine Learning Engineers",
+      "url": "https://training.linuxfoundation.org/"
+    },
+    "LLM Twin: Building a Production AI Agent": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": null,
+      "httpStatus": 404,
+      "provider": "Decoded Health & GitHub",
+      "status": "dead",
+      "title": "LLM Twin: Building a Production AI Agent",
+      "url": "https://github.com/decodingml"
+    },
+    "LangChain & LangGraph: Developing AI Agents": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": "https://www.deeplearning.ai/courses",
+      "httpStatus": 200,
+      "provider": "DeepLearning.AI & LangChain",
+      "status": "redirected",
+      "title": "LangChain & LangGraph: Developing AI Agents",
+      "url": "https://www.deeplearning.ai/short-courses/"
+    },
+    "Machine Learning Engineering for Production (MLOps)": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": "https://www.coursera.org/learn/introduction-to-machine-learning-in-production",
+      "httpStatus": 200,
+      "provider": "DeepLearning.AI",
+      "status": "redirected",
+      "title": "Machine Learning Engineering for Production (MLOps)",
+      "url": "https://www.coursera.org/specializations/machine-learning-engineering-for-production-mlops"
+    },
+    "Machine Learning Specialization": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "DeepLearning.AI & Stanford",
+      "status": "ok",
+      "title": "Machine Learning Specialization",
+      "url": "https://www.coursera.org/specializations/machine-learning-introduction"
+    },
+    "Machine Learning System Design": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Stanford CS329S",
+      "status": "generic",
+      "title": "Machine Learning System Design",
+      "url": "https://stanford-cs329s.github.io/"
+    },
+    "Mathematics for Machine Learning Specialization": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Imperial College London",
+      "status": "ok",
+      "title": "Mathematics for Machine Learning Specialization",
+      "url": "https://www.coursera.org/specializations/mathematics-machine-learning"
+    },
+    "Microservices Architecture with Docker & gRPC": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Coursera Project Network",
+      "status": "generic",
+      "title": "Microservices Architecture with Docker & gRPC",
+      "url": "https://www.coursera.org/"
+    },
+    "Modern Deep Learning with PyTorch Lightning": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": null,
+      "httpStatus": 404,
+      "provider": "Lightning AI",
+      "status": "dead",
+      "title": "Modern Deep Learning with PyTorch Lightning",
+      "url": "https://lightning.ai/pages/courses/"
+    },
+    "Natural Language Understanding with Transformers": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": null,
+      "httpStatus": 403,
+      "provider": "NYU Center for Data Science",
+      "status": "blocked",
+      "title": "Natural Language Understanding with Transformers",
+      "url": "https://cds.nyu.edu/"
+    },
+    "Practical Deep Learning for Coders": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Fast.ai",
+      "status": "ok",
+      "title": "Practical Deep Learning for Coders",
+      "url": "https://course.fast.ai/"
+    },
+    "Probabilistic Graphical Models": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Stanford University & Daphne Koller",
+      "status": "ok",
+      "title": "Probabilistic Graphical Models",
+      "url": "https://www.coursera.org/specializations/probabilistic-graphical-models"
+    },
+    "RAG Systems and Advanced Vector Search": {
+      "checkedAt": "2026-11-01",
+      "duplicateOf": "LangChain & LangGraph: Developing AI Agents",
+      "provider": "Pinecone & DeepLearning.AI",
+      "status": "duplicate",
+      "title": "RAG Systems and Advanced Vector Search",
+      "url": "https://www.deeplearning.ai/short-courses/"
+    },
+    "Reinforcement Learning Specialization": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "University of Alberta & Amii",
+      "status": "ok",
+      "title": "Reinforcement Learning Specialization",
+      "url": "https://www.coursera.org/specializations/reinforcement-learning"
+    },
+    "Robotics: Aerial Robotics & Perception": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": null,
+      "httpStatus": 404,
+      "provider": "University of Pennsylvania",
+      "status": "dead",
+      "title": "Robotics: Aerial Robotics & Perception",
+      "url": "https://www.coursera.org/learn/robotics-flight"
+    },
+    "Rust for Systems and Machine Learning": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": "https://rust-lang.org/learn/",
+      "httpStatus": 200,
+      "provider": "Rust Foundation & O'Reilly",
+      "status": "ok",
+      "title": "Rust for Systems and Machine Learning",
+      "url": "https://www.rust-lang.org/learn"
+    },
+    "Speech and Audio Processing with Machine Learning": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": "https://huggingface.co/learn/audio-course/chapter0/introduction",
+      "httpStatus": 200,
+      "provider": "Hugging Face Audio Course",
+      "status": "redirected",
+      "title": "Speech and Audio Processing with Machine Learning",
+      "url": "https://huggingface.co/learn/audio-course"
+    },
+    "Statistical Inference and Hypothesis Testing": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Johns Hopkins University",
+      "status": "ok",
+      "title": "Statistical Inference and Hypothesis Testing",
+      "url": "https://www.coursera.org/learn/statistical-inference"
+    },
+    "TensorFlow: Advanced Techniques Specialization": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "DeepLearning.AI",
+      "status": "ok",
+      "title": "TensorFlow: Advanced Techniques Specialization",
+      "url": "https://www.coursera.org/specializations/tensorflow-advanced-techniques"
+    },
+    "TinyML: Machine Learning on Edge Devices": {
+      "checkedAt": "2026-11-01",
+      "finalUrl": null,
+      "httpStatus": 404,
+      "provider": "Harvard University (edX)",
+      "status": "dead",
+      "title": "TinyML: Machine Learning on Edge Devices",
+      "url": "https://www.edx.org/learn/machine-learning/harvard-university-tinyml"
+    }
+  }
+}

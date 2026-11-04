@@ -14,6 +14,7 @@ describe("OAuth Redirect URI Validation Security (isAllowedRedirect)", () => {
     redirectUris: null,
     webhookUrl: null,
     webhookSecret: null,
+    pkceRequired: true,
   };
 
   it("permits canonical callback URL on client origin when redirectUris is not configured", () => {

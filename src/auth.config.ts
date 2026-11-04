@@ -43,6 +43,7 @@ export const authConfig = {
       if (token.sub) session.user.id = token.sub;
       session.onboarded = token.onboarded === true;
       session.admin = token.admin === true;
+      session.authTime = token.authTime;
       return session;
     },
   },

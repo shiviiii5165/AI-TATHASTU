@@ -6,6 +6,7 @@ import { getApiUserAtStep } from "@/lib/dal";
 import { isConnectorCryptoConfigured } from "@/lib/connectors/crypto";
 import { GITHUB_SCOPE, GITHUB_STATE_COOKIE, githubCallbackUrl, githubConfig } from "@/lib/connectors/github";
 import { connectorReturnPath, type ConnectorContext } from "@/lib/connectors/sources";
+import { allowPaidWork } from "@/lib/paid-work";
 
 /**
  * Starts the GitHub OAuth flow from onboarding Step 5 or /connections
@@ -20,6 +21,11 @@ export async function GET(request: NextRequest) {
   const config = githubConfig();
   if (!config || !isConnectorCryptoConfigured()) {
     return NextResponse.redirect(new URL(`${connectorReturnPath(from)}?source=github&error=not_configured`, request.url));
+  }
+
+  // Each completed connect queues a sync.
+  if (!(await allowPaidWork(authz.user.id, "connector_sync")).ok) {
+    return NextResponse.redirect(new URL(`${connectorReturnPath(from)}?source=github&error=limited`, request.url));
   }
 
   const state = randomBytes(24).toString("base64url");

@@ -496,7 +496,7 @@ class ConnectorMappingTests(unittest.TestCase):
         hr = {"record_key": "hackerrank:stats", "extracted_value": {"badges": {"Problem Solving": 5}}}
         self.assertAlmostEqual(eris.problem_solving_score([lc]), 0.7)  # (90 + 2*80 + 3*10) / 400
         self.assertEqual(eris.problem_solving_score([lc, hr]), 1.0)  # best of the two
-        r = eris.score_role("ml_engineer", {"Python": 1.0}, [], problem_solving=0.65)
+        r = eris.score_role(analysis({"Python": 80.0}), [], problem_solving=0.65)
         self.assertEqual(r["breakdown"]["missing_components"], [])
 
     def test_stack_exchange_and_kaggle(self) -> None:
@@ -743,15 +743,22 @@ class ProjectMatchingTests(unittest.TestCase):
         self.assertEqual(projects.unify([cv, repo])[0].status, "matched")
 
 
+def analysis(proficiency):
+    from intelligence import career_engine
+
+    skills = {n: {"proficiency": p, "level": career_engine.level_for(p), "confidence": 0.6, "evidence": []} for n, p in proficiency.items()}
+    return career_engine.analyze_role("ml_engineer", skills, {}, True, lambda name: name)
+
+
 class ScoringTests(unittest.TestCase):
     def test_eris_renormalizes_missing_problem_solving(self) -> None:
-        r = eris.score_role("ml_engineer", {"Python": 1.0, "Machine Learning": 1.0}, [["Python"]])
+        r = eris.score_role(analysis({"Python": 80.0, "Machine Learning": 80.0}), [["Python"]])
         self.assertEqual(r["breakdown"]["missing_components"], ["problem_solving"])
         tech = r["breakdown"]["components"]["technical"]
         proj = r["breakdown"]["components"]["projects"]
         self.assertAlmostEqual(r["score"], round((0.5 * tech + 0.25 * proj) / 0.75, 3), places=3)
         self.assertEqual(len(r["breakdown"]["gaps"]), 3)
-        self.assertIsNone(eris.score_role("still_exploring", {}, []))
+        self.assertIsNone(eris.score_role(None, []))
 
     def test_widget_order_follows_primary_priority(self) -> None:
         now = datetime.now(timezone.utc)

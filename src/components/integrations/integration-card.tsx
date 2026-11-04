@@ -99,7 +99,8 @@ export function IntegrationCard({ card, projects }: { card: IntegrationCardView;
           </p>
         </div>
         <a
-          href={card.url}
+          // Available: start the app's OAuth sign-in so the user arrives signed in. Otherwise just its home page.
+          href={card.available ? `/integrations/launch/${card.id}` : card.url}
           target="_blank"
           rel="noreferrer"
           className="inline-flex items-center gap-1 rounded-sm text-sm font-medium underline-offset-4 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"

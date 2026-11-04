@@ -6,6 +6,7 @@ import { getApiUserAtStep } from "@/lib/dal";
 import { isConnectorCryptoConfigured } from "@/lib/connectors/crypto";
 import { ORCID_SCOPE, ORCID_STATE_COOKIE, orcidCallbackUrl, orcidConfig } from "@/lib/connectors/orcid";
 import { connectorReturnPath, parseConnectorContext } from "@/lib/connectors/sources";
+import { allowPaidWork } from "@/lib/paid-work";
 
 /**
  * Starts ORCID sign-in from faculty Step 2 (`?from=research`), Step 5 or
@@ -20,6 +21,11 @@ export async function GET(request: NextRequest) {
   const config = orcidConfig();
   if (!config || !isConnectorCryptoConfigured()) {
     return NextResponse.redirect(new URL(`${connectorReturnPath(from)}?source=orcid&error=not_configured`, request.url));
+  }
+
+  // Each completed connect queues a sync.
+  if (!(await allowPaidWork(authz.user.id, "connector_sync")).ok) {
+    return NextResponse.redirect(new URL(`${connectorReturnPath(from)}?source=orcid&error=limited`, request.url));
   }
 
   const state = randomBytes(24).toString("base64url");

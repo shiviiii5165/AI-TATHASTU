@@ -6,7 +6,7 @@ import { Suspense } from "react";
 import { auth } from "@/auth";
 import { BrandLogo } from "@/components/brand-logo";
 import { AuthorizeForm } from "@/components/integrations/authorize-form";
-import { issueCode, parseAuthorizeRequest } from "@/lib/integrations/authorize";
+import { issueCode, parseAuthorizeRequest, silentAuthorize } from "@/lib/integrations/authorize";
 import { effectiveScopes, getConsent, isLinked } from "@/lib/integrations/consent";
 
 export const metadata: Metadata = { title: "Sign in with AI Tathastu" };
@@ -15,7 +15,8 @@ export const metadata: Metadata = { title: "Sign in with AI Tathastu" };
  * OAuth authorization endpoint for integrated apps (Collaborate, Meet).
  * First visit: the user picks what the app may see and approves; we redirect
  * back with a one-time code the app exchanges at /api/integrations/sso/token.
- * Later visits skip the screen (prompt=consent shows it again).
+ * Later visits skip the screen (prompt=consent shows it again; prompt=none
+ * never shows any screen and returns login_required / consent_required).
  */
 export default function AuthorizePage({ searchParams }: PageProps<"/integrations/authorize">) {
   return (
@@ -38,9 +39,11 @@ async function Authorize({ searchParams }: Pick<PageProps<"/integrations/authori
   ).toString();
 
   const session = await auth();
+  const parsed = await parseAuthorizeRequest(params);
+  // prompt=none never shows our login or consent screens: answer the app directly.
+  if (parsed.ok && parsed.req.silent) redirect(await silentAuthorize(session?.user?.id ?? null, parsed.req));
   if (!session?.user?.id) redirect(`/login?callbackUrl=${encodeURIComponent(`/integrations/authorize?${query}`)}`);
 
-  const parsed = await parseAuthorizeRequest(params);
   if (!parsed.ok) {
     if (parsed.redirect) redirect(parsed.redirect);
     return (

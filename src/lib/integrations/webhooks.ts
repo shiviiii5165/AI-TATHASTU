@@ -75,13 +75,26 @@ export async function enqueueProfileUpdated(userId: string, reason: string, only
 }
 
 /** integration.revoked, so the app deletes what it stored. Call before or after revoking. */
-export async function enqueueRevoked(userId: string, clientId: IntegrationClientId) {
+export async function enqueueRevoked(userId: string, clientId: IntegrationClientId, reason = "user_disconnected") {
   if (!webhookReady(clientId)) return false;
   await db
     .insert(webhookOutbox)
-    .values({ clientId, userId, event: "integration.revoked", reason: "user_disconnected" })
+    .values({ clientId, userId, event: "integration.revoked", reason })
     .onConflictDoNothing();
   return true;
+}
+
+/** Every app the user linked hears integration.revoked. Returns apps with no webhook to call. */
+export async function enqueueRevokedForDeletion(userId: string) {
+  const linked = await db
+    .select({ clientId: integrationConsents.clientId })
+    .from(integrationConsents)
+    .where(and(eq(integrationConsents.userId, userId), isNotNull(integrationConsents.linkedAt), isNull(integrationConsents.revokedAt)));
+  const unreachable: IntegrationClientId[] = [];
+  for (const { clientId } of linked) {
+    if (!(await enqueueRevoked(userId, clientId, "account_deleted"))) unreachable.push(clientId);
+  }
+  return unreachable;
 }
 
 async function claimDue(limit: number): Promise<WebhookOutboxRow[]> {

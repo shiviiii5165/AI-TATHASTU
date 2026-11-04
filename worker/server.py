@@ -22,6 +22,16 @@ import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, List
 
+from dotenv import load_dotenv
+from pathlib import Path
+
+# The entry point, so it loads local settings; worker.py does not when imported. Before the
+# imports below, which read some settings as they load.
+if __name__ == "__main__":
+    load_dotenv(Path(__file__).resolve().parent / ".env")
+    load_dotenv(Path(__file__).resolve().parent.parent / ".env.local")
+
+from resume.sandbox import block_environ_reads  # noqa: E402
 from worker import HANDLERS, WORKER_ID, Worker, configure_logging, database_url
 
 log = logging.getLogger("worker.server")
@@ -57,6 +67,7 @@ def make_handler(queue_threads: List[threading.Thread]):
 
 def main() -> None:
     configure_logging()
+    block_environ_reads()
     concurrency = max(1, int(os.environ.get("WORKER_CONCURRENCY", "2")))
     workers = [Worker(database_url()) for _ in range(concurrency)]
     queue_threads = [

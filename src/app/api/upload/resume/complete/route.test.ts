@@ -30,6 +30,7 @@ vi.mock("@/lib/uploads/register", () => ({
 
 vi.mock("@/lib/rate-limit", () => ({
   hitRateLimit: mocks.hitRateLimit,
+  hitSlidingLimit: async () => ({ ok: true, retryAfter: 0 }),
 }));
 
 vi.mock("@/lib/uploads/resume", () => ({

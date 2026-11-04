@@ -4,7 +4,6 @@
 // admits anyone who has reached the connectors step, finished users included.
 
 import { randomUUID } from "node:crypto";
-import { isIP } from "node:net";
 
 import { z } from "zod";
 
@@ -18,6 +17,7 @@ import { appendConsent } from "@/lib/consent/store";
 import { connectSource, disconnectSource, openCredential } from "@/lib/connectors/connections";
 import { isConnectorCryptoConfigured } from "@/lib/connectors/crypto";
 import { revokeGithubGrant } from "@/lib/connectors/github";
+import { publicUrl } from "@/lib/connectors/public-url";
 import {
   connectorReturnPath,
   parseCodingHandle,
@@ -27,22 +27,10 @@ import {
 } from "@/lib/connectors/sources";
 import { requireConnectorUser } from "@/lib/dal";
 import { enqueueComputeIntelligence } from "@/lib/jobs-queue";
+import { allowPaidWork } from "@/lib/paid-work";
+import { hitRateLimit } from "@/lib/rate-limit";
 
 const NOT_CONFIGURED: SaveResult = { ok: false, error: "Connectors aren't set up on this server yet." };
-
-/** Public http(s) URL only: no localhost, private suffixes or raw IPs (the worker will fetch it). */
-function publicUrl(raw: string): string | null {
-  let u: URL;
-  try {
-    u = new URL(/^https?:\/\//i.test(raw.trim()) ? raw.trim() : `https://${raw.trim()}`);
-  } catch {
-    return null;
-  }
-  const host = u.hostname.toLowerCase();
-  if (!["http:", "https:"].includes(u.protocol) || !host.includes(".")) return null;
-  if (isIP(host.replace(/^\[|\]$/g, "")) || host === "localhost" || /\.(local|internal|localhost)$/.test(host)) return null;
-  return u.toString();
-}
 
 const forms = {
   kaggle: z.object({
@@ -73,6 +61,10 @@ export async function connectWithForm(sourceId: FormSource, values: Record<strin
   const schema = forms[sourceId];
   if (!schema) return { ok: false, error: "Unknown source." };
 
+  // Each save queues a sync that spends third-party quota.
+  const limited = await hitRateLimit(`connect_form:${user.id}`, { limit: 20, windowSeconds: 3600, onDbError: "deny" });
+  if (!limited.ok || !(await allowPaidWork(user.id, "connector_sync")).ok) return { ok: false, error: "Too many attempts. Try again later." };
+
   const parsed = schema.safeParse(values);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the details and try again." };
 
@@ -94,7 +86,7 @@ export async function connectWithForm(sourceId: FormSource, values: Record<strin
     if (!username) return { ok: false, error: "Enter your username or profile link." };
     credential = { username };
   } else {
-    const url = publicUrl((parsed.data as z.infer<typeof forms.portfolio>).url);
+    const url = await publicUrl((parsed.data as z.infer<typeof forms.portfolio>).url);
     if (!url) return { ok: false, error: "Enter a public web address, like https://yourname.dev." };
     credential = { url };
   }
@@ -127,7 +119,7 @@ export async function disconnect(sourceId: string): Promise<SaveResult> {
 /** Grants linkedin_scrape for a LinkedIn connection that is waiting on it; the sync is re-queued. */
 export async function allowLinkedInImport(): Promise<SaveResult> {
   const { user } = await requireConnectorUser();
-  await appendConsent(user.id, "linkedin_scrape", true);
+  if (!(await appendConsent(user.id, "linkedin_scrape", true))) return { ok: false, error: "Too many attempts. Try again later." };
   return { ok: true };
 }
 

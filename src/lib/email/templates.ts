@@ -88,15 +88,31 @@ export function magicLinkEmail({ url }: { url: string }): Email {
   return {
     subject: "Sign in to AI Tathastu",
     ...layout({
-      preheader: "Your sign-in link. It works once and expires in 24 hours.",
+      preheader: "Your sign-in link. It works once and expires in 30 minutes.",
       title: "Sign in to AI Tathastu",
       blocks: [
-        p("Use the button below to sign in. The link works once and expires in 24 hours."),
+        p("Use the button below to sign in. The link works once and expires in 30 minutes."),
         button("Sign in", url),
         small("If the button doesn't work, copy this link into your browser:"),
         small(url),
       ],
       footer: "You're receiving this because someone asked to sign in with this address. If it wasn't you, ignore this email; nothing happens without the link.",
+    }),
+  };
+}
+
+/** System: an operator's second factor changed. Also sent to the other root operators, since a stolen mailbox can hide it from its owner. */
+export function adminSecurityNoticeEmail({ account, event }: { account: string; event: string }): Email {
+  return {
+    subject: `Admin security: ${event}`,
+    ...layout({
+      preheader: `${event} on an AI Tathastu operator account.`,
+      title: "Admin security notice",
+      blocks: [
+        p(`${event} on an operator account. If this wasn't expected, treat the account as compromised: revoke its sessions and remove its authenticator.`),
+        note("Account", account),
+      ],
+      footer: "You're receiving this because you are an AI Tathastu operator.",
     }),
   };
 }

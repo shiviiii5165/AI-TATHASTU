@@ -100,17 +100,8 @@ export function InteractiveMarkup({ html }: { html: string }) {
         alert("Please agree to receive updates.");
         return;
       }
-      if (footerSubmit) {
-        const orig = footerSubmit.innerHTML;
-        footerSubmit.innerHTML = "✓";
-        footerSubmit.style.background = "#16A34A";
-        setTimeout(() => {
-          footerSubmit.innerHTML = orig;
-          footerSubmit.style.background = "";
-        }, 3000);
-      }
-      if (footerEmail) footerEmail.value = "";
-      alert("Thank you for subscribing to AI Tathastu updates!");
+      // No sign-up backend yet: never say an address was saved when it wasn't.
+      alert("Newsletter sign-up isn't open yet, so your email wasn't saved.");
     };
     footerForm?.addEventListener("submit", onNewsletterSubmit);
 

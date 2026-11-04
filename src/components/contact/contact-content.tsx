@@ -89,7 +89,6 @@ export function ContactContent() {
   // Footer Language Dropdown
   const [langMenuOpen, setLangMenuOpen] = useState(false);
   const [currentLang, setCurrentLang] = useState("English");
-  const [newsletterSubscribed, setNewsletterSubscribed] = useState(false);
   const [newsletterEmail, setNewsletterEmail] = useState("");
   const [newsletterConsent, setNewsletterConsent] = useState(true);
   const currentYear = useSyncExternalStore(
@@ -196,8 +195,8 @@ export function ContactContent() {
       alert("Please agree to receive updates from AI Tathastu.");
       return;
     }
-    setNewsletterSubscribed(true);
-    setNewsletterEmail("");
+    // No sign-up backend yet: never say an address was saved when it wasn't.
+    alert("Newsletter sign-up isn't open yet, so your email wasn't saved.");
   };
 
   return (
@@ -924,12 +923,7 @@ export function ContactContent() {
               <p className="footer-newsletter-text">
                 Get updates on opportunities and new features.
               </p>
-              {newsletterSubscribed ? (
-                <p className="newsletter-success-note">
-                  ✓ Thank you for subscribing!
-                </p>
-              ) : (
-                <form
+              <form
                   className="footer-newsletter-form"
                   onSubmit={handleNewsletterSubmit}
                   noValidate
@@ -969,7 +963,6 @@ export function ContactContent() {
                     </span>
                   </label>
                 </form>
-              )}
             </div>
           </div>
 

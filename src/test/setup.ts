@@ -8,7 +8,8 @@ config({ path: path.resolve(process.cwd(), ".env.test"), override: true });
 const dbUrl = process.env.DATABASE_URL || "";
 const workerDbUrl = process.env.WORKER_DATABASE_URL || "";
 
-if (dbUrl.includes("neon.tech") || workerDbUrl.includes("neon.tech")) {
+const isLocal = (url: string) => !url || /@(localhost|127\.0\.0\.1|host\.docker\.internal)[:/]/.test(url);
+if (!isLocal(dbUrl) || !isLocal(workerDbUrl)) {
   throw new Error(
     "FAIL-CLOSED: DATABASE_URL or WORKER_DATABASE_URL targets a remote Neon database in tests! Automated test infrastructure must target a disposable local database (127.0.0.1)."
   );

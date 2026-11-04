@@ -4,7 +4,7 @@
  * ProfessionalProjectionV1, revocation, and the webhook outbox.
  * Real route handlers on PGlite; only outbound fetch is stubbed.
  */
-import { createHmac } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 
 import { eq } from "drizzle-orm";
 import { exportJWK, generateKeyPair, SignJWT } from "jose";
@@ -79,8 +79,11 @@ const exchange = (body: Record<string, string>) =>
 const getProfile = (token: string) =>
   profileRoute.GET(new Request("https://www.aitathastu.com/api/integrations/v1/profile", { headers: { authorization: `Bearer ${token}` } }));
 
+const VERIFIER = "v".repeat(50);
+const CHALLENGE = createHash("sha256").update(VERIFIER).digest("base64url");
+
 async function codeFor(userId: string, extra: Record<string, string> = {}) {
-  const parsed = await parseAuthorizeRequest({ client_id: "collaborate", redirect_uri: REDIRECT, state: "s1", ...extra });
+  const parsed = await parseAuthorizeRequest({ client_id: "collaborate", redirect_uri: REDIRECT, state: "s1", code_challenge: CHALLENGE, code_challenge_method: "S256", ...extra });
   if (!parsed.ok) throw new Error(parsed.message);
   return new URL(await issueCode(userId, parsed.req)).searchParams.get("code")!;
 }
@@ -88,7 +91,7 @@ async function codeFor(userId: string, extra: Record<string, string> = {}) {
 const goodExchange = (code: string, extra: Record<string, string> = {}) =>
   exchange({
     grant_type: "authorization_code", code, redirect_uri: REDIRECT,
-    client_id: "collaborate", client_secret: process.env.INTEGRATION_COLLABORATE_CLIENT_SECRET!, ...extra,
+    client_id: "collaborate", client_secret: process.env.INTEGRATION_COLLABORATE_CLIENT_SECRET!, code_verifier: VERIFIER, ...extra,
   });
 
 beforeAll(async () => {
@@ -262,7 +265,7 @@ describe("hardening", () => {
     const res = await tokenRoute.POST(new Request("https://www.aitathastu.com/api/integrations/sso/token", {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded", authorization: `Basic ${basic}` },
-      body: new URLSearchParams({ grant_type: "authorization_code", code, redirect_uri: REDIRECT }).toString(),
+      body: new URLSearchParams({ grant_type: "authorization_code", code, redirect_uri: REDIRECT, code_verifier: VERIFIER }).toString(),
     }));
     expect(res.status).toBe(200);
     const wrong = Buffer.from(`collaborate:${secret}:extra`).toString("base64");
@@ -298,7 +301,7 @@ describe("signing-key rotation", () => {
     const sign = (kid: string) =>
       new SignJWT({ scope: "profile:read" }).setProtectedHeader({ alg: "ES256", kid }).setIssuer("https://www.aitathastu.com")
         .setAudience("collaborate").setSubject(A).setIssuedAt().setExpirationTime("10m").sign(oldKey);
-    expect(await fresh.verifyAccessToken(await sign("old-key"))).toEqual({ userId: A, clientId: "collaborate" });
+    expect(await fresh.verifyAccessToken(await sign("old-key"))).toEqual({ userId: A, clientId: "collaborate", sessionVersion: 0 });
     expect(await fresh.verifyAccessToken(await sign("not-published"))).toBeNull();
     delete process.env.INTEGRATION_JWT_PREVIOUS_PUBLIC_KEYS;
   });

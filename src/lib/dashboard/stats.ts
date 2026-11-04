@@ -10,17 +10,11 @@ import {
 } from "@/db/schema";
 import type { Viewer } from "@/lib/discovery";
 import { discoverableCount } from "@/lib/dashboard/network-count";
+import { buildJourney, type JourneyMilestone } from "@/lib/dashboard/journey";
 import { usableFactsOf } from "@/lib/profile/unified";
 
 // Every number here comes from stored data. Where a value isn't known it is
 // null and the UI shows it as unavailable rather than inventing one.
-
-export interface JourneyMilestone {
-  title: string;
-  year: string;
-  field: string;
-  active?: boolean;
-}
 
 export interface RecentProjectItem {
   id: string;
@@ -91,7 +85,6 @@ export interface LiveDashboardStats {
   githubActivity: GitHubActivityData | null;
   recentPublications: PublicationItem[];
   recentAchievements: AchievementItem[];
-  skillProficiency: Array<{ name: string; pct: number }>;
   researchOpportunities: OpportunityItem[];
   internships: OpportunityItem[];
   quickActions: QuickActionItem[];
@@ -131,7 +124,7 @@ export async function getLiveDashboardData(viewer: Viewer): Promise<LiveDashboar
       .from(profileFacts)
       .where(usableFactsOf(userId)),
     db
-      .select({ skillName: skills.canonicalName, strength: skillEvidence.evidenceStrength })
+      .select({ skillName: skills.canonicalName })
       .from(skillEvidence)
       .innerJoin(skills, eq(skillEvidence.skillId, skills.id))
       .where(eq(skillEvidence.userId, userId)),
@@ -151,15 +144,10 @@ export async function getLiveDashboardData(viewer: Viewer): Promise<LiveDashboar
       .limit(OPPORTUNITY_LIMIT),
   ]);
 
-  // Skills: evidenced strength where the intelligence engine has run; names
-  // from confirmed skill facts otherwise (used for matching only, no score).
+  // Skill names, for counting and opportunity matching: evidenced where the intelligence
+  // engine has run, from confirmed skill facts otherwise. Scores live in the engine's output.
   const userSkillNames = new Set<string>();
-  const skillProficiencyMap = new Map<string, number>();
-  for (const s of evidenceSkills) {
-    userSkillNames.add(s.skillName.toLowerCase());
-    const pct = Math.round(Math.min(1, Math.max(0, s.strength)) * 100);
-    if (pct > (skillProficiencyMap.get(s.skillName) ?? -1)) skillProficiencyMap.set(s.skillName, pct);
-  }
+  for (const s of evidenceSkills) userSkillNames.add(s.skillName.toLowerCase());
   if (userSkillNames.size === 0) {
     for (const f of factsRows) {
       const val = text(f.normalizedValue || f.extractedValue).trim();
@@ -167,10 +155,6 @@ export async function getLiveDashboardData(viewer: Viewer): Promise<LiveDashboar
     }
   }
   const skillsCount = userSkillNames.size;
-
-  const skillProficiency = Array.from(skillProficiencyMap, ([name, pct]) => ({ name, pct }))
-    .sort((a, b) => b.pct - a.pct)
-    .slice(0, 8);
 
   const scoreMap = new Map<string, number>();
   for (const s of scoresRows) {
@@ -229,7 +213,6 @@ export async function getLiveDashboardData(viewer: Viewer): Promise<LiveDashboar
     factsMap.set(row.recordKey, entry);
   }
 
-  const rawMilestones: Array<JourneyMilestone & { active: boolean; sortKey: number }> = [];
   const recentPublications: PublicationItem[] = [];
   const recentAchievements: AchievementItem[] = [];
   let achievementsCount = 0;
@@ -237,36 +220,6 @@ export async function getLiveDashboardData(viewer: Viewer): Promise<LiveDashboar
   for (const [recKey, rec] of factsMap) {
     const f = rec.fields;
     const g = rec.group.toLowerCase();
-
-    if (g === "education" || g === "experience") {
-      const isEdu = g === "education";
-      let title: string;
-      let field: string;
-      let year: string;
-      let isPresent: boolean;
-      if (isEdu) {
-        title = f["degree"] || f["degree_name"] || "Degree";
-        field = f["field_of_study"] || f["major"] || f["institution"] || "";
-        const end = f["end_date"] || f["end_year"] || "";
-        isPresent = end.toLowerCase().includes("present");
-        year = end || f["start_date"] || f["start_year"] || "";
-      } else {
-        title = f["role"] || f["job_title"] || "Role";
-        field = f["organization"] || f["company"] || "";
-        const start = f["start_date"] || "";
-        const end = f["end_date"] || "";
-        isPresent = end.toLowerCase().includes("present") || !end;
-        year = isPresent ? `${start ? start + "–" : ""}Present` : end || start;
-      }
-      const yearMatch = year.match(/\b(19\d\d|20\d\d)\b/);
-      rawMilestones.push({
-        title: title.slice(0, 20),
-        year,
-        field: field.slice(0, 24),
-        active: isPresent,
-        sortKey: isPresent ? 9999 : yearMatch ? parseInt(yearMatch[1], 10) : 2000,
-      });
-    }
 
     if (isAchievementGroup(g)) achievementsCount++;
 
@@ -288,9 +241,7 @@ export async function getLiveDashboardData(viewer: Viewer): Promise<LiveDashboar
     }
   }
 
-  rawMilestones.sort((a, b) => a.sortKey - b.sortKey);
-  if (rawMilestones.length > 0) rawMilestones[rawMilestones.length - 1].active = true;
-  const milestones: JourneyMilestone[] = rawMilestones.map(({ title, year, field, active }) => ({ title, year, field, active }));
+  const milestones = buildJourney(factsMap.values());
 
   // Opportunity match = share of its required skills found on the profile. No floors or defaults.
   const scoredOpps: OpportunityItem[] = oppsRows.map((opp) => {
@@ -354,7 +305,6 @@ export async function getLiveDashboardData(viewer: Viewer): Promise<LiveDashboar
     githubActivity,
     recentPublications,
     recentAchievements,
-    skillProficiency,
     researchOpportunities,
     internships,
     quickActions: quickActions.slice(0, 4),

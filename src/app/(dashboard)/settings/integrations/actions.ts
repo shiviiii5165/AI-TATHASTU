@@ -9,6 +9,7 @@ import { requireOnboardedUser } from "@/lib/dal";
 import { clientById, SCOPE_IDS } from "@/lib/integrations/clients";
 import { getConsent, isLinked, revokeLink, saveConsent, type ScopeMap } from "@/lib/integrations/consent";
 import { dispatchWebhooks, enqueueProfileUpdated, enqueueRevoked } from "@/lib/integrations/webhooks";
+import { allowPaidWork } from "@/lib/paid-work";
 
 const consentSchema = z.object({
   clientId: z.enum(["collaborate", "meet"]),
@@ -44,6 +45,8 @@ export async function syncIntegration(clientId: IntegrationClientId): Promise<Sy
   if (!client.webhookUrl || !client.webhookSecret) {
     return { ok: false, error: `${client.name} hasn't turned on profile sync yet. It reads your profile each time you sign in.` };
   }
+  // It runs a dispatch inline, over everyone's due rows.
+  if (!(await allowPaidWork(user.id, "integration_sync")).ok) return { ok: false, error: "Synced recently. Try again later." };
   await enqueueProfileUpdated(user.id, "manual_sync", client.id);
   const result = await dispatchWebhooks();
   if (result.delivered > 0) return { ok: true, message: `Sent to ${client.name}.` };

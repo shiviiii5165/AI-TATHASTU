@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { guarded } from "@/lib/api-guard";
 import { getApiUserAtStep } from "@/lib/dal";
+import { allowPaidWork } from "@/lib/paid-work";
 import { isR2Configured, presignResumeUpload } from "@/lib/r2";
 import { hitRateLimit } from "@/lib/rate-limit";
 import { findExistingResume, registerResume, resumeUploadSchema } from "@/lib/uploads/register";
@@ -34,6 +35,10 @@ export const POST = guarded(async (request: Request) => {
   }
 
   if (await findExistingResume(userId, upload.sha256)) {
+    // The same bytes again can re-run a failed extraction, which is paid work.
+    if (!(await allowPaidWork(userId, "resume_extract")).ok) {
+      return NextResponse.json({ error: "Too many uploads today. Try again tomorrow." }, { status: 429 });
+    }
     const { jobId } = await registerResume(userId, upload);
     return NextResponse.json({ duplicate: true, jobId });
   }

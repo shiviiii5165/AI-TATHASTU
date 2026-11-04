@@ -1,14 +1,18 @@
 "use server";
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
 
 import { signIn } from "@/auth";
+import { allowAuthAttempt } from "@/lib/auth/abuse";
 import { emailProviderId } from "@/lib/auth-providers";
 import { toLocalPath } from "@/lib/safe-redirect";
 
 export async function signInWithProvider(formData: FormData) {
+  if (!(await allowAuthAttempt(new Request("https://internal.invalid", { headers: await headers() })))) {
+    redirect("/login?error=EmailSignInError");
+  }
   const requested = formData.get("provider");
   // The form says "email"; the configured email provider decides the Auth.js id.
   const provider = requested === "email" ? emailProviderId() : requested;

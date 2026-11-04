@@ -5,9 +5,11 @@
 import nextEnv from "@next/env";
 import { neon } from "@neondatabase/serverless";
 
+import { assertTestIsolation, assertWriteAllowed } from "./lib/db-target.mjs";
+
 nextEnv.loadEnvConfig(process.cwd(), true, { info() {}, error: console.error });
-const sql = neon(process.env.DATABASE_URL);
 const [cmd, key] = process.argv.slice(2);
+const sql = neon(cmd === "on" || cmd === "off" ? assertWriteAllowed(process.env.DATABASE_URL) : assertTestIsolation(process.env.DATABASE_URL));
 const who = `cli:${process.env.USER ?? "unknown"}`;
 
 if (cmd === "on" || cmd === "off") {

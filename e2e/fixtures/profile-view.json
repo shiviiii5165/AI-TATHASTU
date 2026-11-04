@@ -16,9 +16,47 @@
     "overall": 0.63,
     "byRole": { "ml_engineer": 0.63 },
     "gaps": [
-      { "skill": "Kubernetes", "readiness": 0.2, "weight": 0.8 },
-      { "skill": "Docker", "readiness": 0, "weight": 0.7 }
+      { "skill": "Kubernetes", "readiness": 0.2, "weight": 0.8, "state": "underdeveloped" },
+      { "skill": "Docker", "readiness": null, "weight": 0.7, "state": "missing" }
     ]
+  },
+  "intelligence": {
+    "engineVersion": 1,
+    "computedAt": "__NOW__",
+    "hasEvidenceBase": true,
+    "skills": [
+      { "name": "Python", "category": "language", "status": "verified", "proficiency": 62, "level": "Proficient", "confidence": 0.8, "evidenceCount": 1, "evidence": [{ "kind": "repository", "source": "github", "label": "asha/resume-parser", "ref": "https://github.com/asha/resume-parser", "at": "__NOW__" }], "lastEvidenceAt": "__NOW__" },
+      { "name": "SQL", "category": "data", "status": "claimed", "proficiency": null, "level": "Not assessed", "confidence": 0.2, "evidenceCount": 1, "evidence": [{ "kind": "claim", "source": "resume", "label": "Resume skills section", "ref": null, "at": null }], "lastEvidenceAt": null }
+    ],
+    "inferred": [],
+    "roles": [
+      {
+        "role": "ml_engineer", "coverage": 0.3, "assessed": true,
+        "skills": [],
+        "open": [{ "skill": "Kubernetes", "weight": 0.8, "priority": "High", "expected": 25, "expectedLevel": "Working", "proficiency": 20, "level": "Foundational", "confidence": 0.35, "state": "underdeveloped", "insufficientEvidence": false, "action": "learn", "evidence": [] }, { "skill": "Docker", "weight": 0.7, "priority": "Medium", "expected": 25, "expectedLevel": "Working", "proficiency": null, "level": "Not assessed", "confidence": 0, "state": "missing", "insufficientEvidence": false, "action": "learn", "evidence": [] }],
+        "counts": { "met": 1, "underdeveloped": 1, "unverified": 0, "inferred": 0, "missing": 1, "not_assessed": 0 }
+      }
+    ],
+    "unsupportedRoles": [],
+    "recommendations": [],
+    "roadmap": null,
+    "graph": {
+      "totalSkills": 12,
+      "nodes": [
+        { "id": "Python", "name": "Python", "category": "language", "status": "verified", "level": "Proficient", "proficiency": 62, "confidence": 0.8, "evidenceCount": 1, "evidence": [{ "kind": "repository", "source": "github", "label": "asha/resume-parser", "ref": "https://github.com/asha/resume-parser", "at": "__NOW__" }], "inferredFrom": [] },
+        { "id": "LangChain", "name": "LangChain", "category": "ml_framework", "status": "verified", "level": "Working", "proficiency": 30, "confidence": 0.6, "evidenceCount": 0, "evidence": [], "inferredFrom": [] },
+        { "id": "scikit-learn", "name": "scikit-learn", "category": "ml_framework", "status": "claimed", "level": "Not assessed", "proficiency": null, "confidence": 0.2, "evidenceCount": 0, "evidence": [], "inferredFrom": [] },
+        { "id": "Natural Language Processing", "name": "Natural Language Processing", "category": "ml", "status": "inferred", "level": "Not assessed", "proficiency": null, "confidence": 0.2, "evidenceCount": 0, "evidence": [], "inferredFrom": ["LangChain"] },
+        { "id": "SQL", "name": "SQL", "category": "data", "status": "claimed", "level": "Not assessed", "proficiency": null, "confidence": 0.2, "evidenceCount": 0, "evidence": [], "inferredFrom": [] },
+        { "id": "PyTorch", "name": "PyTorch", "category": "ml_framework", "status": "verified", "level": "Working", "proficiency": 40, "confidence": 0.7, "evidenceCount": 0, "evidence": [], "inferredFrom": [] }
+      ],
+      "edges": [
+        { "source": "Python", "target": "PyTorch", "relationship": "used_together", "basis": "evidence", "evidence": ["asha/resume-parser"], "weight": 1 },
+        { "source": "LangChain", "target": "Python", "relationship": "built_on", "basis": "ontology", "evidence": [], "weight": 0.9 },
+        { "source": "LangChain", "target": "Natural Language Processing", "relationship": "relates_to", "basis": "ontology", "evidence": [], "weight": 0.7 }
+      ]
+    },
+    "counts": { "verified": 1, "claimed": 1, "inferred": 0, "assessed": 1 }
   },
   "readinessIndicators": { "resumeLinked": true, "connectorsCount": 1, "confirmedFacts": 9, "profileComplete": 0.8 },
   "widgets": [
@@ -28,8 +66,8 @@
       "data": {
         "role": "ml_engineer", "score": 0.63,
         "gaps": [
-          { "skill": "Kubernetes", "readiness": 0.2, "weight": 0.8 },
-          { "skill": "Docker", "readiness": 0, "weight": 0.7 }
+          { "skill": "Kubernetes", "readiness": 0.2, "weight": 0.8, "state": "underdeveloped" },
+          { "skill": "Docker", "readiness": null, "weight": 0.7, "state": "missing" }
         ]
       }
     },
@@ -39,8 +77,8 @@
       "data": {
         "role": "ml_engineer",
         "gaps": [
-          { "skill": "Kubernetes", "readiness": 0.2, "weight": 0.8 },
-          { "skill": "Docker", "readiness": 0, "weight": 0.7 }
+          { "skill": "Kubernetes", "readiness": 0.2, "weight": 0.8, "state": "underdeveloped" },
+          { "skill": "Docker", "readiness": null, "weight": 0.7, "state": "missing" }
         ]
       }
     },

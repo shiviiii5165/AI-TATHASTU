@@ -141,4 +141,34 @@ describe("POST /api/contact", () => {
     const { POST: freshPost } = await import("./route");
     expect((await freshPost(createRequest(valid, ip))).status).toBe(429);
   });
+
+  it("fails safely with 503 in production when client identity cannot be verified", async () => {
+    vi.unstubAllEnvs();
+    vi.stubEnv("NODE_ENV", "production");
+    // Direct request off-Vercel without proxy
+    const req = new Request("http://localhost:3000/api/contact", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(valid),
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(503);
+    const data = await res.json();
+    expect(data.error).toMatch(/unable to verify request origin/i);
+  });
+
+  it("rejects spoofed forwarding headers off-Vercel in production and fails safely", async () => {
+    vi.unstubAllEnvs();
+    vi.stubEnv("NODE_ENV", "production");
+    // Attacker sends spoofed header off-Vercel
+    const req = new Request("http://localhost:3000/api/contact", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-forwarded-for": "8.8.8.8" },
+      body: JSON.stringify(valid),
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(503);
+    const data = await res.json();
+    expect(data.error).toMatch(/unable to verify request origin/i);
+  });
 });

@@ -14,7 +14,6 @@ interface StudentActionsProps {
   userEmail?: string | null;
   isAdmin: boolean;
   isDeleted: boolean;
-  sessionsCount: number;
 }
 
 export function StudentActions({
@@ -23,7 +22,6 @@ export function StudentActions({
   userEmail,
   isAdmin,
   isDeleted,
-  sessionsCount,
 }: StudentActionsProps) {
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
@@ -36,7 +34,7 @@ export function StudentActions({
       const res = await revokeStudentSessionsAction(userId);
       if (res.ok) {
         setMessage({
-          text: `Successfully revoked active database sessions (${res.revokedCount} invalidated).`,
+          text: "All of this student's sessions are revoked. They must sign in again.",
           type: "success",
         });
       } else {
@@ -85,15 +83,15 @@ export function StudentActions({
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
-            disabled={isPending || sessionsCount === 0}
+            disabled={isPending}
             onClick={handleRevokeSessions}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-accent text-foreground text-xs font-semibold hover:bg-accent/80 transition-colors disabled:opacity-50"
           >
             <KeyRound className="size-3.5 text-primary" />
-            <span>Revoke Active Sessions ({sessionsCount})</span>
+            <span>Revoke All Sessions</span>
           </button>
 
-          {!isAdmin && !isDeleted && (
+          {!isAdmin && (
             <button
               type="button"
               disabled={isPending}
@@ -101,7 +99,7 @@ export function StudentActions({
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 text-xs font-semibold hover:bg-rose-500/20 transition-colors"
             >
               <Trash2 className="size-3.5" />
-              <span>Initiate Tombstone Deletion</span>
+              <span>{isDeleted ? "Finish Permanent Deletion" : "Permanently Delete Account"}</span>
             </button>
           )}
         </div>
@@ -118,13 +116,13 @@ export function StudentActions({
               </div>
               <div>
                 <h3 className="text-base font-bold text-foreground">Confirm Account Deletion</h3>
-                <p className="text-xs text-muted-foreground">This operation applies a compliance soft-tombstone.</p>
+                <p className="text-xs text-muted-foreground">This permanently removes the account and can&apos;t be undone.</p>
               </div>
             </div>
 
             <p className="text-xs text-muted-foreground leading-relaxed">
               Target account: <strong className="text-foreground">{userEmail}</strong> ({userName || "Student"}).
-              Active sessions will be immediately invalidated and linked external connectors unlinked.
+              Sessions, connectors, uploaded files and profile data will all be deleted.
             </p>
 
             <form onSubmit={handleDeleteWorkflow} className="space-y-4">
@@ -155,7 +153,7 @@ export function StudentActions({
                   disabled={isPending || !deleteReason.trim()}
                   className="px-3.5 py-1.5 rounded-lg bg-rose-600 text-white text-xs font-semibold hover:bg-rose-700 disabled:opacity-50"
                 >
-                  {isPending ? "Processing..." : "Confirm & Tombstone Account"}
+                  {isPending ? "Processing..." : "Confirm Permanent Deletion"}
                 </button>
               </div>
             </form>

@@ -1,3 +1,4 @@
+import { assertTestIsolation } from "./lib/db-target.mjs";
 import fs from "node:fs";
 import crypto from "node:crypto";
 import { neon } from "@neondatabase/serverless";
@@ -19,6 +20,7 @@ if (!match) {
   process.exit(1);
 }
 const url = match[1].trim().replace(/^["']|["']$/g, "");
+assertTestIsolation(url);
 process.env.DATABASE_URL = url;
 const sql = neon(url);
 

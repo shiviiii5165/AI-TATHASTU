@@ -37,7 +37,7 @@ export async function createUser(name = "Asha Rao", step = "career_direction", e
 export async function signIn(context: BrowserContext, user: TestUser, { onboarded = false } = {}) {
   const name = "authjs.session-token"; // http://localhost, so no __Secure- prefix
   const value = await encode({
-    token: { sub: user.id, email: user.email, onboarded },
+    token: { sub: user.id, email: user.email, onboarded, authTime: Math.floor(Date.now() / 1000) },
     secret: E2E_ENV.AUTH_SECRET,
     salt: name,
     maxAge: 60 * 60,
@@ -199,9 +199,9 @@ export async function completeIntelligence(userId: string) {
       components: { technical: 0.72, projects: 0.58, problem_solving: null },
       missing_components: ["problem_solving"],
       skills: [
-        { skill: "Kubernetes", readiness: 0.2, weight: 0.8 },
-        { skill: "Docker", readiness: 0, weight: 0.7 },
-        { skill: "PyTorch", readiness: 0.9, weight: 0.9 },
+        { skill: "Kubernetes", readiness: 0.2, weight: 0.8, state: "underdeveloped" },
+        { skill: "Docker", readiness: null, weight: 0.7, state: "missing" },
+        { skill: "PyTorch", readiness: 0.9, weight: 0.9, state: "met" },
       ],
     }),
   ]);

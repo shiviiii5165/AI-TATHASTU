@@ -170,17 +170,7 @@ async function Profile() {
                   <p className="truncate text-sm font-medium">{s.name}</p>
                   <p className="text-xs text-muted-foreground">{s.sources.map(originLabel).join(", ")}</p>
                 </div>
-                <div
-                  role="meter"
-                  aria-label={`${s.name} evidence strength`}
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-valuenow={Math.round(s.evidenceStrength * 100)}
-                  title={`Evidence ${Math.round(s.evidenceStrength * 100)}%`}
-                  className="h-1 w-14 shrink-0 overflow-hidden rounded-full bg-muted"
-                >
-                  <div className="h-full origin-left bg-foreground" style={{ transform: `scaleX(${s.evidenceStrength})` }} />
-                </div>
+                <span className="shrink-0 text-xs text-muted-foreground">{s.level ?? "Being updated"}</span>
               </li>
             ))}
           </ul>

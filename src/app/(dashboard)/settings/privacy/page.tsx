@@ -4,7 +4,10 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
 
+import { signOutEverywhere } from "@/app/(dashboard)/settings/privacy/actions";
+import { DeleteAccount } from "@/components/settings/delete-account";
 import { PrivacySettings } from "@/components/settings/privacy-settings";
+import { isAdmin } from "@/lib/admin";
 import { CONSENT_PURPOSES, type ConsentChoices } from "@/lib/consent/catalog";
 import { getCurrentConsents } from "@/lib/consent/store";
 import { requireOnboardedUser } from "@/lib/dal";
@@ -49,5 +52,26 @@ async function Choices() {
   const { user } = await requireOnboardedUser();
   const latest = await getCurrentConsents(user.id);
   const initial = Object.fromEntries(CONSENT_PURPOSES.map((p) => [p, latest[p]?.granted === true])) as ConsentChoices;
-  return <PrivacySettings initialChoices={initial} isStudent={user.role === "student"} />;
+  return (
+    <div className="space-y-8">
+      <PrivacySettings initialChoices={initial} isStudent={user.role === "student"} />
+      <section aria-labelledby="sign-out-everywhere-title" className="rounded-lg border bg-card p-6 space-y-3">
+        <h2 id="sign-out-everywhere-title" className="text-lg font-semibold text-foreground">
+          Sign out everywhere
+        </h2>
+        <p className="text-sm text-muted-foreground max-w-2xl">
+          Ends your sessions on every device, and access for linked apps until you next sign in to them. Use this if you think someone else has been in your account.
+        </p>
+        <form action={signOutEverywhere}>
+          <button
+            type="submit"
+            className="rounded-md border border-input bg-background px-4 py-2 text-sm font-semibold text-foreground transition-colors duration-150 hover:bg-accent active:bg-accent/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            Sign out everywhere
+          </button>
+        </form>
+      </section>
+      {user.email && !isAdmin(user) && <DeleteAccount email={user.email} />}
+    </div>
+  );
 }

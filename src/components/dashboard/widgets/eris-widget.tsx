@@ -76,7 +76,7 @@ export function ErisWidget({
                     className="inline-flex h-8 items-center gap-2 rounded-full border border-border-strong px-3 text-sm transition-colors duration-150 hover:border-foreground hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
                   >
                     {g.skill}
-                    <span className="font-mono text-xs text-muted-foreground">{Math.round(g.readiness * 100)}%</span>
+                    <span className="font-mono text-xs text-muted-foreground">{g.readiness === null ? "Not assessed" : `${Math.round(g.readiness * 100)}%`}</span>
                   </Link>
                 </li>
               ))}

@@ -16,6 +16,8 @@ import urllib.request
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
+import ai_budget
+
 log = logging.getLogger("worker.collaboration")
 
 EMBEDDING_DIM = 768
@@ -26,6 +28,15 @@ def _normalize_vector(vec: List[float]) -> List[float]:
     if norm < 1e-9:
         return [0.0] * len(vec)
     return [round(x / norm, 6) for x in vec]
+
+
+def _reserve_embedding(provider: str, model: str, text: str) -> Optional[ai_budget.Reservation]:
+    """None when refused: the caller uses the local vector, and no call is made."""
+    try:
+        return ai_budget.reserve_tokens(provider, model, "embedding", min(len(text), 2000), 0, 0, 8.0)
+    except ai_budget.BudgetError as exc:
+        log.warning("embedding skipped: %s", exc)
+        return None
 
 
 def fetch_dense_api_embedding(text: str, target_dim: int = EMBEDDING_DIM) -> Optional[List[float]]:
@@ -42,13 +53,21 @@ def fetch_dense_api_embedding(text: str, target_dim: int = EMBEDDING_DIM) -> Opt
             headers={"Content-Type": "application/json", "x-goog-api-key": key},
             method="POST",
         )
+        reservation = _reserve_embedding("gemini", "text-embedding-004", text)
+        if reservation is None:
+            return None
         try:
             with urllib.request.urlopen(req, timeout=8.0) as res:
                 data = json.loads(res.read().decode("utf-8"))
+                ai_budget.settle_used(reservation)  # this endpoint reports no usage
                 vals = (data.get("embedding") or {}).get("values")
                 if vals and isinstance(vals, list) and len(vals) == target_dim:
                     return _normalize_vector(vals)
+        except urllib.error.HTTPError as exc:
+            ai_budget.settle_rejected(reservation)
+            log.debug("Gemini embedding call failed on key (%s)", exc)
         except Exception as exc:
+            ai_budget.settle_used(reservation)  # A second settle does nothing; a timeout may have been billed.
             log.debug("Gemini embedding call failed on key (%s)", exc)
 
     # 2. Try OpenRouter Embeddings
@@ -65,15 +84,24 @@ def fetch_dense_api_embedding(text: str, target_dim: int = EMBEDDING_DIM) -> Opt
             },
             method="POST",
         )
+        reservation = _reserve_embedding("openrouter", "text-embedding-3-small", text)
+        if reservation is None:
+            return None
         try:
             with urllib.request.urlopen(req, timeout=8.0) as res:
                 data = json.loads(res.read().decode("utf-8"))
+                prompt_tokens = (data.get("usage") or {}).get("prompt_tokens")
+                ai_budget.settle_used(reservation, prompt_tokens, 0 if isinstance(prompt_tokens, int) else None)
                 records = data.get("data") or []
                 if records and isinstance(records[0], dict) and "embedding" in records[0]:
                     vals = records[0]["embedding"]
                     if len(vals) == target_dim:
                         return _normalize_vector(vals)
+        except urllib.error.HTTPError as exc:
+            ai_budget.settle_rejected(reservation)
+            log.debug("OpenRouter embedding call failed (%s)", exc)
         except Exception as exc:
+            ai_budget.settle_used(reservation)
             log.debug("OpenRouter embedding call failed (%s)", exc)
 
     return None
@@ -142,6 +170,12 @@ def cosine_similarity(v1: List[float], v2: List[float]) -> float:
     if norm1 < 1e-9 or norm2 < 1e-9:
         return 0.0
     return max(0.0, min(1.0, dot / (norm1 * norm2)))
+
+
+def embedding_fingerprint(user: Dict[str, Any], skills: List[str], projects: List[str], goals: List[str], *, allow_external_ai: bool) -> str:
+    """Changes whenever the embedding's text or the consent behind it does, so an unchanged profile can reuse a paid-for vector."""
+    text = json.dumps([user.get("role"), user.get("university"), skills, projects, goals, allow_external_ai], sort_keys=True)
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def build_collaboration_embedding(

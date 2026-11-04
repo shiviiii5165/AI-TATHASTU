@@ -6,6 +6,7 @@ import { importJWK, jwtVerify, SignJWT, type JWK, type JWTVerifyGetKey } from "j
 
 import type { IntegrationClientId } from "@/db/schema";
 import { INTEGRATION_CLIENTS } from "@/lib/integrations/clients";
+import { safeEqual } from "@/lib/internal-auth";
 
 /**
  * Access tokens for integrated apps: ES256 JWTs, 15 minutes, audience = the
@@ -31,13 +32,20 @@ const publicPart = (jwk: JWK): JWK => ({ kty: "EC", crv: "P-256", x: jwk.x, y: j
 
 /** Parses and checks the key settings; throws messages that never contain key material. */
 export function parseKeyConfig(env: Record<string, string | undefined> = process.env) {
-  const raw = env.INTEGRATION_JWT_PRIVATE_KEY;
+  const raw = env.INTEGRATION_JWT_PRIVATE_KEY?.trim();
   if (!raw) throw new Error("INTEGRATION_JWT_PRIVATE_KEY is not set");
   let jwk: JWK;
   try {
     jwk = JSON.parse(raw) as JWK;
   } catch {
-    throw new Error("INTEGRATION_JWT_PRIVATE_KEY is not valid JSON");
+    throw new Error(
+      /^["']/.test(raw)
+        ? "INTEGRATION_JWT_PRIVATE_KEY is wrapped in quotes (paste the JSON without them)"
+        : "INTEGRATION_JWT_PRIVATE_KEY is not valid JSON",
+    );
+  }
+  if (!jwk || typeof jwk !== "object" || Array.isArray(jwk)) {
+    throw new Error("INTEGRATION_JWT_PRIVATE_KEY must be a JSON object (a JWK)");
   }
   if (jwk.kty !== "EC" || jwk.crv !== "P-256" || !jwk.d || !jwk.x || !jwk.y || !jwk.kid) {
     throw new Error("INTEGRATION_JWT_PRIVATE_KEY must be an EC P-256 private JWK with d, x, y and kid");
@@ -65,11 +73,25 @@ export function parseKeyConfig(env: Record<string, string | undefined> = process
 function keys(): Promise<KeySet> {
   cached ??= (async () => {
     const { privateJwk, previous } = parseKeyConfig();
-    const privateKey = (await importJWK(privateJwk, "ES256")) as CryptoKey;
+    let privateKey: CryptoKey;
+    let byKid: Map<string, CryptoKey>;
     const publicJwks = [publicPart(privateJwk), ...previous];
-    const byKid = new Map(
-      await Promise.all(publicJwks.map(async (k) => [k.kid!, (await importJWK(k, "ES256")) as CryptoKey] as const)),
-    );
+    try {
+      privateKey = (await importJWK(privateJwk, "ES256")) as CryptoKey;
+      byKid = new Map(
+        await Promise.all(publicJwks.map(async (k) => [k.kid!, (await importJWK(k, "ES256")) as CryptoKey] as const)),
+      );
+    } catch {
+      throw new Error("Integration signing keys could not be imported (check the EC P-256 coordinates)");
+    }
+    // The published key must be the public half of the signing key: a JWK
+    // whose x/y don't belong to d would publish a key that verifies nothing.
+    const probe = new TextEncoder().encode("jwks-self-check");
+    const algo = { name: "ECDSA", hash: "SHA-256" } as const;
+    const sig = await crypto.subtle.sign(algo, privateKey, probe);
+    if (!(await crypto.subtle.verify(algo, byKid.get(privateJwk.kid!)!, sig, probe))) {
+      throw new Error("INTEGRATION_JWT_PRIVATE_KEY x/y do not match its private scalar d");
+    }
     // Tokens name their key; only published keys verify.
     const verifyKey: JWTVerifyGetKey = async (header) => {
       const key = header.kid ? byKid.get(header.kid) : undefined;
@@ -83,17 +105,18 @@ function keys(): Promise<KeySet> {
 }
 
 export function isIntegrationKeyConfigured() {
-  return Boolean(process.env.INTEGRATION_JWT_PRIVATE_KEY);
+  return Boolean(process.env.INTEGRATION_JWT_PRIVATE_KEY?.trim());
 }
 
 export async function publicJwks() {
   return { keys: (await keys()).publicJwks };
 }
 
-export async function mintAccessToken(input: { userId: string; email: string | null; name: string | null; clientId: IntegrationClientId }) {
+export async function mintAccessToken(input: { userId: string; email: string | null; name: string | null; clientId: IntegrationClientId; sessionVersion?: number }) {
   const { privateKey, kid } = await keys();
   const expiresIn = TOKEN_TTL_SECONDS;
-  const token = await new SignJWT({ email: input.email, name: input.name, scope: TOKEN_SCOPE })
+  // sv: our profile endpoint refuses the token once the user's sessions are revoked.
+  const token = await new SignJWT({ email: input.email, name: input.name, scope: TOKEN_SCOPE, sv: input.sessionVersion ?? 0 })
     .setProtectedHeader({ alg: "ES256", kid, typ: "JWT" })
     .setIssuer(ISSUER)
     .setAudience(input.clientId)
@@ -113,10 +136,11 @@ export async function verifyAccessToken(token: string) {
       issuer: ISSUER,
       audience: INTEGRATION_CLIENTS.map((c) => c.id),
       algorithms: ["ES256"],
+      requiredClaims: ["exp", "iat", "sub"], // jose only checks exp if it's there
     });
     const aud = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
     if (aud.length !== 1 || payload.scope !== TOKEN_SCOPE || typeof payload.sub !== "string") return null;
-    return { userId: payload.sub, clientId: aud[0] as IntegrationClientId };
+    return { userId: payload.sub, clientId: aud[0] as IntegrationClientId, sessionVersion: typeof payload.sv === "number" ? payload.sv : 0 };
   } catch {
     return null;
   }
@@ -131,4 +155,4 @@ export const hashCode = (code: string) => createHash("sha256").update(code).dige
 
 /** PKCE S256: BASE64URL(SHA256(verifier)) === challenge. */
 export const pkceMatches = (verifier: string, challenge: string) =>
-  createHash("sha256").update(verifier).digest("base64url") === challenge;
+  /^[A-Za-z0-9._~-]{43,128}$/.test(verifier) && safeEqual(createHash("sha256").update(verifier).digest("base64url"), challenge);

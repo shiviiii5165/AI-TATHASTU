@@ -15,7 +15,7 @@ import { MatchesWidget } from "@/components/dashboard/widgets/matches-widget";
 import { PreviewWidget } from "@/components/dashboard/widgets/preview-widget";
 import { SkillGapsWidget } from "@/components/dashboard/widgets/skill-gaps-widget";
 import { db } from "@/db";
-import { connections, erisScores, profileViews, roadmaps } from "@/db/schema";
+import { connections, erisScores, profileViews } from "@/db/schema";
 import { requireOnboardedUser } from "@/lib/dal";
 import { compose, type ComposedWidget } from "@/lib/dashboard/compose";
 import { getWidgetPrefs } from "@/lib/dashboard/prefs";
@@ -42,9 +42,8 @@ async function Dashboard() {
   const { user } = await requireOnboardedUser();
   const isMentor = user.role === "faculty" || user.role === "alumni";
   // One wave: everything the page and its widgets read, in parallel.
-  const [[row], [roadmapRow], prefs, liveStats, erisRows, [github], mentorMatches] = await Promise.all([
+  const [[row], prefs, liveStats, erisRows, [github], mentorMatches] = await Promise.all([
     db.select().from(profileViews).where(eq(profileViews.userId, user.id)),
-    db.select().from(roadmaps).where(eq(roadmaps.userId, user.id)),
     getWidgetPrefs(user.id),
     getLiveDashboardData({ id: user.id, role: user.role }),
     db.select({ role: erisScores.role, breakdown: erisScores.breakdownJson }).from(erisScores).where(eq(erisScores.userId, user.id)),
@@ -77,7 +76,6 @@ async function Dashboard() {
         githubActivity={liveStats.githubActivity}
         recentPublications={liveStats.recentPublications}
         recentAchievements={liveStats.recentAchievements}
-        proficiencySkills={liveStats.skillProficiency}
         researchOpportunities={liveStats.researchOpportunities}
         internships={liveStats.internships}
         quickActions={liveStats.quickActions}
@@ -111,7 +109,7 @@ async function Dashboard() {
 
   const completenessWidget = view.widgets.find((w) => w.id === "profile_completeness");
   const completenessPercent = (completenessWidget?.data as CompletenessData | undefined)?.percent ?? liveStats.profilePercent;
-  const skillsCount = liveStats.skillsCount ?? view.skills?.length ?? 0;
+  const skillsCount = view.intelligence?.skills.length ?? liveStats.skillsCount ?? view.skills?.length ?? 0;
   const reposCount = liveStats.githubReposCount ?? view.projects?.length ?? 0;
   const achievementsCount = liveStats.achievementsCount ?? 0;
   const opportunitiesCount = liveStats.opportunitiesCount ?? 0;
@@ -133,19 +131,12 @@ async function Dashboard() {
       githubActivity={liveStats.githubActivity}
       recentPublications={liveStats.recentPublications}
       recentAchievements={liveStats.recentAchievements}
-      proficiencySkills={liveStats.skillProficiency}
       researchOpportunities={liveStats.researchOpportunities}
       internships={liveStats.internships}
       quickActions={liveStats.quickActions}
-      inferredSkills={view.inferredSkills}
-      skillGraph={view.skillGraph || view.skill_graph}
-      skillGaps={view.skillGapsAndPaths?.gaps}
-      learningPaths={
-        view.skillGapsAndPaths?.learning_paths ||
-        (view.skillGapsAndPaths as { recommendedPaths?: import("@/components/dashboard/mockup-sections/growth-development-row").LearningPathItem[] } | undefined)?.recommendedPaths
-      }
-      roadmap={roadmapRow || view.careerRoadmap}
-      nextActions={view.nextActions}
+      intelligence={view.intelligence}
+      // Older views were written with invented next steps; only the engine's are shown.
+      nextActions={view.intelligence ? view.nextActions : undefined}
     >
       {visible.length === 0 ? (
         <p className="text-[#617493]">You&apos;ve hidden every widget. Bring some back below.</p>
@@ -209,6 +200,10 @@ function WidgetBody({
   widget, view, data: rows, now, matches,
 }: { widget: ComposedWidget; view: ProfileViewDoc; data: WidgetData; now: Date; matches: MentorMatches }) {
   const data = widget.scored?.data;
+  // Older views scored these with the previous formula; don't show it beside the engine's results.
+  if ((widget.def.id === "eris_readiness" || widget.def.id === "skill_gaps") && !view.intelligence) {
+    return <p className="text-sm text-muted-foreground">Being updated. This is recalculated from your evidence the next time your profile is processed.</p>;
+  }
   switch (widget.def.id) {
     case "eris_readiness":
       return <ErisWidget data={data as ErisData} byRole={view.erisScore.byRole} breakdown={rows.erisBreakdown((data as ErisData).role)} />;

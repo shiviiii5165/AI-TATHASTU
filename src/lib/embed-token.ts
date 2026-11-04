@@ -42,9 +42,9 @@ export function isAllowedEmbedOrigin(origin: string | null | undefined): origin 
   return Boolean(origin) && allowedEmbedOrigins().includes(origin!.replace(/\/$/, ""));
 }
 
-export async function mintEmbedToken(userId: string, origin: string) {
+export async function mintEmbedToken(userId: string, origin: string, sessionVersion = 0) {
   const expiresAt = Math.floor(Date.now() / 1000) + EMBED_TTL_SECONDS;
-  const token = await new SignJWT({ scope: EMBED_SCOPE, origin })
+  const token = await new SignJWT({ scope: EMBED_SCOPE, origin, sv: sessionVersion })
     .setProtectedHeader({ alg: "HS256", typ: "JWT" })
     .setSubject(userId)
     .setIssuer(ISSUER)
@@ -56,15 +56,15 @@ export async function mintEmbedToken(userId: string, origin: string) {
   return { token, expiresAt };
 }
 
-export type EmbedClaims = { userId: string; origin: string };
+export type EmbedClaims = { userId: string; origin: string; sessionVersion: number };
 
 /** Claims if the token is valid, unexpired, correctly scoped and (when the browser sent one) used from its origin; else null. */
 export async function verifyEmbedToken(token: string, requestOrigin: string | null): Promise<EmbedClaims | null> {
   try {
-    const { payload } = await jwtVerify(token, secret(), { issuer: ISSUER, audience: AUDIENCE, algorithms: ["HS256"] });
+    const { payload } = await jwtVerify(token, secret(), { issuer: ISSUER, audience: AUDIENCE, algorithms: ["HS256"], requiredClaims: ["exp", "sub"] });
     if (payload.scope !== EMBED_SCOPE || typeof payload.sub !== "string" || typeof payload.origin !== "string") return null;
     if (requestOrigin && requestOrigin !== payload.origin) return null;
-    return { userId: payload.sub, origin: payload.origin };
+    return { userId: payload.sub, origin: payload.origin, sessionVersion: typeof payload.sv === "number" ? payload.sv : 0 };
   } catch {
     return null;
   }

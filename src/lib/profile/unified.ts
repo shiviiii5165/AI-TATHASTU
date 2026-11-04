@@ -174,6 +174,7 @@ export async function loadProfile(userId: string, known?: { user: User; state: O
       evidenceStrength: 0,
       sources: [f.origin],
       verificationStatus: f.confirmation === "unconfirmed" ? "self_reported" : "verified",
+      level: undefined as string | undefined,
     }));
 
   return {

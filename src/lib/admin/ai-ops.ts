@@ -1,118 +1,86 @@
 import "server-only";
 
-import { desc, eq, sql } from "drizzle-orm";
+import { and, asc, avg, eq, isNotNull, sql, sum } from "drizzle-orm";
 
 import { db } from "@/db";
 import {
   type AiCostBudget,
   aiCostBudgets,
-  type AiProviderTelemetry,
-  aiProviderTelemetry,
+  aiSpendCounters,
+  aiUsageLedger,
 } from "@/db/schema";
 import { recordAdminAudit } from "./audit";
 
-export interface ProviderDefinition {
-  id: string;
-  name: string;
-  status: "configured" | "unconfigured";
-  circuitBreakerState: "closed" | "open" | "half_open";
-  models: {
-    id: string;
-    name: string;
-    inputCostPer1M: number;
-    outputCostPer1M: number;
-  }[];
+/** This month's measured calls per provider, from the spend ledger. Only what was recorded: no catalogue, no health verdict. */
+export async function getAiProviderUsage() {
+  const rows = await db
+    .select({
+      provider: aiUsageLedger.provider,
+      calls: sql<number>`count(*)::int`,
+      failed: sql<number>`(count(*) FILTER (WHERE ${aiUsageLedger.errorKind} IS NOT NULL))::int`,
+      latency: avg(aiUsageLedger.latencyMs),
+      cost: sum(aiUsageLedger.costUsd),
+    })
+    .from(aiUsageLedger)
+    .where(and(eq(aiUsageLedger.month, currentMonth()), isNotNull(aiUsageLedger.settledAt)))
+    .groupBy(aiUsageLedger.provider)
+    .orderBy(aiUsageLedger.provider);
+
+  return rows.map((row) => ({
+    id: row.provider,
+    name: row.provider,
+    callsThisMonth: row.calls,
+    errorRate: Math.round((row.failed / row.calls) * 1000) / 10,
+    avgLatencyMs: row.latency === null ? null : Math.round(Number(row.latency)),
+    costThisMonth: Number(row.cost ?? 0),
+  }));
 }
 
-// Configured AI provider catalog
-export const AI_PROVIDERS: ProviderDefinition[] = [
-  {
-    id: "groq",
-    name: "Groq Cloud (LPU)",
-    status: process.env.GROQ_KEYS ? "configured" : "unconfigured",
-    circuitBreakerState: "closed",
-    models: [
-      { id: "llama-3.3-70b-versatile", name: "Llama 3.3 70B Versatile", inputCostPer1M: 0.59, outputCostPer1M: 0.79 },
-      { id: "llama-3.1-8b-instant", name: "Llama 3.1 8B Instant", inputCostPer1M: 0.05, outputCostPer1M: 0.08 },
-    ],
-  },
-  {
-    id: "gemini",
-    name: "Google Gemini API",
-    status: process.env.GEMINI_KEYS ? "configured" : "unconfigured",
-    circuitBreakerState: "closed",
-    models: [
-      { id: "gemini-1.5-pro", name: "Gemini 1.5 Pro", inputCostPer1M: 1.25, outputCostPer1M: 5.00 },
-      { id: "gemini-1.5-flash", name: "Gemini 1.5 Flash", inputCostPer1M: 0.075, outputCostPer1M: 0.30 },
-    ],
-  },
-  {
-    id: "openrouter",
-    name: "OpenRouter Unified Gateway",
-    status: process.env.OPENROUTER_KEYS ? "configured" : "unconfigured",
-    circuitBreakerState: "closed",
-    models: [
-      { id: "anthropic/claude-3.5-sonnet", name: "Claude 3.5 Sonnet", inputCostPer1M: 3.00, outputCostPer1M: 15.00 },
-      { id: "meta-llama/llama-3.3-70b-instruct", name: "Llama 3.3 70B Instruct", inputCostPer1M: 0.40, outputCostPer1M: 0.40 },
-    ],
-  },
-];
+// How long spend detail is kept: enough for a year-on-year billing dispute, no more.
+const LEDGER_MONTHS = 13;
+const USER_COUNTER_DAYS = 90;
 
-export async function getAiProviderHealthSummary() {
-  const telemetryRows = await db
-    .select()
-    .from(aiProviderTelemetry)
-    .orderBy(desc(aiProviderTelemetry.timestamp))
-    .limit(100);
-
-  // Group telemetry metrics by provider
-  const summary = AI_PROVIDERS.map((provider) => {
-    const providerTelemetry = telemetryRows.filter((t) => t.provider === provider.id);
-    const totalRequests = providerTelemetry.length;
-    const errorRequests = providerTelemetry.filter((t) => t.isError).length;
-    const errorRate = totalRequests > 0 ? (errorRequests / totalRequests) * 100 : 0;
-    const avgLatency =
-      totalRequests > 0
-        ? Math.round(providerTelemetry.reduce((acc, t) => acc + t.latencyMs, 0) / totalRequests)
-        : 240;
-
-    return {
-      ...provider,
-      totalRequests,
-      errorRate: Math.round(errorRate * 10) / 10,
-      avgLatencyMs: avgLatency,
-      healthStatus: errorRate > 25 ? "degraded" : "healthy",
-    };
-  });
-
-  return summary;
+/** Retention, from the daily cron. A settled ledger row is anonymous after this; an open reservation is never purged. */
+export async function purgeOldAiUsage() {
+  const now = Date.now();
+  const months = new Date(now - LEDGER_MONTHS * 31 * 24 * 3600_000);
+  const lastUserDay = new Date(now - USER_COUNTER_DAYS * 24 * 3600_000).toISOString().slice(0, 10);
+  await db.batch([
+    db.execute(sql`DELETE FROM ai_usage_ledger WHERE status <> 'reserved' AND created_at < ${months.toISOString()}::timestamptz`),
+    // Day and month rows both sort correctly as text against a YYYY-MM-DD cutoff.
+    db.execute(sql`DELETE FROM ai_spend_counters WHERE scope <> 'global' AND reserved_usd = 0 AND period < ${lastUserDay}`),
+    db.execute(sql`DELETE FROM ai_spend_counters WHERE scope = 'global' AND reserved_usd = 0 AND period < ${months.toISOString().slice(0, 7)}`),
+  ]);
 }
 
-export async function getAiBudgetStatus(): Promise<AiCostBudget> {
-  const [budget] = await db.select().from(aiCostBudgets).limit(1);
+export type AiBudgetStatus = AiCostBudget & {
+  /** Provider-reported tokens at our configured rates. */
+  meteredUsd: number;
+  /** Charged at the reservation: no usage reported, a timeout, or a flat per-call price. */
+  estimatedUsd: number;
+  /** Set aside for calls in flight. */
+  reservedUsd: number;
+  usedUsd: number;
+};
 
-  if (!budget) {
-    const [seeded] = await db
-      .insert(aiCostBudgets)
-      .values({
-        period: "monthly",
-        budgetUsd: "150.00",
-        spentUsd: "18.42",
-        warningThresholdPercent: 80,
-        criticalThresholdPercent: 95,
-        hardLimitEnabled: false,
-      })
-      .returning();
-    return seeded;
-  }
+const currentMonth = () => new Date().toISOString().slice(0, 7);
 
-  return budget;
+/** The policy, and this UTC month's platform spend from the counters the worker enforces with. */
+export async function getAiBudgetStatus(): Promise<AiBudgetStatus> {
+  const [[budget], [counter]] = await Promise.all([
+    db.select().from(aiCostBudgets).orderBy(asc(aiCostBudgets.id)).limit(1),
+    db.select().from(aiSpendCounters).where(and(eq(aiSpendCounters.scope, "global"), eq(aiSpendCounters.period, currentMonth()))),
+  ]);
+  // Migration 0022 guarantees a row. Without one the worker refuses all spend, so say so rather than invent a policy.
+  if (!budget) throw new Error("No AI budget policy: apply migration 0022");
+  const meteredUsd = Number(counter?.meteredUsd ?? 0);
+  const estimatedUsd = Number(counter?.estimatedUsd ?? 0);
+  const reservedUsd = Number(counter?.reservedUsd ?? 0);
+  return { ...budget, meteredUsd, estimatedUsd, reservedUsd, usedUsd: meteredUsd + estimatedUsd + reservedUsd };
 }
 
 export async function updateAiBudgetPolicy(
-  newBudgetUsd: string,
-  warningPercent: number,
-  hardLimit: boolean,
+  input: { budgetUsd: number; userDailyUsd: number; userMonthlyUsd: number; warningPercent: number },
   actorEmail: string
 ): Promise<AiCostBudget> {
   const current = await getAiBudgetStatus();
@@ -120,9 +88,10 @@ export async function updateAiBudgetPolicy(
   const [updated] = await db
     .update(aiCostBudgets)
     .set({
-      budgetUsd: newBudgetUsd,
-      warningThresholdPercent: warningPercent,
-      hardLimitEnabled: hardLimit,
+      budgetUsd: input.budgetUsd.toFixed(2),
+      userDailyUsd: input.userDailyUsd.toFixed(2),
+      userMonthlyUsd: input.userMonthlyUsd.toFixed(2),
+      warningThresholdPercent: input.warningPercent,
       updatedAt: new Date(),
     })
     .where(eq(aiCostBudgets.id, current.id))
@@ -133,7 +102,7 @@ export async function updateAiBudgetPolicy(
     action: "ai.budget_update",
     resource: "ai_cost_budgets",
     targetId: current.id,
-    details: { previousBudget: current.budgetUsd, newBudgetUsd, warningPercent, hardLimit },
+    details: { previousBudget: current.budgetUsd, ...input },
   });
 
   return updated;

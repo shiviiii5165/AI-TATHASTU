@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  ArrowUpRight,
   BookOpen,
   Bot,
   Briefcase,
@@ -325,6 +326,16 @@ export function MobileNav({ user, onSignOut }: MobileNavProps) {
                     </Link>
                   );
                 })}
+                {/* Plain <a>: a server redirect into Collaborate's sign-in, never prefetched. */}
+                {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- route handler that redirects off-site; needs a full navigation */}
+                <a
+                  href="/integrations/launch/collaborate"
+                  onClick={() => setDrawerOpen(false)}
+                  className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-semibold transition-colors min-h-[44px] text-slate-700 hover:bg-slate-50 hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-[#FF5A5F]/20 focus-visible:outline-none"
+                >
+                  <ArrowUpRight aria-hidden className="size-4 shrink-0 text-slate-400" />
+                  <span>Open Collaborate</span>
+                </a>
               </div>
             </div>
 

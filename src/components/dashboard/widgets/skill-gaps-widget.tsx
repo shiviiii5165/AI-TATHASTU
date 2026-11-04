@@ -2,20 +2,25 @@ import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 
 import { importance, roleLabel } from "@/components/dashboard/widgets/labels";
-import type { SkillGap, SkillGapsData } from "@/lib/dashboard/types";
+import type { GapState, SkillGap, SkillGapsData } from "@/lib/dashboard/types";
 
-const LOW = 0.5;
 const MAX_ROWS = 6;
 
+const STATE_NOTE: Record<GapState, string> = {
+  met: "At expected level",
+  underdeveloped: "Below the expected level",
+  unverified: "Listed, not shown yet",
+  inferred: "Only suggested by related skills",
+  missing: "No evidence yet",
+  not_assessed: "Not assessed",
+};
+
 /**
- * Required skills for the target role that are missing or weakly evidenced,
- * most important first. Uses the full skill list from the precomputed ERIS
- * breakdown; the view itself only carries the top 3.
+ * The skills the career engine says are short of this role's expected level, in its order: the
+ * same rows the Skill Gaps card shows. The view carries the top 3, the ERIS breakdown all of them.
  */
 export function SkillGapsWidget({ data, breakdown }: { data: SkillGapsData; breakdown: Record<string, unknown> | undefined }) {
-  const all = ((breakdown as { skills?: SkillGap[] } | undefined)?.skills ?? data.gaps)
-    .filter((s) => s.readiness < LOW)
-    .sort((a, b) => b.weight - a.weight || a.readiness - b.readiness);
+  const all = ((breakdown as { skills?: SkillGap[] } | undefined)?.skills ?? data.gaps).filter((s) => s.state !== "met");
   const shown = all.slice(0, MAX_ROWS);
 
   return (
@@ -29,19 +34,21 @@ export function SkillGapsWidget({ data, breakdown }: { data: SkillGapsData; brea
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">{s.skill}</p>
               <p className="text-xs text-muted-foreground">
-                {importance(s.weight)} · {s.readiness === 0 ? "Not on your profile" : "Low evidence"}
+                {importance(s.weight)} · {s.state ? STATE_NOTE[s.state] : "Not assessed"}
               </p>
             </div>
-            <div
-              role="meter"
-              aria-label={`${s.skill} evidence`}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={Math.round(s.readiness * 100)}
-              className="h-1 w-16 shrink-0 overflow-hidden rounded-full bg-muted"
-            >
-              <div className="h-full origin-left bg-foreground" style={{ transform: `scaleX(${s.readiness})` }} />
-            </div>
+            {s.readiness !== null && (
+              <div
+                role="meter"
+                aria-label={`${s.skill} proficiency`}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.round(s.readiness * 100)}
+                className="h-1 w-16 shrink-0 overflow-hidden rounded-full bg-muted"
+              >
+                <div className="h-full origin-left bg-foreground" style={{ transform: `scaleX(${s.readiness})` }} />
+              </div>
+            )}
             <Link
               href={`/learn?skill=${encodeURIComponent(s.skill)}`}
               aria-label={`Learn ${s.skill}`}

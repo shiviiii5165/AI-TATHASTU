@@ -74,6 +74,8 @@ export const users = pgTable(
     expectedGraduationYear: integer("expected_graduation_year"),
     // Operators (/admin). Also granted by ADMIN_EMAILS; see src/lib/admin.ts.
     isAdmin: boolean("is_admin").notNull().default(false),
+    // Bumped to revoke every JWT session this user holds (src/auth.ts).
+    sessionVersion: integer("session_version").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
@@ -534,8 +536,10 @@ export const integrationAuthCodes = pgTable("integration_auth_codes", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   redirectUri: text("redirect_uri").notNull(),
-  // PKCE (S256), optional for confidential clients.
+  // PKCE (S256). Required unless the app has a temporary INTEGRATION_<ID>_PKCE_OPTIONAL.
   codeChallenge: text("code_challenge"),
+  // users.session_version when approved: a revocation also kills codes not yet exchanged.
+  sessionVersion: integer("session_version"),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   usedAt: timestamp("used_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -555,9 +559,8 @@ export const webhookOutbox = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     clientId: text("client_id").$type<IntegrationClientId>().notNull(),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+    // No foreign key: integration.revoked must outlive the deleted user it describes.
+    userId: uuid("user_id").notNull(),
     event: text("event").$type<WebhookEvent>().notNull(),
     reason: text("reason"),
     status: text("status").$type<WebhookStatus>().notNull().default("pending"),
@@ -577,6 +580,43 @@ export const webhookOutbox = pgTable(
 );
 
 export type WebhookOutboxRow = typeof webhookOutbox.$inferSelect;
+
+// ─── ACCOUNT DELETION ───────────────────────────────────────────────────────
+
+export type AccountDeletionStatus = "pending" | "processing" | "partially_failed" | "completed";
+export type GithubRevocationOutcome = "revoked" | "already_invalid" | "abandoned";
+
+/**
+ * The state of a deletion, durable so it resumes after a crash or an outage without
+ * the deleted person signing in again (src/lib/account-deletion.ts). Outlives the users
+ * row, so it holds no name or address. github_token_enc is the sealed token, kept only
+ * until revocation succeeds or its retries run out.
+ */
+export const accountDeletions = pgTable(
+  "account_deletions",
+  {
+    userId: uuid("user_id").primaryKey(),
+    status: text("status").$type<AccountDeletionStatus>().notNull().default("pending"),
+    requestedBy: text("requested_by").$type<"self" | "admin">().notNull(),
+    attempts: integer("attempts").notNull().default(0),
+    nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }).notNull().defaultNow(),
+    lockedUntil: timestamp("locked_until", { withTimezone: true }),
+    lastError: text("last_error"),
+    filesDeleted: integer("files_deleted").notNull().default(0),
+    githubTokenEnc: bytea("github_token_enc"),
+    githubAttempts: integer("github_attempts").notNull().default(0),
+    githubOutcome: text("github_outcome").$type<GithubRevocationOutcome>(),
+    // After this every upload URL issued before the deletion has expired.
+    sweepAfter: timestamp("sweep_after", { withTimezone: true }).notNull(),
+    dataDeletedAt: timestamp("data_deleted_at", { withTimezone: true }),
+    sweptAt: timestamp("swept_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("account_deletions_due_idx").on(t.nextAttemptAt).where(sql`${t.status} <> 'completed'`)],
+);
+
+export type AccountDeletion = typeof accountDeletions.$inferSelect;
 
 // ─── ACADEMIC CATALOGUE (Step 3) ────────────────────────────────────────────
 // Seeded by migration 0010 from src/db/seeds/academic-catalog.ts; re-run
@@ -814,6 +854,8 @@ export const rateLimits = pgTable("rate_limits", {
   key: text("key").primaryKey(),
   windowStart: timestamp("window_start", { withTimezone: true }).notNull(),
   count: integer("count").notNull(),
+  // Only for hit_sliding_limit (migration 0023): hits per time bucket.
+  buckets: jsonb("buckets").$type<Record<string, number>>().notNull().default({}),
 });
 
 

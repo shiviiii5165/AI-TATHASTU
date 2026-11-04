@@ -1,9 +1,9 @@
 import "server-only";
 
-import { HeadObjectCommand, PutObjectCommand, S3Client, S3ServiceException } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, HeadObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client, S3ServiceException } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-const UPLOAD_URL_TTL_SECONDS = 5 * 60;
+export const UPLOAD_URL_TTL_SECONDS = 5 * 60;
 
 function config() {
   const accountId = process.env.R2_ACCOUNT_ID;
@@ -69,6 +69,25 @@ export async function presignResumeUpload(input: {
     url,
     headers: { "Content-Type": input.mime, "x-amz-checksum-sha256": input.sha256Base64 },
   };
+}
+
+/** Succeeds whether or not the object still exists, so a deletion can be retried. */
+export async function deleteObject(key: string) {
+  const { s3, bucket } = r2();
+  await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
+}
+
+/** Every key under a prefix, including uploads that were never registered in `files`. */
+export async function listObjectKeys(prefix: string) {
+  const { s3, bucket } = r2();
+  const keys: string[] = [];
+  let token: string | undefined;
+  do {
+    const page = await s3.send(new ListObjectsV2Command({ Bucket: bucket, Prefix: prefix, ContinuationToken: token }));
+    for (const object of page.Contents ?? []) if (object.Key) keys.push(object.Key);
+    token = page.IsTruncated ? page.NextContinuationToken : undefined;
+  } while (token);
+  return keys;
 }
 
 /** Returns null when the object doesn't exist. */

@@ -37,11 +37,12 @@ def has_consent(cur: Any, user_id: str, purpose: str) -> bool:
 
 
 def enqueue_compute_matches(cur: Any, user_id: str, trigger: str) -> None:
-    """Queues match scoring for a user unless one is already waiting."""
+    """Queues match scoring for a user unless one is already waiting. Past the limit it's postponed, as below."""
     cur.execute(
         """
-        INSERT INTO jobs (type, user_id, idempotency_key, payload)
-        SELECT 'compute_matches', %(user)s, %(key)s, %(payload)s
+        INSERT INTO jobs (type, user_id, idempotency_key, payload, run_at)
+        SELECT 'compute_matches', %(user)s, %(key)s, %(payload)s,
+               now() + make_interval(secs => hit_sliding_limit('paid:matches:' || %(user)s, 30, 3600))
          WHERE NOT EXISTS (SELECT 1 FROM jobs WHERE user_id = %(user)s AND type = 'compute_matches' AND status = 'queued')
         ON CONFLICT (idempotency_key) DO NOTHING
         """,
@@ -54,11 +55,17 @@ def enqueue_compute_intelligence(cur: Any, user_id: str, trigger: str) -> None:
     Queues a recompute unless one is already waiting (a waiting job will read
     the latest data anyway). Skipped until onboarding is done: the
     "Generate my profile" button queues the first one.
+
+    Past the limit (shared with src/lib/jobs-queue.ts) it's postponed, not dropped: the
+    data did change, and while it waits later requests collapse into it.
     """
     cur.execute(
         """
-        INSERT INTO jobs (type, user_id, idempotency_key, payload)
-        SELECT 'compute_intelligence', %(user)s, %(key)s, %(payload)s
+        INSERT INTO jobs (type, user_id, idempotency_key, payload, run_at)
+        SELECT 'compute_intelligence', %(user)s, %(key)s, %(payload)s,
+               now() + make_interval(secs => GREATEST(
+                 hit_sliding_limit('paid:recompute:' || %(user)s, 30, 3600),
+                 hit_sliding_limit('paid_global:recompute', 5000, 3600)))
          WHERE EXISTS (SELECT 1 FROM onboarding_state WHERE user_id = %(user)s AND current_step = 'done')
            AND NOT EXISTS (SELECT 1 FROM jobs WHERE user_id = %(user)s
                              AND type = 'compute_intelligence' AND status = 'queued')

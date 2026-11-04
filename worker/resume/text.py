@@ -15,6 +15,7 @@ from typing import Dict, List, Optional, Tuple
 # well inside a 512 MB instance (300 dpi colour crashed the free Render worker).
 OCR_DPI = 200
 MAX_OCR_PAGES = 6
+OCR_PAGE_TIMEOUT_S = 35  # all pages together stay inside resume/sandbox.py's deadline
 OCR_UNCERTAIN_BELOW = 0.70
 # A PDF page with less text than this is treated as scanned.
 MIN_TEXT_CHARS = 40
@@ -179,7 +180,7 @@ def _ocr_png(png: bytes, page: int, scale: float = 1.0) -> Tuple[List[Block], fl
     from PIL import Image
 
     image = Image.open(io.BytesIO(png))
-    data = pytesseract.image_to_data(image, output_type=pytesseract.Output.DICT)
+    data = pytesseract.image_to_data(image, output_type=pytesseract.Output.DICT, timeout=OCR_PAGE_TIMEOUT_S)
     groups: Dict[Tuple[int, int], Dict[str, object]] = {}
     confs: List[float] = []
     for i, word in enumerate(data["text"]):

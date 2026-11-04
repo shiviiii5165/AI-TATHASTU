@@ -1,159 +1,75 @@
 "use client";
 
-import { ArrowRight, Compass, FileUp, Sparkles } from "lucide-react";
+import { ArrowRight, Compass } from "lucide-react";
 import Link from "next/link";
 
-export interface JourneyMilestoneItem {
-  title: string;
-  year: string;
-  field: string;
-  active?: boolean;
-}
+import type { JourneyMilestone } from "@/lib/dashboard/journey";
 
-interface JourneyTimelineProps {
-  milestones?: JourneyMilestoneItem[];
-}
+const VISIBLE = 6;
 
-export function JourneyTimeline({ milestones }: JourneyTimelineProps) {
-  const hasData = milestones && milestones.length > 0;
-  const items = hasData
-    ? milestones.slice(0, 4)
-    : [];
+/** Newest first, from the user's own confirmed records. Nothing here is filled in or estimated. */
+export function JourneyTimeline({ milestones = [] }: { milestones?: JourneyMilestone[] }) {
+  const items = [...milestones].reverse();
+  const undated = items.filter((m) => !m.when && !m.current);
+  const dated = items.filter((m) => m.when || m.current);
+  const visible = [...dated, ...undated].slice(0, VISIBLE);
+  const hidden = items.length - visible.length;
 
   return (
-    <div className="relative flex h-full flex-col justify-between overflow-hidden rounded-2xl border border-border bg-card p-3.5 sm:p-5 shadow-2xs text-card-foreground">
-      {/* Soft decorative sphere in bottom left matching mockup */}
-      <div className="pointer-events-none absolute -bottom-6 -left-6 h-24 w-24 rounded-full bg-gradient-to-tr from-[#FF496D]/30 via-[#FF713D]/20 to-transparent blur-xl" />
-
-      {/* Card Header */}
+    <div className="flex h-full flex-col rounded-2xl border border-border bg-card p-4 text-card-foreground shadow-2xs sm:p-5">
       <div className="flex items-center justify-between border-b border-border pb-3">
         <div className="flex items-center gap-2">
-          <div className="flex size-7 items-center justify-center rounded-lg bg-[#EDF5FF] dark:bg-blue-950/40 text-[#2878F0]">
-            <Compass className="size-4" />
+          <div className="flex size-7 items-center justify-center rounded-lg bg-muted text-foreground">
+            <Compass aria-hidden className="size-4" />
           </div>
           <h2 className="font-sans text-sm font-bold text-foreground">Your Journey</h2>
         </div>
-        <Link
-          href="/profile"
-          className="group inline-flex items-center gap-1 text-xs font-semibold text-[#8554FF] hover:text-[#703DE5]"
-        >
-          <span>View Timeline</span>
-          <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
+        <Link href="/profile" className="group inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
+          <span>View profile</span>
+          <ArrowRight aria-hidden className="size-3" />
         </Link>
       </div>
 
-      {/* Milestones: Mobile Vertical Timeline vs Desktop Horizontal Pipeline */}
-      {items.length > 0 ? (
-        <div className="my-auto py-3 sm:py-5">
-          {/* Mobile Vertical View (sm:hidden) */}
-          <div className="relative pl-6 space-y-4 sm:hidden">
-            {/* Vertical continuous line */}
-            <div className="absolute top-2 bottom-2 left-2.5 w-0.5 bg-border" />
-
-            {items.map((item, idx) => (
-              <div key={idx} className="relative flex items-start gap-3">
-                {/* Node indicator */}
-                <div
-                  className={`absolute -left-6 top-0.5 z-10 flex size-5.5 items-center justify-center rounded-full border-2 bg-card ${
-                    item.active
-                      ? "border-[#19C58A] shadow-xs"
-                      : "border-[#2878F0] shadow-2xs"
-                  }`}
-                >
-                  <div
-                    className={`size-2 rounded-full ${
-                      item.active ? "bg-[#19C58A] ring-2 ring-[#19C58A]/30 animate-pulse" : "bg-[#2878F0]"
-                    }`}
-                  />
-                </div>
-
-                {/* Content */}
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="font-sans text-xs font-bold text-foreground truncate" title={item.title}>
-                      {item.title}
-                    </p>
-                    <span className="font-mono text-[10px] font-bold text-muted-foreground bg-accent px-1.5 py-0.5 rounded shrink-0">
-                      {item.year}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground font-medium truncate mt-0.5" title={item.field}>
-                    {item.field}
-                  </p>
-                </div>
+      {visible.length > 0 ? (
+        <ol className="mt-3 flex-1 space-y-3 border-l border-border pl-4" aria-label="Your education, work and achievements, newest first">
+          {visible.map((item, index) => (
+            <li key={`${item.title}-${index}`} className="relative">
+              <span
+                aria-hidden
+                className={`absolute -left-[21px] top-1 size-2.5 rounded-full border-2 border-card ${item.current ? "bg-primary" : "bg-muted-foreground"}`}
+              />
+              <div className="flex items-baseline justify-between gap-2">
+                <p className="min-w-0 truncate text-xs font-semibold text-foreground" title={item.title}>
+                  {item.title}
+                </p>
+                <span className="shrink-0 text-[11px] text-muted-foreground">{item.current ? "Current" : item.when ?? "No date"}</span>
               </div>
-            ))}
-          </div>
-
-          {/* Tablet & Desktop Horizontal Pipeline (hidden sm:block) */}
-          <div className="relative hidden sm:block">
-            {/* Continuous horizontal connecting line */}
-            <div className="absolute top-[26px] left-6 right-6 h-0.5 bg-border" />
-
-            <div
-              className="relative grid gap-2"
-              style={{
-                gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))`,
-              }}
-            >
-              {items.map((item, idx) => (
-                <div key={idx} className="flex flex-col items-center text-center">
-                  {/* Node indicator */}
-                  <div
-                    className={`relative z-10 flex size-7 items-center justify-center rounded-full border-2 transition-transform hover:scale-110 ${
-                      item.active
-                        ? "border-[#19C58A] bg-card shadow-xs"
-                        : "border-[#2878F0] bg-card shadow-2xs"
-                    }`}
-                  >
-                    <div
-                      className={`size-2.5 rounded-full ${
-                        item.active ? "bg-[#19C58A] ring-2 ring-[#19C58A]/30 animate-pulse" : "bg-[#2878F0]"
-                      }`}
-                    />
-                  </div>
-
-                  {/* Title & metadata */}
-                  <div className="mt-2.5 max-w-[110px]">
-                    <p className="font-sans text-xs font-bold text-foreground truncate" title={item.title}>
-                      {item.title}
-                    </p>
-                    <p className="text-[11px] font-medium text-[#64748B] truncate">{item.year}</p>
-                    <p className="text-[10px] text-[#8C9AA8] font-mono truncate" title={item.field}>
-                      {item.field}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+              {item.detail && (
+                <p className="truncate text-[11px] text-muted-foreground" title={item.detail}>
+                  {item.detail}
+                </p>
+              )}
+            </li>
+          ))}
+        </ol>
       ) : (
-        <div className="my-auto py-4 px-2 text-center flex flex-col items-center justify-center">
-          <div className="size-10 rounded-full bg-[#EDF5FF] text-[#2878F0] flex items-center justify-center mb-2.5">
-            <FileUp className="size-5" />
-          </div>
-          <p className="text-xs font-bold text-[#11182B]">No milestones extracted yet</p>
-          <p className="text-[11px] text-[#617493] max-w-xs mt-1">
-            Upload your resume to automatically generate your verified academic & career journey timeline.
-          </p>
-          <Link
-            href="/onboarding/resume"
-            className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#2878F0] text-white text-xs font-semibold hover:bg-[#2063CC] transition-colors"
-          >
-            <Sparkles className="size-3" />
-            <span>Upload Resume</span>
+        <div className="flex flex-1 flex-col items-center justify-center py-6 text-center">
+          <p className="text-xs font-semibold text-foreground">Nothing on your timeline yet</p>
+          <p className="mt-1 max-w-xs text-[11px] text-muted-foreground">Confirm your resume to add your education and work here.</p>
+          <Link href="/onboarding/resume" className="mt-3 text-xs font-semibold text-primary hover:underline">
+            Add your resume
           </Link>
         </div>
       )}
 
-      {/* Footer subtle tip */}
-      <div className="pt-2 text-[11px] text-[#617493] flex items-center justify-between">
-        <span className="font-medium text-[#11182B]">Academic & Professional Track</span>
-        <span className="rounded-md bg-[#EDF5FF] px-2 py-0.5 text-[10px] font-bold text-[#2878F0]">
-          {hasData ? "Verified" : "Syncing"}
-        </span>
-      </div>
+      {hidden > 0 && (
+        <p className="mt-3 border-t border-border pt-2 text-[11px] text-muted-foreground">
+          And {hidden} more on your{" "}
+          <Link href="/profile" className="font-semibold text-primary hover:underline">
+            profile
+          </Link>
+        </p>
+      )}
     </div>
   );
 }

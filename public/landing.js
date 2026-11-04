@@ -2625,22 +2625,8 @@ function initFooterInteractions() {
         return;
       }
 
-      if (typeof sfx !== 'undefined' && sfx.chord) {
-        sfx.chord([523.25, 659.25, 783.99, 1046.5]);
-      }
-
-      if (submitBtn) {
-        const origHTML = submitBtn.innerHTML;
-        submitBtn.innerHTML = '<span style="font-size:1.15rem;font-weight:900;">✓</span>';
-        submitBtn.style.background = '#16A34A';
-        setTimeout(() => {
-          submitBtn.innerHTML = origHTML;
-          submitBtn.style.background = '';
-        }, 3200);
-      }
-
-      input.value = '';
-      showToast('✦ Thank you for subscribing to AI Tathastu updates!');
+      // No sign-up backend yet: never say an address was saved when it wasn't.
+      showToast("Newsletter sign-up isn't open yet, so your email wasn't saved.");
     });
   }
 

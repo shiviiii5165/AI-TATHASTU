@@ -28,18 +28,12 @@ from typing import Any, Dict, List, Optional
 import psycopg2.extras
 
 from db import enqueue_compute_matches, fetch_all, fetch_one, has_consent, jsonb
-from intelligence import eris, projects, skills, widgets
-from intelligence.collaboration import build_collaboration_embedding, save_collaboration_embedding
+from intelligence import career_engine, eris, projects, skills, widgets
+import ai_budget
+from intelligence.collaboration import build_collaboration_embedding, embedding_fingerprint, save_collaboration_embedding
 from intelligence.config import persona_intents
 from intelligence.repo_scorer import repos_needing_scores, save_scores, score_repos
-from intelligence.roadmap import RAG_ROADMAP_TERMS, generate_career_roadmap, generate_next_best_actions, save_roadmap
-from intelligence.skill_graph import (
-    RAG_GAP_TERMS,
-    SkillGraph,
-    generate_skill_gaps_and_recommendations,
-    lookup_learning_resources,
-    rag_query_vectors,
-)
+from intelligence.roadmap import generate_next_best_actions, save_roadmap
 from jobs import Job, assert_still_owner
 from resume.deterministic import _PATTERNS
 
@@ -52,6 +46,35 @@ VIEW_VERSION = 1
 def lexicon_scan(text: str) -> List[str]:
     """Canonical skills named in free text (unambiguous patterns only)."""
     return sorted({canonical for canonical, pattern, section_only in _PATTERNS if not section_only and pattern.search(text)})
+
+
+def is_newer(computed_at: Optional[str], than: datetime) -> bool:
+    try:
+        return bool(computed_at) and datetime.fromisoformat(computed_at) > than
+    except (TypeError, ValueError):
+        return False
+
+
+def roles_of(state: Dict[str, Any]) -> List[str]:
+    return list(state["career_roles"] or ([state["career_role"]] if state["career_role"] else []))
+
+
+def with_engine_assessment(summary: List[Dict[str, Any]], intelligence: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """view.skills, with the engine's status and level, so /profile and integrations can't disagree with it."""
+    assessed = {s["name"]: s for s in intelligence["skills"]}
+    known = {row["name"] for row in summary}
+    # Skills shown only by repositories have no fact row, so they aren't in the summary yet.
+    rows = summary + [
+        {"name": s["name"], "category": s["category"], "evidenceStrength": round((s["proficiency"] or 0) / 100, 3), "sources": sorted({e["source"] for e in s["evidence"]})}
+        for s in intelligence["skills"] if s["name"] not in known
+    ]
+    out = []
+    for row in rows:
+        skill = assessed.get(row["name"])
+        if skill:
+            row = {**row, "verificationStatus": skill["status"], "proficiency": skill["proficiency"], "level": skill["level"], "confidence": skill["confidence"]}
+        out.append(row)
+    return out
 
 
 class _StageTimer:
@@ -91,7 +114,8 @@ def process_compute_intelligence(conn: Any, job: Job) -> None:
             return
         facts = fetch_all(
             cur,
-            """SELECT id, field_group, field_name, record_key, normalized_value, extracted_value, origin, confirmation
+            """SELECT id, field_group, field_name, record_key, normalized_value, extracted_value, origin, confirmation,
+                      source_evidence, created_at
                  FROM profile_facts
                 WHERE user_id = %s AND superseded_by IS NULL
                   AND (confirmation IN ('confirmed', 'edited')
@@ -100,9 +124,10 @@ def process_compute_intelligence(conn: Any, job: Job) -> None:
         )
         repos = fetch_all(
             cur,
-            "SELECT id, repo_name, url, languages, topics, stars, last_commit_at FROM code_repositories WHERE user_id = %s",
+            "SELECT id, repo_name, url, description, languages, topics, stars, last_commit_at FROM code_repositories WHERE user_id = %s",
             (user_id,),
         )
+        resources = fetch_all(cur, "SELECT title, provider, url, description FROM learning_resources WHERE url IS NOT NULL")
         connections = fetch_all(cur, "SELECT source_id, status, last_sync_at FROM connections WHERE user_id = %s", (user_id,))
         # The user's current answer, re-read on every run (and every retry),
         # so a revoked consent stops external calls immediately.
@@ -122,21 +147,27 @@ def process_compute_intelligence(conn: Any, job: Job) -> None:
 
         unified = projects.unify(projects.records_from(facts, repos, canonical))
         to_score = repos_needing_scores(cur, user_id, allow_external_ai=ai_ok)
+        previous = fetch_one(cur, "SELECT view->>'embeddingFingerprint' AS fingerprint FROM profile_views WHERE user_id = %s", (user_id,))
+        has_embedding = fetch_one(cur, "SELECT 1 AS yes FROM collaboration_embeddings WHERE user_id = %s", (user_id,)) is not None
     timer.mark("read", facts=len(facts), repos=len(repos), external_ai=ai_ok)
 
     # ── Pure computation ────────────────────────────────────────────────────
-    readiness = skills.readiness(evidence)
-    readiness_by_name = {index.names[sid]: v for sid, v in readiness.items()}
-    skill_summary = skills.summarize(evidence, index.names, categories)
+    # Skills, gaps, learning and roadmap: one deterministic model, with no LLM to invent any of it.
+    intelligence = career_engine.compute(
+        user=user, roles=roles_of(state), facts=facts, repos=repos, resources=resources,
+        canonical=index.canonical, lexicon_scan=lexicon_scan,
+        categories={index.names[sid]: cat for sid, cat in categories.items() if sid in index.names}, now=now,
+    )
+    skill_summary = with_engine_assessment(skills.summarize(evidence, index.names, categories), intelligence)
 
-    roles = list(state["career_roles"] or ([state["career_role"]] if state["career_role"] else []))
+    roles = roles_of(state)
     project_techs = [u.technologies for u in unified]
     eris_by_role: Dict[str, Dict[str, Any]] = {}
     problem_solving = eris.problem_solving_score(facts)
-    for role in roles:
-        result = eris.score_role(role, readiness_by_name, project_techs, problem_solving)
+    for analysis in intelligence["roles"]:
+        result = eris.score_role(analysis, project_techs, problem_solving)
         if result:
-            eris_by_role[role] = result
+            eris_by_role[analysis["role"]] = result
     primary_eris = next((eris_by_role[r] for r in roles if r in eris_by_role), None)
     primary_role_with_eris = next((r for r in roles if r in eris_by_role), None)
 
@@ -206,41 +237,27 @@ def process_compute_intelligence(conn: Any, job: Job) -> None:
         now=now,
     )
 
-    graph = SkillGraph()
-    direct_skills_dict = {index.names[sid]: readiness.get(sid, 0.5) for sid in readiness}
-    inferred_map = graph.infer(direct_skills_dict)
-    skill_graph_data = graph.build_graph(direct_skills_dict)
-    target_role = roles[0] if roles else "ml_engineer"
-    roadmap_user_data = {
-        "name": user["name"],
-        "role": user["role"],
-        "university": user["university"],
-        "degree": user["degree"],
-        "department": user.get("department"),
-        "academic_title": user.get("academic_title"),
-        "job_title": user.get("job_title"),
-        "career_role": target_role,
-    }
+    gaps_and_paths = career_engine.legacy_gaps_and_paths(intelligence)
+    roadmap = career_engine.legacy_roadmap(intelligence["roadmap"])
+    next_actions = generate_next_best_actions(
+        {"career_role": roles[0] if roles else None, "github_connected": github is not None}, gaps_and_paths["gaps"], completeness,
+    )
+    timer.mark("engine", skills=len(intelligence["skills"]), recommendations=len(intelligence["recommendations"]))
 
     # ── 2. External calls; no transaction held ──────────────────────────────
-    # Learning-resource lookups embed fixed catalogue terms; the user's career
-    # role is added only with external_ai consent (it is user-derived).
-    role_terms = [target_role] if ai_ok else []
-    gap_vectors = rag_query_vectors([*RAG_GAP_TERMS, *role_terms])
-    roadmap_vectors = rag_query_vectors([*role_terms, *RAG_ROADMAP_TERMS])
-    with conn, conn.cursor() as cur:  # two quick reads
-        rag_gap = lookup_learning_resources(cur, gap_vectors)
-        rag_roadmap = lookup_learning_resources(cur, roadmap_vectors)
-    gaps_and_paths = generate_skill_gaps_and_recommendations(
-        inferred_map, target_role, has_consent=ai_ok, rag_courses=rag_gap
-    )
-    roadmap = generate_career_roadmap(roadmap_user_data, has_consent=ai_ok, rag_courses=rag_roadmap)
-    next_actions = generate_next_best_actions(roadmap_user_data, gaps_and_paths.get("gaps", []), completeness)
-    skill_names = list(dict.fromkeys(index.names[e.skill_id] for e in evidence))
+    ai_use = ai_budget.current_use()
+    skill_names = [s["name"] for s in intelligence["skills"]]
     goals = list(state["career_roles"] or []) + list(state["priorities"] or [])
-    embedding, embedding_summary = build_collaboration_embedding(
-        user, skill_names, [u.canonical_title for u in unified], goals, allow_external_ai=ai_ok
-    )
+    project_titles = [u.canonical_title for u in unified]
+    fingerprint = embedding_fingerprint(user, skill_names, project_titles, goals, allow_external_ai=ai_ok)
+    # Reuse only a vector the provider really made for this exact text and consent. A local fallback
+    # is free to rebuild, and has to stay eligible for an upgrade when the provider is back.
+    reuse_embedding = ai_ok and has_embedding and bool(previous) and previous["fingerprint"] == fingerprint
+    embedding, embedding_summary = None, ""
+    succeeded_before = ai_use.succeeded
+    if not reuse_embedding:
+        embedding, embedding_summary = build_collaboration_embedding(user, skill_names, project_titles, goals, allow_external_ai=ai_ok)
+    embedding_is_dense = reuse_embedding or (ai_ok and ai_use.succeeded > succeeded_before)
     repo_scores = score_repos(to_score, allow_external_ai=ai_ok)
     timer.mark("external", repos_scored=len(repo_scores))
 
@@ -258,22 +275,22 @@ def process_compute_intelligence(conn: Any, job: Job) -> None:
         "goals": {"primaryRole": roles[0] if roles else None, "roles": roles,
                   "roleOther": state["career_role_other"], "priorities": state["priorities"] or []},
         "skills": skill_summary[:50],
-        "inferredSkills": [
-            {
-                "name": sname,
-                "strength": sdata["strength"],
-                "isDirect": sdata["is_direct"],
-                "inferredFrom": sdata["inferred_from"],
-            }
-            for sname, sdata in sorted(inferred_map.items(), key=lambda x: -x[1]["strength"])[:20]
-        ],
-        "skill_graph": skill_graph_data,
-        "skillGraph": skill_graph_data,
+        "intelligence": intelligence,
         "skillGapsAndPaths": gaps_and_paths,
-        "careerRoadmap": roadmap,
         "nextActions": next_actions,
-        # Whether AI providers were used for this run (external_ai consent).
-        "aiAssisted": ai_ok,
+        "embeddingFingerprint": fingerprint if embedding_is_dense else None,
+        # What this result was computed from, so anyone can tell whether it is current.
+        "sources": {
+            "engineVersion": career_engine.ENGINE_VERSION,
+            "facts": len(facts),
+            "latestFactAt": max((f["created_at"] for f in facts if f.get("created_at")), default=now).isoformat() if facts else None,
+            "repositories": len(repos),
+            "latestPushAt": max((r["last_commit_at"] for r in repos if r["last_commit_at"]), default=now).isoformat() if any(r["last_commit_at"] for r in repos) else None,
+        },
+        # Whether AI really produced part of this run, not merely whether it was allowed to.
+        "aiAssisted": ai_ok and ai_use.succeeded > 0,
+        # Consent was given, but some AI step fell back to rules (a budget limit or a provider outage).
+        "aiDegraded": ai_ok and ai_use.failed > 0,
         "projects": [
             {"canonicalTitle": u.canonical_title, "technologies": u.technologies, "status": u.status,
              "matchConfidence": u.match_confidence, "signals": u.signals}
@@ -296,6 +313,11 @@ def process_compute_intelligence(conn: Any, job: Job) -> None:
     # ── 3. Write all outputs atomically (short) ─────────────────────────────
     with conn, conn.cursor() as cur:
         assert_still_owner(cur, job)
+        cur.execute("SELECT view->>'computedAt' AS computed_at FROM profile_views WHERE user_id = %s FOR UPDATE", (user_id,))
+        current = cur.fetchone()
+        if current and is_newer(current[0], now):
+            log.info("compute_intelligence job=%s found a newer result; keeping it", job.id)
+            return
         cur.execute("DELETE FROM skill_evidence WHERE user_id = %s", (user_id,))
         if evidence:
             psycopg2.extras.execute_values(
@@ -324,7 +346,8 @@ def process_compute_intelligence(conn: Any, job: Job) -> None:
                 (user_id, role, result["score"], jsonb(result["breakdown"]), now),
             )
         save_roadmap(cur, user_id, roadmap)
-        save_collaboration_embedding(cur, user_id, embedding, embedding_summary)
+        if embedding is not None:
+            save_collaboration_embedding(cur, user_id, embedding, embedding_summary)
         save_scores(cur, user_id, repo_scores)
         cur.execute(
             """INSERT INTO profile_views (user_id, view, updated_at) VALUES (%s, %s, %s)

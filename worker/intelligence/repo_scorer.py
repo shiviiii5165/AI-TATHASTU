@@ -13,6 +13,7 @@ than their last push (cache keyed on repo identity + last push time).
 
 from __future__ import annotations
 
+import contextvars
 import logging
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
@@ -140,7 +141,9 @@ def score_repos(repos: List[Dict[str, Any]], *, allow_external_ai: bool) -> List
     if not repos:
         return []
     with ThreadPoolExecutor(max_workers=min(MAX_CONCURRENCY, len(repos))) as pool:
-        results = list(pool.map(lambda r: score_repository(r, allow_external_ai=allow_external_ai), repos))
+        # A copy per task carries the job's budget scope into the pool's threads.
+        futures = [pool.submit(contextvars.copy_context().run, score_repository, r, allow_external_ai=allow_external_ai) for r in repos]
+        results = [f.result() for f in futures]
     return [{"repo": r, **res} for r, res in zip(repos, results)]
 
 

@@ -23,8 +23,17 @@ class MagicLinkLimited extends AuthError {
 
 /** Throws when this send isn't allowed. */
 export async function assertMagicLinkAllowed(email: string, request: Request) {
-  // Keys hold hashes, never the address or IP.
+  // Keys hold hashes, never the raw address or IP.
   const address = await hitRateLimit(`magic_email:${hash(email.toLowerCase().trim())}`, PER_ADDRESS);
-  const ip = await hitRateLimit(`magic_ip:${hash(clientIp(request))}`, PER_IP);
-  if (!address.ok || !ip.ok) throw new MagicLinkLimited("Too many sign-in emails requested.");
+  if (!address.ok) throw new MagicLinkLimited("Too many sign-in emails requested.");
+
+  const ip = clientIp(request);
+  if (ip) {
+    const ipLimit = await hitRateLimit(`magic_ip:${hash(ip)}`, PER_IP);
+    if (!ipLimit.ok) throw new MagicLinkLimited("Too many sign-in emails requested.");
+  } else if (process.env.NODE_ENV === "production") {
+    // In production without trusted edge or proxy configuration, fail safely rather than
+    // pretending rate limiting is active or allowing unthrottled address sweeps.
+    throw new MagicLinkLimited("Unable to verify request origin.");
+  }
 }

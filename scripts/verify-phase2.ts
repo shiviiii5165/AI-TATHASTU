@@ -8,6 +8,8 @@
 import { neon } from "@neondatabase/serverless";
 import { config } from "dotenv";
 
+import { assertTestIsolation } from "./lib/db-target.mjs";
+
 type Query = (text: string, params: unknown[]) => Promise<Record<string, unknown>[]>;
 
 const MIN_WIDGETS = 3;
@@ -36,7 +38,7 @@ async function main() {
     return 2;
   }
 
-  const { query, close } = await connect(url);
+  const { query, close } = await connect(assertTestIsolation(url));
   try {
     const [user] = await query(
       UUID.test(who) ? "SELECT id FROM users WHERE id = $1" : "SELECT id FROM users WHERE lower(email) = lower($1)",

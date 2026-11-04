@@ -9,7 +9,8 @@ import { db } from "@/db";
 import { institutions, users } from "@/db/schema";
 import { clearInstitutionCache } from "@/lib/academic/catalog";
 import { countryName } from "@/lib/academic/match";
-import { requireAdmin } from "@/lib/admin";
+import { recordAdminAudit } from "@/lib/admin/audit";
+import { requireAdminPermission } from "@/lib/admin/rbac";
 import { userFactWrites } from "@/lib/onboarding/user-facts";
 
 const id = z.uuid();
@@ -23,7 +24,17 @@ async function pending(institutionId: string) {
   return row ?? null;
 }
 
-const done = () => {
+const operator = async () => (await requireAdminPermission("institutions.manage")).user;
+
+const done = async (admin: { id: string; email: string | null }, action: string, row: { id: string; canonicalName: string }, details: Record<string, unknown> = {}) => {
+  await recordAdminAudit({
+    actorId: admin.id,
+    actorEmail: admin.email ?? "unknown",
+    action,
+    resource: "institutions",
+    targetId: row.id,
+    details: { name: row.canonicalName, ...details },
+  });
   clearInstitutionCache();
   revalidatePath("/admin/institutions");
   return { ok: true } as const;
@@ -31,7 +42,7 @@ const done = () => {
 
 /** Pending → verified: it appears in everyone's search; its users keep their link. */
 export async function approveInstitution(institutionId: string): Promise<SaveResult> {
-  const admin = await requireAdmin();
+  const admin = await operator();
   const row = await pending(institutionId);
   if (!row) return { ok: false, error: "That institution isn't pending any more. Refresh the page." };
   const [clash] = await db
@@ -43,7 +54,7 @@ export async function approveInstitution(institutionId: string): Promise<SaveRes
     .update(institutions)
     .set({ verificationStatus: "verified", source: "admin", reviewedBy: admin.id, reviewedAt: new Date() })
     .where(eq(institutions.id, row.id));
-  return done();
+  return done(admin, "institution.approve", row);
 }
 
 /**
@@ -53,7 +64,7 @@ export async function approveInstitution(institutionId: string): Promise<SaveRes
  * record.
  */
 export async function mergeInstitution(institutionId: string, targetId: string): Promise<SaveResult> {
-  const admin = await requireAdmin();
+  const admin = await operator();
   const row = await pending(institutionId);
   if (!row) return { ok: false, error: "That institution isn't pending any more. Refresh the page." };
   const [target] = id.safeParse(targetId).success
@@ -83,12 +94,12 @@ export async function mergeInstitution(institutionId: string, targetId: string):
       .where(eq(institutions.id, row.id)),
     ...factWrites,
   ]);
-  return done();
+  return done(admin, "institution.merge", row, { targetId: target.id, usersMoved: affected.length });
 }
 
 /** Pending → rejected: users keep the typed text but lose the link, and pick again next time they edit. */
 export async function rejectInstitution(institutionId: string): Promise<SaveResult> {
-  const admin = await requireAdmin();
+  const admin = await operator();
   const row = await pending(institutionId);
   if (!row) return { ok: false, error: "That institution isn't pending any more. Refresh the page." };
   await db.batch([
@@ -98,5 +109,5 @@ export async function rejectInstitution(institutionId: string): Promise<SaveResu
       .set({ verificationStatus: "rejected", reviewedBy: admin.id, reviewedAt: new Date() })
       .where(eq(institutions.id, row.id)),
   ]);
-  return done();
+  return done(admin, "institution.reject", row);
 }

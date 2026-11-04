@@ -39,7 +39,7 @@ export default function CheckEmailPage({ searchParams }: PageProps<"/login/check
           </Suspense>
 
           <div className="mt-5 rounded-xl border border-slate-100 bg-slate-50/70 p-3 text-[11px] sm:text-xs text-slate-500">
-            Link expires in 24 hours. Can&apos;t find it? Check your spam or promotions folder.
+            Link expires in 30 minutes. Can&apos;t find it? Check your spam or promotions folder.
           </div>
 
           <div className="mt-6 border-t border-slate-100 pt-5">

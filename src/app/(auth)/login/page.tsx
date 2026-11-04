@@ -275,8 +275,11 @@ async function SignInWithParams({ searchParams }: Pick<PageProps<"/login">, "sea
   }
 
   const errorKey = first(params.error);
+  const reason = first(params.reason);
   const message =
-    first(params.reason) === "session"
+    reason === "deletion_pending"
+      ? "Your account is locked and being deleted. You don't need to do anything else; we'll finish removing your data automatically."
+      : reason === "session"
       ? "Your session ended. Sign in again to continue."
       : errorKey
         ? (ERRORS[errorKey] ?? "Something went wrong signing you in. Try again.")

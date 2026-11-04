@@ -522,7 +522,7 @@
                       "type": "string"
                     },
                     "readiness": {
-                      "type": "number",
+                      "type": ["number", "null"],
                       "minimum": 0,
                       "maximum": 1
                     },

@@ -4,19 +4,24 @@
  * ProfessionalProjectionV1 → changing consent in Settings → Integrations
  * takes effect at once → disconnect cuts access.
  */
+import { createHash } from "node:crypto";
+
 import { expect, test, type APIRequestContext } from "@playwright/test";
 
 import { E2E_ENV, E2E_PORTS } from "./support/env";
 import { createUser, seedComputedProfile, signIn, sql } from "./support/fixtures";
 
 const CALLBACK = `http://127.0.0.1:${E2E_PORTS.r2}/collaborate/callback`;
-const AUTHORIZE = `/integrations/authorize?client_id=collaborate&redirect_uri=${encodeURIComponent(CALLBACK)}&state=xyz`;
+const VERIFIER = "e2e-pkce-verifier-".padEnd(64, "x");
+const CHALLENGE = createHash("sha256").update(VERIFIER).digest("base64url");
+const AUTHORIZE = `/integrations/authorize?client_id=collaborate&redirect_uri=${encodeURIComponent(CALLBACK)}&state=xyz&code_challenge=${CHALLENGE}&code_challenge_method=S256`;
 
 const exchange = (request: APIRequestContext, code: string) =>
   request.post("/api/integrations/sso/token", {
     form: {
       grant_type: "authorization_code",
       code,
+      code_verifier: VERIFIER,
       redirect_uri: CALLBACK,
       client_id: "collaborate",
       client_secret: E2E_ENV.INTEGRATION_COLLABORATE_CLIENT_SECRET,

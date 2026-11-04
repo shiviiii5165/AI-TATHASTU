@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 
 import { db } from "@/db";
 import { type AdminAuditLog, adminAuditLogs } from "@/db/schema";
+import { resolveClientIdentity } from "@/lib/rate-limit";
 
 export interface RecordAuditInput {
   actorId?: string;
@@ -22,8 +23,9 @@ export interface RecordAuditInput {
 export async function recordAdminAudit(input: RecordAuditInput): Promise<void> {
   try {
     const headersList = await headers();
-    const forwardedFor = headersList.get("x-forwarded-for");
-    const ipAddress = forwardedFor ? forwardedFor.split(",")[0].trim() : "127.0.0.1";
+    // Only an address the platform vouches for; none is better than a spoofed or invented one.
+    const identity = resolveClientIdentity(new Request("https://internal.invalid", { headers: headersList }));
+    const ipAddress = identity.ok ? identity.ip : null;
     const userAgent = headersList.get("user-agent") || "unknown";
 
     await db.insert(adminAuditLogs).values({

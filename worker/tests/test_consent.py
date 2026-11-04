@@ -15,7 +15,7 @@ from unittest import mock
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import provider_router  # noqa: E402
-from intelligence import collaboration, repo_scorer, roadmap, skill_graph  # noqa: E402
+from intelligence import collaboration, repo_scorer  # noqa: E402
 from jobs import Job, LockLost, assert_still_owner  # noqa: E402
 
 REPO = {"id": "r1", "repo_name": "asha/rag-eval", "description": "RAG evaluation harness",
@@ -58,24 +58,18 @@ class ExternalAIConsentTests(unittest.TestCase):
             self.assertTrue(result["rationale"].startswith(repo_scorer.HEURISTIC_PREFIX), name)
             self.assertNotIn(result["impact_score"], (94, 86, 83))
 
-    def test_skill_gaps_without_consent_makes_no_ai_call(self) -> None:
-        with mock.patch.object(provider_router, "route_llm", _forbidden):
-            out = skill_graph.generate_skill_gaps_and_recommendations(
-                {"Python": {"strength": 0.9}}, "ml_engineer", has_consent=False, rag_courses=[]
-            )
-        self.assertIn("gaps", out)
+    def test_gaps_and_roadmap_make_no_ai_call_at_all(self) -> None:
+        # Stronger than the consent check it replaces: the engine has no provider to call.
+        # test_career_engine.py holds the same line with AI consent given.
+        import inspect
 
-    def test_roadmap_without_consent_makes_no_ai_call(self) -> None:
-        user = {"name": "Asha", "role": "student", "degree": "B.Tech", "university": "IIT", "career_role": "ml_engineer"}
-        with mock.patch.object(provider_router, "route_llm", _forbidden):
-            out = roadmap.generate_career_roadmap(user, has_consent=False, rag_courses=[])
-        self.assertIn("current_stage", out)
+        from intelligence import career_engine
+
+        source = inspect.getsource(career_engine)
+        self.assertNotIn("route_llm", source)
+        self.assertNotIn("provider_router", source)
 
     def test_consent_is_a_required_argument(self) -> None:
-        with self.assertRaises(TypeError):
-            skill_graph.generate_skill_gaps_and_recommendations({}, "ml_engineer")  # type: ignore[call-arg]
-        with self.assertRaises(TypeError):
-            roadmap.generate_career_roadmap({})  # type: ignore[call-arg]
         with self.assertRaises(TypeError):
             collaboration.compute_profile_vector("student", [], [], [])  # type: ignore[call-arg]
 

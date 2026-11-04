@@ -14,10 +14,12 @@ import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
 import { migrate } from "drizzle-orm/neon-http/migrator";
 
+import { assertWriteAllowed } from "./lib/db-target.mjs";
+
 nextEnv.loadEnvConfig(process.cwd(), true, { info() {}, error: console.error });
 if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is not set (.env.local)");
 
-const sql = neon(process.env.DATABASE_URL);
+const sql = neon(assertWriteAllowed(process.env.DATABASE_URL));
 const db = drizzle({ client: sql });
 
 const before = await applied();

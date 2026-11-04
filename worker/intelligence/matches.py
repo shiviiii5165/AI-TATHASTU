@@ -16,7 +16,7 @@ from db import fetch_all, fetch_one, jsonb
 from intelligence.matching import (
     MAX_PER_STUDENT, MIN_SCORE, Alum, Faculty, Student, score_alum, score_faculty,
 )
-from jobs import Job
+from jobs import Job, assert_still_owner
 
 log = logging.getLogger("worker.matches")
 
@@ -79,6 +79,7 @@ def _pair(mentor, student: Student):
 
 def process_compute_matches(conn: Any, job: Job) -> None:
     with conn, conn.cursor() as cur:
+        assert_still_owner(cur, job)  # One transaction, so this covers the writes below too.
         me = fetch_one(cur, "SELECT role::text AS role FROM users WHERE id = %s AND deleted_at IS NULL", (job.user_id,))
         if not me:
             return

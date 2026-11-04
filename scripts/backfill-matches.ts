@@ -11,6 +11,8 @@ import { neon } from "@neondatabase/serverless";
 import { config } from "dotenv";
 import { randomUUID } from "node:crypto";
 
+import { assertTestIsolation, assertWriteAllowed } from "./lib/db-target.mjs";
+
 type Row = Record<string, unknown>;
 
 async function connect(url: string) {
@@ -32,7 +34,7 @@ const PENDING = `
 async function main() {
   const apply = process.argv.includes("--apply");
   if (!process.env.DATABASE_URL) config({ path: ".env.local", quiet: true });
-  const { query, close } = await connect(process.env.DATABASE_URL!);
+  const { query, close } = await connect((apply ? assertWriteAllowed : assertTestIsolation)(process.env.DATABASE_URL));
   try {
     const [mentors] = await query(`
       SELECT count(*) FILTER (WHERE u.role = 'faculty')::int AS faculty, count(*) FILTER (WHERE u.role = 'alumni')::int AS alumni

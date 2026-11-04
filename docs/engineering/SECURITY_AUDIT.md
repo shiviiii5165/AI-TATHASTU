@@ -25,4 +25,6 @@ Evidence labels: **Verified locally**, **Verified on staging** (none exist yet),
 | P2 | `publicUrl` blocks literal IPs but not names resolving to private IPs. Firecrawl does the fetch, so exposure depends on Firecrawl |
 | P3 | Vercel header behaviour rests on documentation; not live-verified |
 
-**Not performed:** penetration test, dependency audit, OAuth callback tests against real providers, prompt-injection red team.
+**Dependency audit:** `npm audit --omit=dev` and `pip-audit` clean on 2026-11-03 (`AI_TATHASTU_SYSTEM_AUDIT.md` §71).
+
+**Not performed:** penetration test, OAuth callback tests against real providers, prompt-injection red team.

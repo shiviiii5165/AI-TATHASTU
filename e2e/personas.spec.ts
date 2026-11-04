@@ -134,7 +134,9 @@ test("faculty: Step 0 → faculty flow → faculty dashboard", async ({ page, co
         ],
       }),
     ]));
-    await expect(page.getByText("Assistant Professor, Computer Science")).toBeVisible({ timeout: 30_000 });
+    // The journey card shows the same title from the facts, so wait for the widgets themselves.
+    await expect(page.getByRole("article", { name: "Students who match your expertise" })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText("Assistant Professor, Computer Science").first()).toBeVisible();
     const titles = await page
       .getByRole("article")
       .filter({ has: page.getByRole("button", { name: /^Hide / }) })

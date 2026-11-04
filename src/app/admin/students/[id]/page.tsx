@@ -152,7 +152,6 @@ export default async function AdminStudentDetailPage({ params }: StudentDetailPa
         userEmail={student.email}
         isAdmin={student.isAdmin}
         isDeleted={!!student.deletedAt}
-        sessionsCount={student.activeSessionsCount}
       />
     </div>
   );

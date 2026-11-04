@@ -1,11 +1,13 @@
 import { sql } from "drizzle-orm";
 import {
+  bigint,
   boolean,
   index,
   integer,
   jsonb,
   numeric,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -13,6 +15,36 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { users } from "./schema";
+
+// ─── ADMIN TWO-FACTOR ───────────────────────────────────────────────────────
+
+export const adminMfa = pgTable("admin_mfa", {
+  userId: uuid("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  secretEnc: text("secret_enc").notNull(),
+  confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+  // Last accepted TOTP time-step, so a code can't be replayed.
+  lastCounter: bigint("last_counter", { mode: "number" }),
+  // Set once with the codes, so concurrent confirmations can't issue two sets.
+  recoveryIssuedAt: timestamp("recovery_issued_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// High-entropy codes, so a plain SHA-256 at rest is enough. Each works once.
+export const adminMfaRecoveryCodes = pgTable(
+  "admin_mfa_recovery_codes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    codeHash: text("code_hash").notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("admin_mfa_recovery_codes_hash_key").on(t.userId, t.codeHash)],
+);
 
 // ─── ADMIN TEAM & RBAC ──────────────────────────────────────────────────────
 
@@ -261,7 +293,11 @@ export const aiCostBudgets = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     period: text("period").notNull().default("monthly"),
+    // Enforced by worker/ai_budget.py on every paid provider call.
     budgetUsd: numeric("budget_usd", { precision: 10, scale: 2 }).notNull().default("100.00"),
+    userDailyUsd: numeric("user_daily_usd", { precision: 10, scale: 2 }).notNull().default("1.00"),
+    userMonthlyUsd: numeric("user_monthly_usd", { precision: 10, scale: 2 }).notNull().default("5.00"),
+    // Unused and always 0. Real spend is in ai_spend_counters.
     spentUsd: numeric("spent_usd", { precision: 10, scale: 2 }).notNull().default("0.00"),
     warningThresholdPercent: integer("warning_threshold_percent").notNull().default(80),
     criticalThresholdPercent: integer("critical_threshold_percent").notNull().default(95),
@@ -271,6 +307,43 @@ export const aiCostBudgets = pgTable(
 );
 
 export type AiCostBudget = typeof aiCostBudgets.$inferSelect;
+
+/** One row per paid provider attempt. Written by worker/ai_budget.py. */
+export const aiUsageLedger = pgTable("ai_usage_ledger", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+  jobId: uuid("job_id"),
+  provider: text("provider").notNull(),
+  model: text("model").notNull(),
+  purpose: text("purpose").notNull(),
+  status: text("status").$type<"reserved" | "metered" | "estimated" | "released">().notNull().default("reserved"),
+  reservedUsd: numeric("reserved_usd", { precision: 14, scale: 6 }).notNull(),
+  costUsd: numeric("cost_usd", { precision: 14, scale: 6 }),
+  tokensIn: integer("tokens_in"),
+  tokensOut: integer("tokens_out"),
+  latencyMs: integer("latency_ms"),
+  errorKind: text("error_kind"),
+  day: text("day").notNull(),
+  month: text("month").notNull(),
+  scopedToUser: text("scoped_to_user"),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  settledAt: timestamp("settled_at", { withTimezone: true }),
+});
+
+/** Written by worker/ai_budget.py. scope is "global" or a user id; period a month or day. */
+export const aiSpendCounters = pgTable(
+  "ai_spend_counters",
+  {
+    scope: text("scope").notNull(),
+    period: text("period").notNull(),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+    meteredUsd: numeric("metered_usd", { precision: 14, scale: 6 }).notNull().default("0"),
+    estimatedUsd: numeric("estimated_usd", { precision: 14, scale: 6 }).notNull().default("0"),
+    reservedUsd: numeric("reserved_usd", { precision: 14, scale: 6 }).notNull().default("0"),
+  },
+  (t) => [primaryKey({ columns: [t.scope, t.period] })],
+);
 
 // ─── CMS, KNOWLEDGE BASE & NEWSLETTER ───────────────────────────────────────
 

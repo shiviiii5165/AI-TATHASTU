@@ -5,10 +5,12 @@ import { connection, NextResponse } from "next/server";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
+import { liveSessionVersion } from "@/lib/auth/account-lock";
 import { users } from "@/db/schema";
 import { isAllowedEmbedOrigin, verifyEmbedToken } from "@/lib/embed-token";
 import { isFeatureEnabled, MODULE_FLAGS } from "@/lib/feature-flags";
 import { loadProfile, toEmbedV1, toProfileV1 } from "@/lib/profile/unified";
+import { hitRateLimit } from "@/lib/rate-limit";
 
 /**
  * GET /api/profile/v1/me — the read-only profile contract (spec:
@@ -34,13 +36,16 @@ export async function GET(request: Request) {
     if (bearer) {
       const claims = await verifyEmbedToken(bearer, origin);
       if (!claims) return error(401, "invalid_token", "The embed token is invalid or expired.", cors);
+      if (!(await withinLimit(claims.userId))) return error(429, "rate_limited", "Too many requests.", cors);
       if (!(await isFeatureEnabled("pilot_site_embed"))) return error(403, "disabled", "The embed isn't enabled.", cors);
-      if (!(await activeUser(claims.userId))) return error(401, "invalid_token", "The account no longer exists.", cors);
+      // A revoked session takes its embed tokens with it, not 15 minutes later.
+      if ((await liveSessionVersion(claims.userId)) !== claims.sessionVersion) return error(401, "invalid_token", "The embed token is no longer valid.", cors);
       return respond(request, toEmbedV1(await loadProfile(claims.userId), new URL(request.url).origin), cors);
     }
 
     const session = await auth();
     if (!session?.user?.id) return error(401, "unauthenticated", "Sign in to continue.", cors);
+    if (!(await withinLimit(session.user.id))) return error(429, "rate_limited", "Too many requests.", cors);
     const moduleName = (request.headers.get("x-ait-module") ?? new URL(request.url).searchParams.get("module") ?? "").toLowerCase();
     const flag = MODULE_FLAGS[moduleName];
     if (!flag) {
@@ -62,6 +67,10 @@ export async function GET(request: Request) {
 export function OPTIONS(request: Request) {
   const cors = corsHeaders(request.headers.get("origin"));
   return new NextResponse(null, { status: cors["Access-Control-Allow-Origin"] ? 204 : 403, headers: cors });
+}
+
+async function withinLimit(userId: string) {
+  return (await hitRateLimit(`profile_me:${userId}`, { limit: 120, windowSeconds: 60 })).ok;
 }
 
 async function activeUser(id: string) {

@@ -15,6 +15,8 @@ export async function setExternalAiConsent(granted: boolean): Promise<SaveResult
   if (state.currentStep !== "done" && stepIndex(state.currentStep, user.role) < stepIndex("resume", user.role)) {
     return { ok: false, error: "This step isn't available yet." };
   }
-  await appendConsent(user.id, "external_ai", granted === true);
+  if (!(await appendConsent(user.id, "external_ai", granted === true))) {
+    return { ok: false, error: "That's changed too many times. Try again later." };
+  }
   return { ok: true };
 }

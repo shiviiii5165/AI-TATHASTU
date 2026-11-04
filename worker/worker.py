@@ -35,6 +35,7 @@ import psycopg2
 import psycopg2.extras
 from dotenv import load_dotenv
 
+import ai_budget
 from connectors.sync import SUPPORTED_SOURCES, process_connector_sync
 from intelligence.compute import process_compute_intelligence
 from intelligence.matches import process_compute_matches
@@ -43,8 +44,11 @@ from notify import notify_job, notify_profile_updated
 from resume.extract import process_resume_extract
 
 HERE = Path(__file__).resolve().parent
-load_dotenv(HERE / ".env")
-load_dotenv(HERE.parent / ".env.local")
+if __name__ == "__main__":
+    # Only as the entry point. Merely importing this module (a test does) must never pick up
+    # the credentials in .env.local.
+    load_dotenv(HERE / ".env")
+    load_dotenv(HERE.parent / ".env.local")
 
 WORKER_ID = os.environ.get("WORKER_ID") or f"{socket.gethostname()}:{os.getpid()}"
 LOCK_SECONDS = int(os.environ.get("WORKER_LOCK_SECONDS", "300"))
@@ -277,7 +281,8 @@ class Worker:
                 log.info("job %s dropped: account deleted", job.id)
                 self.execute(FAIL_SQL, {**params, "error": "Account deleted"})
                 return
-            HANDLERS[job.type](self.connect(), job)
+            with ai_budget.job_scope(job.user_id, job.id):
+                HANDLERS[job.type](self.connect(), job)
         except LockLost as exc:
             # Another worker owns the job now; its run records the outcome.
             log.warning("job %s: %s; result discarded", job.id, exc)

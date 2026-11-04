@@ -34,11 +34,7 @@ const YoraModal = dynamic(
   { ssr: false }
 );
 
-import type {
-  CareerRoadmapData,
-  LearningPathItem,
-  SkillGapItem,
-} from "@/components/dashboard/mockup-sections/growth-development-row";
+import type { JourneyMilestone } from "@/lib/dashboard/journey";
 import type {
   AchievementItem,
   GitHubActivityData,
@@ -47,7 +43,7 @@ import type {
   QuickActionItem,
   RecentProjectItem,
 } from "@/lib/dashboard/stats";
-import type { SkillGraphData } from "@/lib/dashboard/types";
+import type { IntelligenceDoc } from "@/lib/dashboard/types";
 
 interface DashboardViewProps {
   name: string;
@@ -59,18 +55,13 @@ interface DashboardViewProps {
   achievementsCount?: number;
   opportunitiesCount?: number;
   networkCount?: number;
-  inferredSkills?: Array<{ name: string; strength: number; isDirect?: boolean }>;
-  skillGraph?: SkillGraphData;
-  skillGaps?: SkillGapItem[];
-  learningPaths?: LearningPathItem[];
-  roadmap?: CareerRoadmapData;
+  intelligence?: IntelligenceDoc;
   nextActions?: Array<{ num: number; title: string; desc: string; btnText: string; btnHref: string; category?: string }>;
-  journeyMilestones?: Array<{ title: string; year: string; field: string; active?: boolean }>;
+  journeyMilestones?: JourneyMilestone[];
   recentProjects?: RecentProjectItem[];
   githubActivity?: GitHubActivityData | null;
   recentPublications?: PublicationItem[];
   recentAchievements?: AchievementItem[];
-  proficiencySkills?: Array<{ name: string; pct: number }>;
   researchOpportunities?: OpportunityItem[];
   internships?: OpportunityItem[];
   quickActions?: QuickActionItem[];
@@ -87,18 +78,13 @@ export function DashboardView({
   achievementsCount = 0,
   opportunitiesCount = 0,
   networkCount = 0,
-  inferredSkills,
-  skillGraph,
-  skillGaps,
-  learningPaths,
-  roadmap,
+  intelligence,
   nextActions,
   journeyMilestones,
   recentProjects,
   githubActivity,
   recentPublications,
   recentAchievements,
-  proficiencySkills,
   researchOpportunities,
   internships,
   quickActions,
@@ -132,7 +118,7 @@ export function DashboardView({
           <JourneyTimeline milestones={journeyMilestones} />
         </div>
         <div className="lg:col-span-4 h-full">
-          <SkillBubbleChart skills={inferredSkills} skillGraph={skillGraph} />
+          <SkillBubbleChart skillGraph={intelligence?.graph} />
         </div>
         <div className="lg:col-span-4 h-full">
           <QuickActionsPanel actions={quickActions} />
@@ -148,12 +134,7 @@ export function DashboardView({
       />
 
       {/* G. Growth and Development Row: 4 Panels */}
-      <GrowthDevelopmentRow
-        proficiencySkills={proficiencySkills}
-        gaps={skillGaps}
-        learningPaths={learningPaths}
-        roadmap={roadmap}
-      />
+      <GrowthDevelopmentRow intelligence={intelligence} />
 
       {/* H. Ecosystem and Opportunities Row: 4 Panels */}
       <EcosystemOpportunitiesRow

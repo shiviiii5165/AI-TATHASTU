@@ -38,8 +38,8 @@ from resume.deterministic import Candidate
 from resume.intake import IntakeError, intake
 from resume.persist import persist
 from resume.quality import is_text_usable, needs_whole_document, text_stats
-from resume.text import Document, OcrUnavailable, extract
-from resume.vision import render_pages
+from resume.sandbox import ParseFailed, extract, render_pages
+from resume.text import Document, OcrUnavailable
 from storage import read_object
 
 log = logging.getLogger("worker.resume")
@@ -138,6 +138,8 @@ def _best_text(data: bytes, kind: str) -> Document:
                 return ocr
         except OcrUnavailable as exc:
             log.warning("text layer unusable and %s", exc)
+        except ParseFailed as exc:  # the same file would fail the same way on retry
+            log.warning("OCR of an unusable text layer failed: %s", exc)
     return doc
 
 

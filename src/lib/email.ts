@@ -41,6 +41,11 @@ export function senderAddress(profile: SenderProfile) {
 
 const transports = new Map<SenderProfile, Transporter>();
 
+/** Without this, a network attacker can strip STARTTLS and read the SMTP password. Only a local test server is exempt. */
+export function requiresStartTls(host: string | undefined, port: number) {
+  return port !== 465 && host !== "127.0.0.1" && host !== "localhost";
+}
+
 function transport(profile: SenderProfile) {
   const creds = credentials(profile);
   if (!creds) throw new Error(`Email profile "${profile}" isn't configured (see .env.example: SMTP_*).`);
@@ -51,6 +56,7 @@ function transport(profile: SenderProfile) {
       host: process.env.SMTP_HOST,
       port,
       secure: port === 465, // implicit TLS on 465; STARTTLS otherwise
+      requireTLS: requiresStartTls(process.env.SMTP_HOST, port),
       auth: { user: creds.user, pass: creds.pass },
       connectionTimeout: 10_000,
       greetingTimeout: 10_000,
@@ -67,5 +73,5 @@ export async function sendEmail({ profile, to, email }: { profile: SenderProfile
   const replyTo = profile === "support" ? undefined : (senderAddress("support") ?? undefined);
   const info = await t.sendMail({ from, to, replyTo, subject: email.subject, html: email.html, text: email.text });
   // SMTP accepted the message for delivery; it can still bounce later.
-  return { messageId: info.messageId, accepted: info.accepted.map(String) };
+  return { messageId: info.messageId, accepted: (info.accepted ?? []).map(String) };
 }

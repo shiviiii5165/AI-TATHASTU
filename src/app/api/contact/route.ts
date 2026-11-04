@@ -1,9 +1,9 @@
-import { createHash, randomInt } from "node:crypto";
+import { randomInt } from "node:crypto";
 
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { isEmailConfigured, sendEmail, senderAddress } from "@/lib/email";
-import { clientIp, hitRateLimit } from "@/lib/rate-limit";
+import { clientIpHash, hitRateLimit } from "@/lib/rate-limit";
 
 // 5 submissions per 60 seconds per IP, counted across all instances (the key
 // stores a hash, never the raw IP).
@@ -45,12 +45,20 @@ function singleLine(input: string): string {
 }
 
 export async function POST(request: Request) {
-  const ipHash = createHash("sha256").update(clientIp(request)).digest("hex").slice(0, 32);
-  const limited = await hitRateLimit(`contact:${ipHash}`, CONTACT_LIMIT);
-  if (!limited.ok) {
+  const ipHash = clientIpHash(request);
+  if (ipHash) {
+    const limited = await hitRateLimit(`contact:${ipHash}`, CONTACT_LIMIT);
+    if (!limited.ok) {
+      return NextResponse.json(
+        { error: "Too many requests. Please wait a moment before trying again." },
+        { status: 429, headers: { "Retry-After": String(limited.retryAfter) } }
+      );
+    }
+  } else if (process.env.NODE_ENV === "production") {
+    // Fail safely in production if client origin cannot be verified
     return NextResponse.json(
-      { error: "Too many requests. Please wait a moment before trying again." },
-      { status: 429, headers: { "Retry-After": String(limited.retryAfter) } }
+      { error: "Service unavailable: unable to verify request origin." },
+      { status: 503 }
     );
   }
 

@@ -340,9 +340,12 @@ export function TemplateEditor({ template, versions, adminEmail }: TemplateEdito
                 </div>
 
                 {/* Rendered HTML Body */}
-                <div
-                  className="p-4 overflow-y-auto max-h-[600px]"
-                  dangerouslySetInnerHTML={{ __html: renderedHtmlPreview }}
+                {/* Sandboxed: template HTML runs no script and can't reach this admin page. */}
+                <iframe
+                  title="Rendered email preview"
+                  sandbox=""
+                  srcDoc={renderedHtmlPreview}
+                  className="w-full h-[600px] bg-white"
                 />
               </div>
             </div>

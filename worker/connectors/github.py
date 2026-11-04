@@ -24,7 +24,7 @@ import psycopg2.extras
 from connectors.common import still_connected
 from crypto_box import open_credential
 from db import enqueue_compute_intelligence, fetch_one, jsonb
-from jobs import Job, NeedsReview
+from jobs import Job, NeedsReview, assert_still_owner
 
 log = logging.getLogger("worker.github")
 
@@ -118,6 +118,7 @@ def sync_github(conn: Any, job: Job, client_factory=GithubClient) -> None:
         raise  # retried by the worker
 
     with conn, conn.cursor() as cur:
+        assert_still_owner(cur, job)  # Also how account deletion stops a running sync: it clears locked_by.
         if not still_connected(cur, connection_id, job.user_id):
             log.info("github connection %s was disconnected mid-sync; results discarded", connection_id)
             return

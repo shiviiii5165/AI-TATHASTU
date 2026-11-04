@@ -250,7 +250,6 @@ export function AboutContent() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [langDropdownOpen, setLangDropdownOpen] = useState(false);
   const [currentLang, setCurrentLang] = useState("English");
-  const [newsletterSubscribed, setNewsletterSubscribed] = useState(false);
   const [newsletterEmail, setNewsletterEmail] = useState("");
   const [newsletterConsent, setNewsletterConsent] = useState(true);
   const currentYear = useSyncExternalStore(
@@ -308,9 +307,8 @@ export function AboutContent() {
       alert("Please agree to receive updates.");
       return;
     }
-    setNewsletterSubscribed(true);
-    setNewsletterEmail("");
-    setTimeout(() => setNewsletterSubscribed(false), 4000);
+    // No sign-up backend yet: never say an address was saved when it wasn't.
+    alert("Newsletter sign-up isn't open yet, so your email wasn't saved.");
   };
 
   const panelId = useId();
@@ -958,10 +956,9 @@ export function AboutContent() {
                     <button
                       type="submit"
                       className="footer-submit-btn"
-                      style={newsletterSubscribed ? { background: "#16A34A", color: "#FFFFFF" } : undefined}
                       aria-label="Subscribe to newsletter"
                     >
-                      {newsletterSubscribed ? <Check className="size-4" /> : <ArrowRight className="size-4" />}
+                      <ArrowRight className="size-4" />
                     </button>
                   </div>
                   <label className="footer-checkbox-label" htmlFor="footerConsentCheckbox">

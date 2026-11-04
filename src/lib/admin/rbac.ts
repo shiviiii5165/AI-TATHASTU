@@ -1,10 +1,12 @@
 import "server-only";
 
 import { eq } from "drizzle-orm";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
+import { auth } from "@/auth";
 import { db } from "@/db";
 import { ADMIN_ROLES, type AdminRole, adminTeamMembers, type User } from "@/db/schema";
+import { isAdminSessionFresh, requireAdminMfa } from "@/lib/admin/mfa";
 import { isAdminEmail } from "@/lib/admin-emails";
 import { getCurrentUser } from "@/lib/dal";
 
@@ -54,6 +56,9 @@ export const ALL_ADMIN_PERMISSIONS = [
   "kb.manage",
   "newsletter.manage",
 
+  // Academic catalogue
+  "institutions.manage",
+
   // System & Platform
   "flags.manage",
   "system.manage",
@@ -78,6 +83,7 @@ export const ROLE_PERMISSIONS: Record<AdminRole, readonly AdminPermission[]> = {
     "kb.manage",
     "email.templates.read",
     "logs.read",
+    "institutions.manage",
   ],
 
   support_agent: [
@@ -134,34 +140,38 @@ export interface AdminAuthContext {
 }
 
 /**
- * Resolves the admin role and effective permissions for a given user.
- * Users listed in ADMIN_EMAILS or having users.isAdmin === true default to super_admin
- * unless an explicit admin_team_members record specifies another role.
+ * Who an operator is, read from the database and environment on every call, so a change
+ * applies at the next request whatever the session says:
+ *
+ *  - ADMIN_EMAILS: always super_admin. Lives outside the database, so nothing in it can lock
+ *    out the bootstrap operators.
+ *  - An admin_team_members row decides everyone else: its role, or nothing if inactive.
+ *    It outranks users.is_admin, so an operator can be restricted or deactivated.
+ *  - users.is_admin with no row: super_admin, as existing operators are today.
  */
 export async function getAdminContext(user: User): Promise<AdminAuthContext | null> {
-  const isGlobalAdmin = user.isAdmin || isAdminEmail(user.email);
-
-  // Check explicit team member assignment
   const [member] = await db
     .select()
     .from(adminTeamMembers)
     .where(eq(adminTeamMembers.userId, user.id));
 
-  if (!isGlobalAdmin && (!member || !member.isActive)) {
-    return null;
-  }
+  let role: AdminRole;
+  if (isAdminEmail(user.email)) role = "super_admin";
+  else if (member) {
+    if (!member.isActive) return null;
+    role = member.role;
+  } else if (user.isAdmin) role = "super_admin";
+  else return null;
 
-  const role: AdminRole = member?.role ?? (isGlobalAdmin ? "super_admin" : "support_agent");
-  const basePermissions = ROLE_PERMISSIONS[role] || [];
-  const customPermissions = (member?.customPermissions as AdminPermission[]) || [];
-
-  const effectivePermissions = Array.from(new Set([...basePermissions, ...customPermissions]));
+  const known = new Set<string>(ALL_ADMIN_PERMISSIONS);
+  // Only for a team member, and only names that exist: this column can't grant anything unexpected.
+  const custom = (member?.customPermissions ?? []).filter((p): p is AdminPermission => known.has(p));
 
   return {
     user,
     role,
-    permissions: effectivePermissions,
-    isSuperAdmin: role === "super_admin" || isGlobalAdmin,
+    permissions: Array.from(new Set([...(ROLE_PERMISSIONS[role] ?? []), ...custom])),
+    isSuperAdmin: role === "super_admin",
   };
 }
 
@@ -176,20 +186,26 @@ export function hasPermission(
   return ctx.permissions.includes(permission);
 }
 
+/** Any active operator, past the session-age and second-factor checks. Signed out → /login; not an operator → 404. */
+export async function requireOperator(): Promise<AdminAuthContext> {
+  const user = await getCurrentUser();
+  const ctx = await getAdminContext(user);
+  if (!ctx) notFound();
+  // Sent to /admin-mfa, which offers a fresh sign-in.
+  if (!isAdminSessionFresh((await auth())?.authTime)) redirect("/admin-mfa");
+  await requireAdminMfa(user);
+  return ctx;
+}
+
 /**
- * Strict server-side permission guard.
- * Throws notFound() if unauthenticated or unauthorized to prevent disclosing admin routes.
+ * Strict server-side permission guard, for every admin page and action.
+ * Throws notFound() if unauthorized to prevent disclosing admin routes.
  */
 export async function requireAdminPermission(
   permission: AdminPermission
 ): Promise<AdminAuthContext> {
-  const user = await getCurrentUser();
-  const ctx = await getAdminContext(user);
-
-  if (!ctx || !hasPermission(ctx, permission)) {
-    notFound();
-  }
-
+  const ctx = await requireOperator();
+  if (!hasPermission(ctx, permission)) notFound();
   return ctx;
 }
 

@@ -45,7 +45,7 @@ The integration is also behind a feature flag on our side (`collaborate_profile_
 When the user clicks "Sign in with AI Tathastu", generate:
 
 - `state`: a random value you store in the user's session (CSRF protection).
-- PKCE (recommended): `code_verifier` = 43–128 random URL-safe characters, and `code_challenge` = `BASE64URL(SHA-256(code_verifier))`.
+- PKCE (required): `code_verifier` = 43–128 random URL-safe characters, and `code_challenge` = `BASE64URL(SHA-256(code_verifier))`.
 
 Then redirect the browser to:
 

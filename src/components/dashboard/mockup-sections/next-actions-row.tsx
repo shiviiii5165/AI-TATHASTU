@@ -18,47 +18,8 @@ interface NextActionsRowProps {
   onOpenYora?: () => void;
 }
 
-const FALLBACK_ACTIONS = [
-  {
-    num: 1,
-    title: "Complete your profile",
-    desc: "Confirm extracted milestones and degrees to increase verification score.",
-    btnText: "Review Profile →",
-    btnHref: "/profile",
-  },
-  {
-    num: 2,
-    title: "Connect GitHub",
-    desc: "Sync repositories to calculate your verified AI Impact Score.",
-    btnText: "Sync Code →",
-    btnHref: "/projects",
-  },
-  {
-    num: 3,
-    title: "Explore Learning Paths",
-    desc: "Target high-demand skill gaps with curated AI curricula.",
-    btnText: "Browse Paths →",
-    btnHref: "/learning",
-  },
-  {
-    num: 4,
-    title: "Expand Peer Network",
-    desc: "Connect with verified researchers and students with matching interests.",
-    btnText: "Find Peers →",
-    btnHref: "/people",
-  },
-  {
-    num: 5,
-    title: "Benchmark Your Skills",
-    desc: "Take domain quizzes and problem-solving benchmarks.",
-    btnText: "Start Assessment →",
-    btnHref: "/skills",
-  },
-];
-
 export function NextActionsRow({ actions: dynamicActions, onOpenYora }: NextActionsRowProps) {
-  const sourceActions =
-    dynamicActions && dynamicActions.length > 0 ? dynamicActions : FALLBACK_ACTIONS;
+  const sourceActions = dynamicActions ?? [];
 
   const actions = sourceActions.slice(0, 5).map((a, idx) => {
     const numBg =
@@ -101,6 +62,10 @@ export function NextActionsRow({ actions: dynamicActions, onOpenYora }: NextActi
           </div>
           <span className="text-[11px] font-semibold text-[#8554FF]">Recommended Flow</span>
         </div>
+
+        {actions.length === 0 && (
+          <p className="my-6 text-center text-xs text-muted-foreground">Your next steps appear once your profile has been processed.</p>
+        )}
 
         {/* 5 action cards horizontally distributed */}
         <div className="my-3 grid grid-cols-1 gap-2.5 sm:grid-cols-3 md:grid-cols-5">

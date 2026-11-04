@@ -2785,3 +2785,290 @@ Reports are in `docs/engineering/`; start with `FINAL_ENGINEERING_REPORT.md`. Ne
   - IRIS: Magenta/pink aperture reticle energy (`#EC4899`, `#DB2777`).
 - **Reversible & accessible interaction:** Clean glassmorphic top-right close button restores the idle view with soft scale/fade animation. Full keyboard support (`Enter`/`Space` to activate, `Escape` to revert). Reduced-motion media query supported.
 - **Verification:** 253/253 unit tests passed, all 9 landing E2E tests passed, and multi-viewport visual QA screenshots captured.
+
+## 69. Career Intelligence Engine overhaul (2026-11-02)
+
+Status: implemented and tested locally. Not committed, pushed or deployed. Existing users see "Being updated" on these cards until their profiles are recomputed (see Remaining blockers).
+
+### Findings and root causes
+
+| Finding | Root cause |
+|---|---|
+| The same gaps, courses and roadmap for users with no AI consent or on provider failure | Hardcoded fallbacks in `skill_graph.py` and `roadmap.py` |
+| Invented gaps, module counts and durations | LLM output shown as fact |
+| A resume mention scored 50% proficiency | "Proficiency" was really evidence strength |
+| Inferred skills had scores; the graph called resume-only skills verified code; a fake AI/ML hub at 95% | Boosted scores, a fixed label, and client-side fallback nodes and edges |
+| Skills with no data treated as half ready | `readiness.get(sid, 0.5)` |
+| Journey showed "Degree"/"Role" placeholders, "Present" for blank end dates, year 2000 for undated items, and the last item as active | Filling in missing values in `stats.ts` |
+| Cards showed "Core Foundation", "Industry Impact", "AI Scored", "Free Certificate", "6 Weeks", a dead Enroll button, and a five-step fallback with an "AI Impact Score" and an assessment that doesn't exist | Hardcoded UI defaults |
+| Graph clipped, with labels cut at 9 characters ("LangChai") | Fixed canvas, no fit to bounds, label truncation |
+| Unknown GitHub topics could become skills, and hyphenated topics missed the catalogue (found during this work) | Topics were treated as skills without normalising |
+| Catalogue links dead or generic | On 2026-11-02: 5 returned 404, 4 returned 403 to the checker, several pointed at homepages, 4 redirected |
+
+### Scoring and evidence model
+
+`worker/intelligence/career_engine.py`, `ENGINE_VERSION = 1`. Deterministic, with no provider calls.
+
+| Evidence | Points |
+|---|---|
+| Repositories | 40 x min(1, n/5) |
+| Code volume | 15 x min(1, log10(bytes)/6) |
+| Recency | (15 if pushed within 6 months, 7.5 within 18) x min(1, repos/5) |
+| Described records | 25 x min(1, n/3) |
+| Certification | +5, only on top of other evidence |
+| Platform assessment | raises the score to stars/5 x 100 |
+
+- Skill-list mention only: no score, shown as "Not assessed".
+- Scores resting only on the user's own descriptions are capped at 49.
+- Repository metadata alone tops out at 70 (Proficient). Advanced also needs described work or an assessment, because source code isn't read.
+- Levels: Foundational 0, Working 25, Proficient 50, Advanced 75.
+- Status: verified, claimed or inferred. Inferred skills never get a score.
+- Proficiency, confidence and role coverage are separate values. Each evidence item records kind, source, label, reference and timestamp.
+- Gap states: met, underdeveloped, unverified, inferred, missing, not_assessed. Each role is analysed independently, and too little evidence is reported as "not assessed", not as a gap.
+- These weights and thresholds are product judgement. They have not been validated against hiring or assessment outcomes.
+
+### Changes
+
+- **Recommendations:** come only from gaps, using curated catalogue pages that resolved. Each has difficulty, prerequisites and a demonstration project. Duration is "not stated" because the catalogue has no reliable value. A skill with no checked course says so.
+- **Roadmap:** dependency-ordered stages. Progress counts only skills evidenced at the expected level. Week estimates carry a stated assumption.
+- **Journey:** `src/lib/dashboard/journey.ts`. Real records only, and undated items stay undated.
+- **Graph:** edges are shared-repository evidence or a documented ontology relation. The layout is framed to its own bounds, with labels up to 18 characters plus the full name on hover and in the details. It has a static legend, a list view, keyboard access and an evidence dialog that closes with Esc.
+- **Pages:** Skills and Learning rebuilt on the engine output, using design tokens. Older views show "Being updated" rather than old invented content.
+- **Next Actions:** hardcoded fallback removed, and no assessment action is offered.
+
+### Files and database
+
+- **Worker:** new `intelligence/career_engine.py`, `tests/test_career_engine.py`. Changed `intelligence/compute.py`, `skill_graph.py`, `roadmap.py`, `skills.py`, `tests/test_consent.py`.
+- **Web:** new `src/lib/dashboard/journey.ts` and test. Changed `src/lib/dashboard/stats.ts`, `types.ts`, `src/components/dashboard/dashboard-view.tsx`, `mockup-sections/{growth-development-row,skill-bubble-chart,journey-timeline,next-actions-row,evidence-achievement-row}.tsx`, `src/app/(dashboard)/{dashboard,skills,learning}/page.tsx`.
+- **E2E:** new `e2e/skill-graph.spec.ts`. Changed `e2e/fixtures/profile-view.json`, `e2e/personas.spec.ts`.
+- **Database:** no migration. Results live in `profile_views.view.intelligence`. `save_roadmap` now deletes a user's `roadmaps` row when they have no plannable goal.
+
+### Test results (actual)
+
+| Check | Result |
+|---|---|
+| Worker, Windows (pytest) | 220 passed, 32 skipped |
+| Worker, Linux container with migrated throwaway Postgres | 251 passed, 1 skipped (`test_profile_urls` needs the disposable e2e Postgres) |
+| Web unit (vitest) | 584 passed |
+| Postgres (`test:pg`) | 15 passed |
+| Typecheck | Clean |
+| Lint | 0 errors, 97 warnings at last count |
+| Playwright | 82 of 82, including graph fit at 360, 768, 1280 and 1920 px |
+
+The 8 requested profiles are covered at engine level in `test_career_engine.py`, using synthetic data. The browser tests use one stored fixture view, so the graph-fit test covers 6 nodes, not the 18-node maximum.
+
+### Performance
+
+| Measure | Before | After | How known |
+|---|---|---|---|
+| LLM calls per compute, gaps and roadmap | 2 | 0 | Code reading |
+| RAG embedding calls per compute | About 5 | 0 | Code reading |
+| Engine time, 60 repos + 60 projects, 2 roles | n/a | 8.81 ms mean over 200 runs | Measured locally |
+| Engine output size, same profile | n/a | 40,301 bytes | Measured locally |
+
+There is no measured before-and-after for total compute time. Repository scoring and the collaboration embedding still use providers where the user has consented. Recompute is still full per user, not incremental, though the engine itself makes no external calls.
+
+### Incident: test run attempted the real Neon database
+
+Two Linux test runs with `python -m unittest` bypassed `worker/tests/conftest.py`, which clears `DATABASE_URL`, and `worker.py` loaded `.env.local` from the mounted repository. The AI budget check then tried to connect to the Neon host in that file. In the saved log from the second run, all 96 Neon lines are failed attempts (48 timeouts, 48 network unreachable), with 8 tests erroring on "AI budget database unavailable". The first run's log was only partly kept, but it ended with the same failure counts. No successful connection appears, but Neon's own logs were not checked. Later runs used pytest with `.env.local` masked by a blank file.
+
+The underlying risk remains: importing `worker.py` loads `.env.local`, so running tests outside pytest can reach whichever database that file names.
+
+### Remaining blockers and unverified behaviour
+
+- Existing users need a `compute_intelligence` job queued before these cards show data. **Do not use `npm run db:backfill:intelligence` for this:** `scripts/backfill-independent-intelligence.ts` writes invented roadmaps ("Publish 2 papers") and a default skill graph to real users, overwrites `roadmaps`, and was not changed in this work. It needs replacing with a script that only queues the job. No recompute has been run against any real database.
+- Not tested with real provider data, on Neon, or on a preview or production deployment.
+- ERIS still uses its own readiness calculation, so its widget can differ from the new proficiency figures.
+- The `Skills to develop` widget still reads ERIS gaps.
+- Frameworks are detected from repository topics and descriptions only, because the privacy policy limits access to metadata.
+- Learning progress is derived from evidence only (not started, in progress, or dropped once met). Users can't mark progress themselves.
+- Catalogue links were checked once, on 2026-11-02, and nothing rechecks them.
+- `next-actions-row.tsx` and parts of the dashboard shell still use raw hex colours, and the "Live Engine Active" badge is unchanged.
+- Overall production status from earlier work remains NO-GO.
+
+## 70. Career intelligence consistency and data integrity (2026-11-02)
+
+Status: implemented and tested locally. Not committed, pushed or deployed. No production data was read or written, and no jobs were queued for real users. Real providers and Neon were not exercised. Production status stays NO-GO.
+
+### 70.1 Root causes
+
+| Problem | Root cause |
+|---|---|
+| Test runs tried to reach Neon | `worker.py` loaded `.env.local` on import, and only pytest's `conftest.py` protected against it |
+| The backfill could write invented data | It generated roadmaps, keyword embeddings, repository scores and a default skill graph itself, for every user including deleted ones, instead of queuing the worker |
+| Write scripts had no target check | **§49.3 was wrong.** It says the scripts have fail-closed checks, but none of them did. Only the two test setups checked, and only for `neon.tech` |
+| ERIS and "Skills to develop" contradicted the engine | Both used `readiness`, where a resume mention counted as 0.5, and treated a missing skill as 0 |
+| `/profile` showed a third number | "Evidence %" came from the same old strength, and `verificationStatus` from a separate calculation |
+| A GitHub-only user's `/profile` had no skills (found by the new integration test) | `view.skills` and the profile embedding were built from facts alone, so skills shown only by repositories never reached them |
+| The graph was unreadable at 18 skills | A fixed 640 px canvas scaled into a roughly 400 px card shrank labels, and a shared repository drew every possible link |
+| A dead course could stay recommended | Links were checked once, by hand, with no status recorded per course |
+
+### 70.2 Unsafe scripts fixed
+
+- **`scripts/backfill-independent-intelligence.ts`:** rewritten from about 600 lines. It now only inserts `compute_intelligence` rows into `jobs`. It defaults to a dry run, reads `DATABASE_URL` from the environment only, skips deleted and unfinished users, and queues each user at most once per batch.
+- **`scripts/lib/db-target.mjs` (new):** writes are allowed on this machine. A remote host needs `AIT_APPROVED_WRITE_HOST` set to exactly that host for the command. Test and CI runs can never reach a remote host, approved or not.
+- **Guarded for writes:** `migrate-http`, `flags` (on and off), `embed-learning-resources-http`, `embed_learning_resources.py`, `seed-academic`, `migrate-academic --apply`, `backfill-matches --apply`, and `drizzle-kit migrate`, `push` and `drop`.
+- **Read-only scripts:** `verify-phase2` and `verify-pgvector` now refuse a remote host during test or CI runs.
+- **`worker.py` and `server.py`:** load env files only as the entry point, so importing them sets no credentials.
+- **Test setups:** `conftest.py` and `src/test/setup.ts` now refuse any non-local database, not just `neon.tech`.
+
+**Owner impact:** `db:migrate` and `db:migrate:http` against Neon now need `AIT_APPROVED_WRITE_HOST`. CI and Vercel builds don't run them, but any deployment runbook that does must set it. The deployed worker doesn't use `.env.local`, so it isn't affected.
+
+### 70.3 Neon investigation
+
+**Result: no sign of a successful connection, but this is not proven from the database side.**
+
+- **Not checked:** Neon's logs and `pg_stat` views. No Neon console or API access was authorized, and connecting would itself have used the production credentials this work must avoid.
+- **Second run:** the saved log has 96 lines naming the Neon host. All 96 are failures (48 `timeout expired`, 48 `Network is unreachable`). There are 27 `OperationalError` lines and no line suggesting a successful connection.
+- **First run:** only the end of its log was kept. It finished with the same counts (8 errors, 1 failure).
+- **Supporting context:** psycopg2 uses port 5432, and §32 records that this workstation blocks outbound 5432.
+- **What was at risk:** the attempts came from the AI budget gate, which would have written budget rows if connected. The 8 tests that errored failed at the connection step.
+
+**Owner check:** in the Neon console, look at connection activity and `ai_budget` rows for the endpoint named in `.env.local` on 2026-11-02. A successful session or new rows from a test run would change this conclusion.
+
+### 70.4 ERIS and skill-gap consistency
+
+- **ERIS:** `technical` is now `Σ weight × min(1, proficiency / expected) / Σ weight`, from the engine's role analysis. `problem_solving` and `projects` stay separate dimensions.
+- **No fabricated zero:** there's no score when nothing supports one. A skill with no score has `readiness: null`, not 0.
+- **One gap list:** ERIS gaps, the "Skills to develop" widget and the Skill Gaps card use the same rows in the same order.
+- **`/profile`:** shows the engine's level. `verificationStatus` comes from the engine, and `view.skills` includes repository-only skills.
+- **Older stored views:** the ERIS and gap widgets show "Being updated" rather than the old formula.
+- **Partner API:** `erisScore.gaps[].readiness` can now be `null`, and `openapi.json` says so. This is a contract change for integrators. `skills[].evidenceStrength` keeps its old meaning for facts-based skills, and for repository-only skills is proficiency / 100. It should not be read as proficiency.
+- **Not changed:** `skill_evidence.evidence_strength` still exists for the evidence table and is not shown as proficiency.
+
+Tests:
+- `worker/tests/test_intelligence_consistency.py` runs 8 profiles across gaps, ERIS, roadmap, recommendations, graph and the skill summary.
+- `worker/tests/test_compute_integration.py` runs the real handler on real Postgres.
+- `e2e/skill-graph.spec.ts` checks that the card and widget match in a browser, using a stored fixture.
+
+### 70.5 Scoring evaluation
+
+The full model is in `docs/engineering/SCORING_MODEL.md`. **The model is not empirically calibrated, and no accuracy figure exists.** No weights were changed.
+
+15 synthetic profiles and 17 expectations (`worker/intelligence/evaluation.py`), all one engineer's judgement:
+
+| Result | Detail |
+|---|---|
+| As expected | 15 of 17 |
+| False positive | Five tiny repositories that only tag a topic score 55 (Proficient), expected Foundational |
+| False negative | Years of private work score 25 (Working), expected Proficient or above |
+| Role ranking | Consistent: none 0, listed 0, beginner 0, intermediate 0.478, experienced 1.0 |
+| Also found | Confidence counts kinds of source, not amount: a bare claim and eight large repositories both read 0.35 |
+
+These are left as product decisions, listed in the scoring document, and pinned by `worker/tests/test_scoring_evaluation.py`.
+
+### 70.6 Skill graph at 18 skills
+
+`e2e/skill-graph-18.spec.ts` uses 18 skills with worst-case names and every possible link (153), at 360, 390, 768, 1366 and 1920 px, on a real build.
+
+| Check | Result |
+|---|---|
+| Nodes and labels inside the card, none overlapping | Pass at all widths |
+| Hit areas at least 24 px, tapping a node opens that node | Pass (tap checked at 360 px) |
+| Labels drawn at about 12 px, not scaled down | Pass |
+| No inner scrolling, no page overflow | Pass |
+| Links drawn | At most 30 of 153; all are listed in each skill's details |
+| Keyboard: Enter opens, Tab stays in the dialog, Esc closes, focus returns | Pass on 3 nodes at 1366 px |
+| List view has the same skills, statuses and link counts | Pass at 390 px |
+
+Defects found and fixed: labels scaled too small, the link clique, tap targets under 24 px on short names, focus not returning, Tab leaving the dialog, and a mid-word label break found by looking at screenshots.
+
+Limits:
+- The card now grows taller with more skills, about 450 px at 18 skills in a dashboard column.
+- Links can still cross other nodes and labels; labels have a background halo to stay legible.
+- ARIA roles and keyboard behaviour were asserted, but no real screen reader was run.
+- Chromium only.
+
+### 70.7 Learning resources
+
+`scripts/check_learning_links.py` needs no database. It makes one request at a time, at most 80, with a pause between them and no retries. Results are in `worker/intelligence/resource_checks.json`, with a date and status per course. A course is offered only when its status is `ok` and its URL matches the catalogue. A check older than 90 days is flagged in the UI.
+
+| Status on 2026-11-02 | Count |
+|---|---|
+| ok | 22 |
+| generic (front page that doesn't name the course) | 9 |
+| redirected | 7 |
+| dead | 5 |
+| duplicate URL | 4 |
+| blocked (refused the checker, says nothing either way) | 3 |
+| **Total (46 requests)** | **50** |
+
+Of the 17 curated courses, 12 are usable, and 15 of 19 skills still have a course. Five courses were dropped as redirected, some of which may be legitimate moves: Advanced SQL, CUDA Mode, Deep RL, Hugging Face, and MLOps.
+
+Limits:
+- `ok` means the page responded and named the course. It doesn't prove the provider, price or availability, and a few `ok` rows look weak (for example, the Rust entry points to `rust-lang.org/learn`).
+- Nothing rechecks automatically. Someone has to run the script and commit the result, and a stored check doesn't reach running workers until they are redeployed.
+- The dead and generic rows are still in the `learning_resources` table, unused. Cleaning them needs a migration.
+
+### 70.8 Recompute strategy
+
+**Decision: keep full recomputation of the deterministic sections, and cache only the paid external calls.**
+
+The engine took 8.81 ms for a large synthetic profile (§69), and recency depends on the current date, so caching sections would add invalidation risk to save a few milliseconds. The cost is in external calls, so that is where the changes went:
+
+- **Repository scoring:** already skipped when the stored score is newer than the last push.
+- **Profile embedding (new):** reused when a fingerprint of its text and consent is unchanged. A local fallback vector is never cached as if a provider made it, and revoking consent forces a local vector.
+- **Stale runs (new):** the write phase locks the view row and keeps a newer result, on top of existing job fencing and per-user claim serialization.
+- **Retries:** idempotent, confirmed by running the real handler twice on Postgres.
+- **Freshness (new):** `view.sources` records the engine version, fact and repository counts, and the latest timestamps.
+
+No before-and-after timing was measured on real providers.
+
+### 70.9 Commands and results
+
+Run on the final code unless noted. All used local throwaway databases.
+
+| Command | Exit | Result |
+|---|---|---|
+| `python -m pytest -q --tb=short` (Windows, `worker/`) | 0 | 261 passed, 38 skipped |
+| `docker run ... ait-worker-test python -m pytest -q --tb=short -rs` (`.env.local` masked, migrated throwaway Postgres) | 0 | 298 passed, 1 skipped, 5 warnings |
+| `npm run test:pg` | 0 | 15 passed |
+| `npx vitest run` | 0 | 642 passed |
+| `npm run test:e2e` (real `next build`) | 0 | 91 passed, including 15 tests across the two graph specs |
+| `npm run typecheck` | 0 | Clean |
+| `npm run lint` | 0 | 0 errors, 98 warnings |
+| `python scripts/check_learning_links.py` | 0 | 46 outbound requests, §70.7 |
+| `python -m intelligence.evaluation` | 0 | §70.5 |
+
+The unit runs, typecheck, lint and `test:pg` came before the final one-line label wrap change and its spec edit. Typecheck and the full browser suite were rerun after it.
+
+Failures on the way, all fixed: a mid-word label, tap targets under 24 px, an embedding check that counted any earlier AI success, and two browser runs that timed out when the machine slept.
+
+### 70.10 Remaining blockers
+
+1. **Recompute not run:** existing users keep "Being updated" until the owner runs the new backfill. Run it on a staging branch first. It wasn't run against any real database, only tested on PGlite through its library.
+2. **Neon logs unchecked:** see §70.3.
+3. **Not verified:** Neon, real providers, real resume and GitHub data, deployed behaviour, Firefox and WebKit, physical devices, screen readers.
+4. **Scoring is uncalibrated:** three product questions are open in the scoring document.
+5. **Partner API change:** tell integrators about nullable `readiness`.
+6. **Migration runbook:** add `AIT_APPROVED_WRITE_HOST` to it.
+7. **§49.3** overstated what existed. This section replaces it.
+8. **Earlier product and legal items** in §65.4 and §66.9 are unchanged. Production status remains **NO-GO**.
+
+## 71. Security and bug review (2026-11-03)
+
+Status: fixed and tested locally. Not committed, pushed or deployed. No penetration test was run, and nothing was tested on Neon, real providers or a deployment. Production status stays NO-GO.
+
+**Fixed**
+
+| Sev | Issue | Fix | Test |
+|---|---|---|---|
+| High | `nodemailer` 8.0.11 had 4 high and 11 moderate advisories (`npm audit` reported 4 high findings through `next-auth` and `@auth`) | Upgraded to 10.3.1, with an npm `overrides` entry because `next-auth` declares support only up to 8 | `npm audit --omit=dev`: 0. `src/lib/email.test.ts` sends through a local SMTP server |
+| High | SMTP on port 587 didn't require TLS, so a network attacker could strip STARTTLS and read the password | `requireTLS`, except a local test server | Rule unit-tested; not run against a real mail server |
+| High | `cryptography` 44.0.3 had 6 advisories, `python-dotenv` 1.0.1 had 1 | Upgraded to 50.0.0 and 1.2.2 | `pip-audit`: none. Worker suite passes on them. The worker image itself wasn't rebuilt |
+| Medium | Newsletter forms on the landing, about and contact pages said "Thank you for subscribing" while saving nothing | They now say nothing was saved | Landing checked in `e2e/security-headers.spec.ts`; about and contact by typecheck only |
+| Low | No HSTS, and `X-Powered-By` exposed the framework | Added HSTS (one year, this host only) and removed the header | `e2e/security-headers.spec.ts` |
+
+**Read, no defect found:** contact, jobs, internal notify, queue health, GitHub callback, embed token, SSO token, consents, resume completion, profile API, widget prefs, session refresh, analytics, `toLocalPath`, `safeEqual`, the worker Dockerfile. No secrets in tracked files (pattern search of the current tree, not git history). Job-triggering onboarding actions are bounded by consent limits and idempotency keys. Not every route or action was read line by line: search, institutions, ORCID, connector start routes, integration status and profile, webhook dispatch and most of Yora were covered only by pattern checks and existing tests.
+
+**Open**
+
+| Sev | Issue | Why it's still open |
+|---|---|---|
+| P1 | Under-18 safeguards, faculty and alumni role verification | Product and legal decisions |
+| P2 | CSP still allows inline scripts, and has no `form-action` | Nonces conflict with static and partially prerendered pages; `form-action` could break OAuth sign-in without a live test |
+| P2 | Nodemailer override runs outside `next-auth`'s declared range | Basic send tested; the real magic-link email wasn't |
+| P2 | `publicUrl` doesn't block names resolving to private IPs | Firecrawl does the fetch, so exposure depends on Firecrawl |
+| P2 | Git history not scanned for old secrets | Needs a dedicated scanner, which is a new tool |
+
+**Results (exit 0 for all):** typecheck clean; lint 0 errors, 99 warnings; vitest 646 passed; `test:pg` 15 passed; Playwright 96 passed on a real build; Linux worker 298 passed, 1 skipped, on the upgraded Python packages.

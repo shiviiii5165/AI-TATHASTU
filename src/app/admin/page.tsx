@@ -17,7 +17,7 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 
 import { requireAdmin } from "@/lib/admin";
-import { getAiBudgetStatus, getAiProviderHealthSummary } from "@/lib/admin/ai-ops";
+import { getAiBudgetStatus, getAiProviderUsage } from "@/lib/admin/ai-ops";
 import { listAdminAudits } from "@/lib/admin/audit";
 import { seedStarterTemplates } from "@/lib/admin/email-engine";
 import { getAdminContext } from "@/lib/admin/rbac";
@@ -36,13 +36,26 @@ export default async function AdminOverviewPage() {
   const user = await requireAdmin();
   const ctx = await getAdminContext(user);
 
+  // This page summarises students, tickets, spend and the audit log together. Other roles get
+  // none of that here; each section has its own page, with its own permission.
+  if (!ctx?.isSuperAdmin) {
+    return (
+      <div className="max-w-xl space-y-3">
+        <h1 className="text-2xl font-extrabold tracking-tight text-foreground">Admin Control Center</h1>
+        <p className="text-sm text-muted-foreground">
+          Signed in as {ctx?.role.replaceAll("_", " ")}. Use the menu to open the sections your role can access. Others show as not found.
+        </p>
+      </div>
+    );
+  }
+
   // Initialize starter fixtures/seed if empty (idempotent)
   await seedStarterTemplates();
 
   const [studentsData, ticketsData, providers, budget, auditsData] = await Promise.all([
     listStudents({ limit: 5 }),
     listSupportTickets({ limit: 5 }),
-    getAiProviderHealthSummary(),
+    getAiProviderUsage(),
     getAiBudgetStatus(),
     listAdminAudits({ limit: 5 }),
   ]);
@@ -137,13 +150,11 @@ export default async function AdminOverviewPage() {
             </div>
           </div>
           <div className="mt-3 text-2xl font-bold tracking-tight text-foreground">
-            ${budget.spentUsd} / ${budget.budgetUsd}
+            ${budget.usedUsd.toFixed(2)} / ${budget.budgetUsd}
           </div>
           <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-            <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
-              {Math.round((Number(budget.spentUsd) / Number(budget.budgetUsd)) * 100)}%
-            </span>
-            <span>utilized this billing period</span>
+            <span className="font-semibold text-foreground">${budget.estimatedUsd.toFixed(2)}</span>
+            <span>of it estimated, not metered</span>
           </div>
         </div>
 
@@ -273,19 +284,11 @@ export default async function AdminOverviewPage() {
                     <Cpu className="size-3.5 text-primary" />
                     {p.name}
                   </span>
-                  <span
-                    className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${
-                      p.healthStatus === "healthy"
-                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                        : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                    }`}
-                  >
-                    {p.healthStatus}
-                  </span>
+                  <span className="text-[10px] font-semibold text-muted-foreground">{p.errorRate}% failed</span>
                 </div>
                 <div className="flex items-center justify-between text-[11px] text-muted-foreground font-mono mt-2">
-                  <span>Avg Latency: {p.avgLatencyMs}ms</span>
-                  <span>Error: {p.errorRate}%</span>
+                  <span>Calls this month: {p.callsThisMonth}</span>
+                  <span>Calculated: ${p.costThisMonth.toFixed(2)}</span>
                 </div>
               </div>
             ))}

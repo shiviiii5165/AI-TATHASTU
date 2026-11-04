@@ -1,22 +1,19 @@
 import "server-only";
 
-import { notFound } from "next/navigation";
-
 import type { User } from "@/db/schema";
 import { isAdminEmail } from "@/lib/admin-emails";
-import { getCurrentUser } from "@/lib/dal";
+import { requireOperator } from "@/lib/admin/rbac";
 
 /**
- * Operators: users.is_admin, or an email in ADMIN_EMAILS (see admin-emails.ts).
- * Sign-in proves the email: magic links and Google/LinkedIn both verify it.
- * The proxy already 404s non-admins on /admin (session claim); this is the
- * second check, against the database.
+ * A quick check for what to show, from the user row alone. Decides nothing about access:
+ * that's getAdminContext, which also reads team membership. Deletion has its own check in SQL.
  */
 export const isAdmin = (user: Pick<User, "isAdmin" | "email">) => user.isAdmin || isAdminEmail(user.email);
 
-/** Admin pages and actions. Signed out → /login (via getCurrentUser); signed in but not an admin → 404, so the page isn't advertised. */
+/**
+ * Any active operator. Signed out → /login; otherwise not an operator → 404, so the page
+ * isn't advertised. Pages and actions also need requireAdminPermission: a test enforces it.
+ */
 export async function requireAdmin() {
-  const user = await getCurrentUser();
-  if (!isAdmin(user)) notFound();
-  return user;
+  return (await requireOperator()).user;
 }

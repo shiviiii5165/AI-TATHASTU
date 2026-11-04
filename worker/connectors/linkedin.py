@@ -8,6 +8,7 @@ import os
 import re
 from typing import Any, Dict, Iterable, List, Optional
 
+import ai_budget
 from connectors.common import Facts, HttpError, finish_sync, http_json, load_connection, set_status
 from db import has_consent
 from jobs import Job, NeedsReview
@@ -33,6 +34,7 @@ def fetch(url: str) -> Dict[str, Any]:
         key = pool.acquire()
         if key is None:
             break
+        reservation = ai_budget.reserve_flat("apify", "linkedin_scrape", ai_budget.flat_cost("AI_APIFY_CALL_USD", ai_budget.APIFY_CALL_USD), 180)
         try:
             items = http_json(
                 "POST",
@@ -41,13 +43,18 @@ def fetch(url: str) -> Dict[str, Any]:
                 {"profileScraperMode": MODE, "urls": [url]},
                 timeout=180,
             )
+            ai_budget.settle_used(reservation)
         except HttpError as exc:
+            ai_budget.settle_rejected(reservation)
             if exc.status in (402, 429):  # out of monthly credit / throttled: next token
                 pool.report(key, 429, 3600 if exc.status == 402 else 60)
                 continue
             if exc.status in (401, 403):
                 pool.report(key, 401)
                 continue
+            raise
+        except Exception:
+            ai_budget.settle_used(reservation)  # A timeout may have been billed. A second settle does nothing.
             raise
         return (items or [{}])[0]
     raise RuntimeError("no Apify token available (all throttled or out of credit)")

@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import sys
 from pathlib import Path
+from urllib.parse import urlparse
 
 # Add worker to sys.path
 HERE = Path(__file__).resolve().parent
@@ -24,6 +25,13 @@ DATABASE_URL = os.environ.get("DATABASE_URL")
 if not DATABASE_URL:
     print("DATABASE_URL not set!")
     sys.exit(1)
+
+_host = (urlparse(DATABASE_URL).hostname or "").lower()
+if _host not in ("localhost", "127.0.0.1", "::1", "host.docker.internal"):
+    # Same rule as scripts/lib/db-target.mjs.
+    if os.environ.get("CI") or os.environ.get("NODE_ENV") == "test" or os.environ.get("AIT_APPROVED_WRITE_HOST", "").strip().lower() != _host:
+        print(f"Refusing to write to remote database host {_host}. If you are the owner and mean to, set AIT_APPROVED_WRITE_HOST to exactly that host for this one command.")
+        sys.exit(1)
 
 conn = psycopg2.connect(DATABASE_URL)
 cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)

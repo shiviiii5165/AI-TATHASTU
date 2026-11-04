@@ -134,6 +134,48 @@
       "when": 1793277749586,
       "tag": "0018_jobs_running_index",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793277749587,
+      "tag": "0019_session_version",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1793277749588,
+      "tag": "0020_admin_mfa",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1793277749589,
+      "tag": "0021_account_deletion_and_mfa_recovery",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1793277749590,
+      "tag": "0022_ai_spend_enforcement",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1793277749591,
+      "tag": "0023_paid_work_hardening",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1793277749592,
+      "tag": "0024_auth_code_session_version",
+      "breakpoints": true
     }
   ]
 }

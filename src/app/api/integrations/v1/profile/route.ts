@@ -11,6 +11,7 @@ import { getConsent, isLinked } from "@/lib/integrations/consent";
 import { toProfessionalProjectionV1 } from "@/lib/integrations/projection";
 import { verifyAccessToken } from "@/lib/integrations/tokens";
 import { loadProfile } from "@/lib/profile/unified";
+import { hitRateLimit } from "@/lib/rate-limit";
 
 const HEADERS = { "Cache-Control": "private, no-store", Vary: "Authorization" };
 const error = (status: number, code: string, message: string) =>
@@ -28,14 +29,21 @@ export async function GET(request: Request) {
   const claims = bearer ? await verifyAccessToken(bearer) : null;
   if (!claims) return error(401, "invalid_token", "Missing, invalid or expired access token.");
 
+  const limited = await hitRateLimit(`integration_profile:${claims.clientId}:${claims.userId}`, { limit: 120, windowSeconds: 60 });
+  if (!limited.ok) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429, headers: { ...HEADERS, "Retry-After": String(limited.retryAfter) } });
+  }
+
   const client = clientById(claims.clientId)!;
   if (!(await isFeatureEnabled(client.flag))) return error(403, "disabled", `${client.name} isn't enabled.`);
 
   try {
-    const [user] = await db.select({ deletedAt: users.deletedAt }).from(users).where(eq(users.id, claims.userId));
+    const [user] = await db.select({ deletedAt: users.deletedAt, sessionVersion: users.sessionVersion }).from(users).where(eq(users.id, claims.userId));
     const consent = await getConsent(claims.userId, client.id);
-    // Disconnecting the app invalidates its tokens immediately, not after 15 minutes.
-    if (!user || user.deletedAt || !isLinked(consent)) return error(401, "invalid_token", "The user disconnected this app.");
+    // Disconnecting the app or revoking the user's sessions invalidates its tokens immediately, not after 15 minutes.
+    if (!user || user.deletedAt || user.sessionVersion !== claims.sessionVersion || !isLinked(consent)) {
+      return error(401, "invalid_token", "The user disconnected this app.");
+    }
 
     const body = JSON.stringify(toProfessionalProjectionV1(await loadProfile(claims.userId), client.id, consent));
     const etag = `W/"${createHash("sha1").update(body.replace(/"generatedAt":"[^"]*"/, "")).digest("base64url")}"`;

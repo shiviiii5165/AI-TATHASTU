@@ -6,6 +6,7 @@ import { sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { rateLimits } from "@/db/schema";
+import { normalizeIp } from "@/lib/ip";
 
 export type RateLimit = {
   limit: number;
@@ -75,57 +76,149 @@ export async function hitRateLimit(key: string, { limit, windowSeconds, onDbErro
   }
 }
 
+/**
+ * For work that costs money: no span of windowSeconds holds more than `limit`, at any
+ * boundary, unlike the fixed window above. Refused if the database can't be reached.
+ */
+export async function hitSlidingLimit(key: string, limit: number, windowSeconds: number): Promise<{ ok: boolean; retryAfter: number }> {
+  try {
+    const { rows } = await db.execute(sql`SELECT hit_sliding_limit(${key}::text, ${limit}::int, ${windowSeconds}::int) AS retry`);
+    const retry = Number((rows[0] as { retry: number }).retry);
+    return { ok: retry === 0, retryAfter: retry };
+  } catch (error) {
+    console.error("sliding limiter unavailable", { key: key.split(":")[0], error: String(error) });
+    return { ok: false, retryAfter: 60 };
+  }
+}
+
 let proxyWarningLogged = false;
 
+export type ClientIdentity =
+  | {
+      ok: true;
+      /** Normalized IP address (RFC 5952 for IPv6, canonical dotted-decimal for IPv4). */
+      ip: string;
+      /**
+       * Rate-limiting bucket key:
+       * - IPv4: dotted-decimal (e.g. "192.0.2.1")
+       * - IPv6: /64 prefix (e.g. "2001:db8:abcd:12::/64") to group privacy rotation addresses
+       */
+      bucketKey: string;
+      version: 4 | 6;
+    }
+  | {
+      ok: false;
+      reason: "missing" | "untrusted" | "malformed";
+    };
+
 /**
- * Derives a reliable client rate-limiting identifier.
+ * Resolves verified client identity using platform-trusted proxy infrastructure:
  *
- * 1. On trusted edges (Vercel or explicit TRUST_PROXY_HEADERS=1), extracts the client IP
- *    from edge-verified headers (x-vercel-forwarded-for, x-forwarded-for first hop, x-real-ip, or cf-connecting-ip).
- * 2. Off-Vercel without trusted reverse proxy configuration, client-supplied forwarding headers
- *    are NEVER blindly trusted (preventing spoofed X-Forwarded-For bypass).
- * 3. To prevent independent users from unintentionally sharing a global "unknown" rate-limit
- *    bucket (which would allow one user to DoS all others), unverified callers are partitioned
- *    using non-spoofable client entropy (cookie, authorization, user-agent, accept-language).
+ * 1. On Vercel (process.env.VERCEL is set):
+ *    Extracts client IP from `x-vercel-forwarded-for` (platform-managed header that strips
+ *    incoming client copies), falling back to `x-forwarded-for` first hop.
+ * 2. On custom hosting (process.env.TRUST_PROXY_HEADERS === "1"):
+ *    Extracts client IP only when explicitly configured behind a verified reverse proxy
+ *    that overwrites forwarding headers (e.g. Nginx, Cloudflare).
+ * 3. Off-Vercel without TRUST_PROXY_HEADERS=1:
+ *    Forwarding headers are NEVER trusted, preventing spoofed header bypass.
+ *    Returns `{ ok: false, reason: "untrusted" }`.
+ *
+ * All extracted IP addresses are validated and normalized with `normalizeIp`. Malformed values
+ * are rejected. Arbitrary headers, user-agents, and cookies are never used as client identity.
  */
-export function clientIp(request: Request): string {
+export function resolveClientIdentity(request: Request): ClientIdentity {
   const { headers } = request;
   const isVercel = Boolean(process.env.VERCEL);
   const trustProxy = process.env.TRUST_PROXY_HEADERS === "1";
 
-  if (isVercel || trustProxy) {
-    const trustedIp =
-      (isVercel ? headers.get("x-vercel-forwarded-for")?.split(",")[0]?.trim() : null) ||
-      headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-      headers.get("x-real-ip") ||
-      headers.get("cf-connecting-ip")?.trim();
+  if (isVercel) {
+    // Vercel edge sets x-vercel-forwarded-for to the connecting client IP.
+    // If chained, the first IP is the client.
+    const vercelHeader = headers.get("x-vercel-forwarded-for")?.split(",")[0]?.trim();
+    const fallbackHeader = headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+    const rawIp = vercelHeader || fallbackHeader;
 
-    if (trustedIp) return trustedIp;
+    if (!rawIp) {
+      return { ok: false, reason: "missing" };
+    }
+
+    const normalized = normalizeIp(rawIp);
+    if (!normalized) {
+      return { ok: false, reason: "malformed" };
+    }
+
+    return {
+      ok: true,
+      ip: normalized.normalized,
+      bucketKey: normalized.bucketKey,
+      version: normalized.version,
+    };
   }
 
-  if (!isVercel && !trustProxy && process.env.NODE_ENV === "production" && !proxyWarningLogged) {
+  if (trustProxy) {
+    // Custom hosting: operator explicitly guarantees proxy overwrites forwarding headers.
+    const rawIp =
+      headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      headers.get("x-real-ip")?.trim() ||
+      headers.get("cf-connecting-ip")?.trim();
+
+    if (!rawIp) {
+      return { ok: false, reason: "missing" };
+    }
+
+    const normalized = normalizeIp(rawIp);
+    if (!normalized) {
+      return { ok: false, reason: "malformed" };
+    }
+
+    return {
+      ok: true,
+      ip: normalized.normalized,
+      bucketKey: normalized.bucketKey,
+      version: normalized.version,
+    };
+  }
+
+  // Off-Vercel without TRUST_PROXY_HEADERS=1: direct or unverified proxy connection.
+  const hasForwardingHeaders = Boolean(
+    headers.get("x-forwarded-for") ||
+    headers.get("x-real-ip") ||
+    headers.get("cf-connecting-ip") ||
+    headers.get("x-vercel-forwarded-for")
+  );
+
+  if (hasForwardingHeaders && process.env.NODE_ENV === "production" && !proxyWarningLogged) {
     proxyWarningLogged = true;
     console.warn(
-      "[rate-limit] Running off-Vercel in production without TRUST_PROXY_HEADERS=1. " +
-      "Client IPs fall back to client fingerprint partitioning. " +
-      "Set TRUST_PROXY_HEADERS=1 behind a trusted reverse proxy (see DEPLOYMENT.md)."
+      "[rate-limit] Received forwarding headers off-Vercel without TRUST_PROXY_HEADERS=1. " +
+      "Client-supplied headers ignored to prevent spoofing bypass. " +
+      "Set TRUST_PROXY_HEADERS=1 only behind a verified reverse proxy (see DEPLOYMENT.md)."
     );
   }
 
-  // Derive isolated partition for unverified client without trusting client-supplied IP headers
-  const clientEntropy = [
-    headers.get("cookie"),
-    headers.get("authorization"),
-    headers.get("user-agent"),
-    headers.get("accept-language"),
-  ]
-    .filter(Boolean)
-    .join("|");
+  return { ok: false, reason: "untrusted" };
+}
 
-  if (clientEntropy) {
-    const hash = createHash("sha256").update(clientEntropy).digest("hex").slice(0, 16);
-    return `untrusted:${hash}`;
-  }
+/**
+ * Returns the verified client IP bucket key for rate limiting, or null if no
+ * trustworthy client IP could be established.
+ *
+ * NEVER returns "unknown" or weak client header fingerprints, eliminating global
+ * bucket collisions and spoofing bypass.
+ */
+export function clientIp(request: Request): string | null {
+  const identity = resolveClientIdentity(request);
+  return identity.ok ? identity.bucketKey : null;
+}
 
-  return "unknown";
+/**
+ * Privacy-preserving 32-character SHA-256 hash of the client IP bucket key.
+ * Guarantees that raw IP addresses are never logged or stored in the database.
+ * Returns null if client IP is unverified.
+ */
+export function clientIpHash(request: Request): string | null {
+  const ip = clientIp(request);
+  if (!ip) return null;
+  return createHash("sha256").update(ip).digest("hex").slice(0, 32);
 }

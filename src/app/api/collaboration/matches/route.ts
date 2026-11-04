@@ -2,6 +2,7 @@ import { connection, NextResponse } from "next/server";
 
 import { auth } from "@/auth";
 import { similarPeople, viewerFor } from "@/lib/people";
+import { hitRateLimit } from "@/lib/rate-limit";
 
 const ROLE_LABEL = { student: "Student", faculty: "Faculty / Mentor", alumni: "Alumni" } as const;
 
@@ -10,6 +11,12 @@ export async function GET() {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Vector search per call.
+  const limited = await hitRateLimit(`matches:${session.user.id}`, { limit: 60, windowSeconds: 60 });
+  if (!limited.ok) {
+    return NextResponse.json({ error: "Too many requests." }, { status: 429, headers: { "Retry-After": String(limited.retryAfter) } });
   }
 
   try {

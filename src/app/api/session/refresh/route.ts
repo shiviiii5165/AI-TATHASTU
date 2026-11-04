@@ -2,6 +2,7 @@ import { connection, NextResponse, type NextRequest } from "next/server";
 
 import { auth, unstable_update } from "@/auth";
 import { resolvePostAuthDestination } from "@/lib/auth/destination";
+import { hitRateLimit } from "@/lib/rate-limit";
 
 /**
  * Re-derives the JWT `onboarded` claim from the database, then continues to
@@ -16,6 +17,9 @@ export async function GET(request: NextRequest) {
   if (!session?.user?.id) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
+
+  const limited = await hitRateLimit(`session_refresh:${session.user.id}`, { limit: 60, windowSeconds: 60 });
+  if (!limited.ok) return NextResponse.json({ error: "Too many requests." }, { status: 429, headers: { "Retry-After": String(limited.retryAfter) } });
 
   // Refresh JWT claims in the session token (re-runs Node jwt callback with trigger "update")
   await unstable_update({});

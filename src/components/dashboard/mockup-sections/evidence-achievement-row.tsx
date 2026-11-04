@@ -139,7 +139,7 @@ function RecentProjectsCard({ projects = [] }: { projects?: RecentProjectItem[] 
           </div>
           <p className="text-xs font-bold text-[#11182B]">No repositories synced yet</p>
           <p className="text-[11px] text-[#617493] mt-1 max-w-[200px]">
-            Connect GitHub to see your repositories and compute your AI Impact Score.
+            Connect GitHub to see your repositories here.
           </p>
           <Link
             href="/settings/integrations"

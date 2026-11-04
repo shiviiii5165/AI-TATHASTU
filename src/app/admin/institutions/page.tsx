@@ -6,7 +6,7 @@ import { Suspense } from "react";
 import { PendingInstitutionRow } from "@/components/admin/pending-institution-row";
 import { db } from "@/db";
 import { institutions, users } from "@/db/schema";
-import { requireAdmin } from "@/lib/admin";
+import { requireAdminPermission } from "@/lib/admin/rbac";
 
 export const metadata: Metadata = { title: "Pending institutions", robots: { index: false } };
 
@@ -27,7 +27,7 @@ export default function AdminInstitutionsPage() {
 }
 
 async function PendingTable() {
-  await requireAdmin();
+  await requireAdminPermission("institutions.manage");
   const author = alias(users, "author");
   const rows = await db
     .select({

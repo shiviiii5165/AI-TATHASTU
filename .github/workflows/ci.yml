@@ -23,6 +23,17 @@ jobs:
     name: Web (typecheck, lint, Vitest, Playwright)
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    # Disposable, for this job only. Pinned by digest.
+    services:
+      postgres:
+        image: pgvector/pgvector@sha256:0dd3149a06e4579a0d70d8fef9945636cd514005e7237deb27f9b67886f8dc4f
+        env:
+          POSTGRES_PASSWORD: ci-only
+          POSTGRES_DB: ait_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d ait_test"
+          --health-interval 5s --health-timeout 5s --health-retries 20
     steps:
       - uses: actions/checkout@v5
 
@@ -32,9 +43,16 @@ jobs:
           cache: npm
 
       - run: npm ci
+      # Critical only for now: the known high advisories in nodemailer have no release
+      # compatible with Auth.js's peer range (DEPLOYMENT.md, "Security follow-ups").
+      - run: npm audit --omit=dev --audit-level=critical
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run test
+      - name: Concurrency and migrations on real Postgres
+        run: npm run test:pg
+        env:
+          TEST_POSTGRES_URL: postgresql://postgres:ci-only@127.0.0.1:5432/ait_test
 
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
@@ -58,6 +76,16 @@ jobs:
     name: Worker (pytest)
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    services:
+      postgres:
+        image: pgvector/pgvector@sha256:0dd3149a06e4579a0d70d8fef9945636cd514005e7237deb27f9b67886f8dc4f
+        env:
+          POSTGRES_PASSWORD: ci-only
+          POSTGRES_DB: ait_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d ait_test"
+          --health-interval 5s --health-timeout 5s --health-retries 20
     defaults:
       run:
         working-directory: worker
@@ -70,5 +98,17 @@ jobs:
           cache: pip
           cache-dependency-path: worker/requirements.txt
 
-      - run: pip install -r requirements.txt pytest==8.3.5
-      - run: pytest -q
+      - run: pip install -r requirements.txt pytest==8.3.5 pip-audit==2.9.0
+      - run: pip-audit -r requirements.txt
+        continue-on-error: true # Reports only until the first run's findings are triaged.
+      - name: Apply migrations to the disposable database
+        run: |
+          sudo apt-get install -y -qq tesseract-ocr tesseract-ocr-eng postgresql-client
+          for file in $(ls ../src/db/migrations/*.sql | sort); do
+            psql "$QUEUE_TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -q -f "$file"
+          done
+        env:
+          QUEUE_TEST_DATABASE_URL: postgresql://postgres:ci-only@127.0.0.1:5432/ait_test
+      - run: pytest -q -rs
+        env:
+          QUEUE_TEST_DATABASE_URL: postgresql://postgres:ci-only@127.0.0.1:5432/ait_test

@@ -11,6 +11,7 @@ import { connections } from "@/db/schema";
 import { queueConnectorSync } from "@/lib/connectors/connections";
 import { requireOnboardedUser } from "@/lib/dal";
 import { setWidgetPref, widgetPrefSchema, type WidgetPrefInput } from "@/lib/dashboard/prefs";
+import { allowPaidWork } from "@/lib/paid-work";
 import { wakeWorker } from "@/lib/worker-ping";
 
 /** Dismiss / restore / pin / unpin a widget, then re-render the dashboard. */
@@ -31,6 +32,7 @@ export async function refreshGithub(): Promise<SaveResult> {
     .from(connections)
     .where(and(eq(connections.userId, user.id), eq(connections.sourceId, "github")));
   if (!connection) return { ok: false, error: "GitHub isn't connected." };
+  if (!(await allowPaidWork(user.id, "github_refresh")).ok) return { ok: false, error: "Refreshed recently. Try again later." };
   await queueConnectorSync(user.id, connection.id, "github", `manual:${randomUUID()}`);
   wakeWorker("connector_sync:github:manual");
   refresh();

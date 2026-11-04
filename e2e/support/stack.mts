@@ -120,12 +120,28 @@ function startFakeR2() {
       return;
     }
 
+    // ListObjectsV2 (path-style: GET /<bucket>?list-type=2&prefix=...), for account deletion's sweep.
+    const query = new URL(req.url ?? "/", "http://r2").searchParams;
+    if (req.method === "GET" && query.get("list-type") === "2") {
+      const bucket = `${key.replace(/\/$/, "")}/`;
+      const prefix = query.get("prefix") ?? "";
+      const keys = [...objects.keys()].filter((k) => k.startsWith(bucket + prefix)).map((k) => k.slice(bucket.length));
+      const contents = keys.map((k) => `<Contents><Key>${k}</Key></Contents>`).join("");
+      return res
+        .writeHead(200, { "Content-Type": "application/xml" })
+        .end(`<?xml version="1.0"?><ListBucketResult><KeyCount>${keys.length}</KeyCount><IsTruncated>false</IsTruncated>${contents}</ListBucketResult>`);
+    }
+
     if (req.method === "HEAD") {
       const obj = objects.get(key);
       if (!obj) return res.writeHead(404).end();
       return res
         .writeHead(200, { "Content-Length": obj.size, "Content-Type": obj.type, "x-amz-checksum-sha256": obj.sha256 })
         .end();
+    }
+    if (req.method === "DELETE") {
+      objects.delete(key);
+      return res.writeHead(204).end();
     }
     res.writeHead(405, cors).end();
   });

@@ -2,10 +2,12 @@ import nextEnv from "@next/env";
 import { neon } from "@neondatabase/serverless";
 import crypto from "node:crypto";
 
+import { assertWriteAllowed } from "./lib/db-target.mjs";
+
 nextEnv.loadEnvConfig(process.cwd(), true, { info() {}, error: console.error });
 if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is not set (.env.local)");
 
-const sql = neon(process.env.DATABASE_URL);
+const sql = neon(assertWriteAllowed(process.env.DATABASE_URL));
 const geminiKeys = (process.env.GEMINI_KEYS || "")
   .split(",")
   .map((k) => k.trim())

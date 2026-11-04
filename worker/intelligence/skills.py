@@ -69,6 +69,14 @@ class SkillIndex:
         self.names[skill_id] = name
         return skill_id
 
+    def canonical(self, mention: str) -> Optional[str]:
+        """The canonical spelling of a mention. Read-only: a new spelling keeps its own name and adds no row."""
+        name = re.sub(r"\s+", " ", mention).strip(" .,;:()[]")
+        if not name or len(name) > 60:
+            return None
+        skill_id = self.by_alias.get(alias_key(name))
+        return self.names.get(skill_id, name) if skill_id else name
+
 
 @dataclass
 class Evidence:
@@ -133,14 +141,6 @@ def collect(
     return out
 
 
-def readiness(evidence: List[Evidence]) -> Dict[str, float]:
-    """skill_id → min(1, Σ strength). The ERIS per-role cap is 1.0 per skill."""
-    out: Dict[str, float] = {}
-    for e in evidence:
-        out[e.skill_id] = out.get(e.skill_id, 0.0) + e.strength
-    return {k: round(min(1.0, v), 3) for k, v in out.items()}
-
-
 def summarize(evidence: List[Evidence], names: Dict[str, str], categories: Dict[str, str]) -> List[Dict[str, Any]]:
     by_skill: Dict[str, Tuple[float, set]] = {}
     for e in evidence:
@@ -152,7 +152,8 @@ def summarize(evidence: List[Evidence], names: Dict[str, str], categories: Dict[
             "category": categories.get(sid, "other"),
             "evidenceStrength": round(min(1.0, total), 3),
             "sources": sorted(sources),
-            "verificationStatus": "verified" if "github" in sources or "resume" in sources else "self_reported",
+            # A resume is the user's own claim. Verified means a source we read directly.
+            "verificationStatus": "verified" if "github" in sources else "claimed" if "resume" in sources else "self_reported",
         }
         for sid, (total, sources) in by_skill.items()
     ]

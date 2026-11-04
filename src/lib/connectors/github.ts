@@ -51,18 +51,30 @@ export async function fetchGithubUser(accessToken: string) {
   return { id: user.id, login: user.login };
 }
 
-/** Best effort: revokes the app's grant so the token stops working on GitHub's side too. */
-export async function revokeGithubGrant(accessToken: string) {
+export type GithubRevocation = "revoked" | "already_invalid" | "failed";
+
+/**
+ * Revokes the app's grant so the token stops working on GitHub's side too. Never throws.
+ * GitHub answers 204 when revoked, and 404 or 422 for a token it no longer accepts.
+ * "failed" covers an outage and missing configuration: both are worth retrying.
+ */
+export async function revokeGithubGrant(accessToken: string): Promise<GithubRevocation> {
   const config = githubConfig();
-  if (!config) return;
-  await fetch(`https://api.github.com/applications/${config.clientId}/grant`, {
-    method: "DELETE",
-    headers: {
-      Authorization: `Basic ${Buffer.from(`${config.clientId}:${config.clientSecret}`).toString("base64")}`,
-      Accept: "application/vnd.github+json",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ access_token: accessToken }),
-    signal: AbortSignal.timeout(GITHUB_TIMEOUT_MS),
-  }).catch(() => undefined);
+  if (!config) return "failed";
+  try {
+    const res = await fetch(`https://api.github.com/applications/${config.clientId}/grant`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Basic ${Buffer.from(`${config.clientId}:${config.clientSecret}`).toString("base64")}`,
+        Accept: "application/vnd.github+json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ access_token: accessToken }),
+      signal: AbortSignal.timeout(GITHUB_TIMEOUT_MS),
+    });
+    if (res.status === 204) return "revoked";
+    return res.status === 404 || res.status === 422 ? "already_invalid" : "failed";
+  } catch {
+    return "failed";
+  }
 }
