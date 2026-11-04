@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { clientById, isAllowedRedirect, type IntegrationClient } from "./clients";
+import { isAllowedRedirect, type IntegrationClient } from "./clients";
 
 describe("OAuth Redirect URI Validation Security (isAllowedRedirect)", () => {
   const baseClient: IntegrationClient = {
@@ -74,20 +74,45 @@ describe("OAuth Redirect URI Validation Security (isAllowedRedirect)", () => {
   });
 
   it("validates registered Collaborate and Meet clients for production compatibility", () => {
-    // collaborate in .env.test has INTEGRATION_COLLABORATE_REDIRECT_URIS configured
-    const collab = clientById("collaborate");
-    expect(collab).not.toBeNull();
-    // Whitelisted URL from .env.test is allowed
-    expect(isAllowedRedirect(collab!, "http://127.0.0.1:9100/collaborate/callback")).toBe(true);
-    // Non-whitelisted URL is denied
-    expect(isAllowedRedirect(collab!, "https://collaborate.aitathastu.com/unregistered")).toBe(false);
+    // Collaborate: explicitly configured whitelist of redirect URIs (simulates production env)
+    const collab: IntegrationClient = {
+      id: "collaborate",
+      name: "Collaborate",
+      description: "Find teammates, mentors and projects that match your skills.",
+      origin: "https://collaborate.aitathastu.com",
+      flag: "collaborate_profile_api",
+      requested: ["skills", "projects", "experience", "education", "achievements"],
+      secret: "test-secret",
+      // Explicit whitelist — the production pattern where INTEGRATION_COLLABORATE_REDIRECT_URIS is set
+      redirectUris: ["http://127.0.0.1:9100/collaborate/callback"],
+      webhookUrl: null,
+      webhookSecret: null,
+      pkceRequired: true,
+    };
+    // Whitelisted URL is allowed
+    expect(isAllowedRedirect(collab, "http://127.0.0.1:9100/collaborate/callback")).toBe(true);
+    // Non-whitelisted URL is denied even if same origin
+    expect(isAllowedRedirect(collab, "https://collaborate.aitathastu.com/unregistered")).toBe(false);
+    // Any URL not in the explicit list is denied
+    expect(isAllowedRedirect(collab, "http://127.0.0.1:9100/other/path")).toBe(false);
 
-    // meet has no redirectUris in .env.test, so it exercises the canonical callback fallback
-    const meet = clientById("meet");
-    expect(meet).not.toBeNull();
-    expect(isAllowedRedirect(meet!, "https://connect.aitathastu.com/api/auth/tathastu/callback")).toBe(true);
-    expect(isAllowedRedirect(meet!, "https://connect.aitathastu.com/other")).toBe(false);
-    expect(isAllowedRedirect(meet!, "https://connect.aitathastu.com/api/auth/tathastu/callback?param=inject")).toBe(false);
-    expect(isAllowedRedirect(meet!, "https://evil.com/api/auth/tathastu/callback")).toBe(false);
+    // Meet: no redirectUris configured — exercises the canonical callback fallback
+    const meet: IntegrationClient = {
+      id: "meet",
+      name: "Tathastu Meet",
+      description: "Video rooms for research, projects and mentoring.",
+      origin: "https://connect.aitathastu.com",
+      flag: "meet_profile_api",
+      requested: ["skills"],
+      secret: null,
+      redirectUris: null, // no explicit whitelist → canonical-callback fallback
+      webhookUrl: null,
+      webhookSecret: null,
+      pkceRequired: true,
+    };
+    expect(isAllowedRedirect(meet, "https://connect.aitathastu.com/api/auth/tathastu/callback")).toBe(true);
+    expect(isAllowedRedirect(meet, "https://connect.aitathastu.com/other")).toBe(false);
+    expect(isAllowedRedirect(meet, "https://connect.aitathastu.com/api/auth/tathastu/callback?param=inject")).toBe(false);
+    expect(isAllowedRedirect(meet, "https://evil.com/api/auth/tathastu/callback")).toBe(false);
   });
 });
