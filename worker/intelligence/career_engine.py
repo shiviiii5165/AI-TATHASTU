@@ -36,15 +36,17 @@ from __future__ import annotations
 
 import json
 import math
+import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple
 
-from intelligence.config import ROLE_SKILLS
+from intelligence.config import ROLE_PROJECT_CONTEXT, ROLE_SKILLS
 from intelligence.skill_graph import SKILL_ONTOLOGY, determine_relationship
 
-ENGINE_VERSION = 1
+# 2: specialist skills and role-specific frameworks for the 20-direction catalog; stable milestone ids.
+ENGINE_VERSION = 2
 MAX_EVIDENCE_PER_SKILL = 8
 MAX_GRAPH_NODES = 18
 UNVERIFIED_CAP = 49
@@ -118,6 +120,17 @@ PREREQUISITES: Dict[str, List[str]] = {
     "Terraform": ["AWS"],
     "CUDA": ["C++"],
     "JAX": ["Python", "Linear Algebra"],
+    "Speech Recognition": ["Deep Learning", "Audio Signal Processing"],
+    "Text-to-Speech": ["Deep Learning", "Audio Signal Processing"],
+    "Graph Neural Networks": ["Deep Learning", "Linear Algebra"],
+    "Federated Learning": ["Deep Learning"],
+    "Differential Privacy": ["Probability"],
+    "TensorFlow Lite": ["TensorFlow"],
+    "Model Quantization": ["Deep Learning"],
+    "Distributed Training": ["Deep Learning", "PyTorch"],
+    "LLM Evaluation": ["Large Language Models", "Statistics"],
+    "AI Agents": ["Large Language Models", "Prompt Engineering"],
+    "Vision-Language Models": ["Computer Vision", "Large Language Models"],
 }
 
 
@@ -489,13 +502,20 @@ def _dependency_order(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return ordered
 
 
-def _milestone(row: Dict[str, Any], present: Set[str]) -> Dict[str, Any]:
+def milestone_id(role: str, skill: str) -> str:
+    """Stable across runs: the same role and skill always give the same id, so saved progress keeps matching."""
+    return f"{role}:{re.sub(r'[^a-z0-9]+', '-', skill.lower()).strip('-')}"
+
+
+def _milestone(row: Dict[str, Any], present: Set[str], role: str) -> Dict[str, Any]:
+    context = ROLE_PROJECT_CONTEXT.get(role)
     return {
+        "id": milestone_id(role, row["skill"]),
         "skill": row["skill"],
         "state": row["state"],
         "done": row["state"] == "met",
         "requires": [p for p in PREREQUISITES.get(row["skill"], []) if p in present],
-        "deliverable": f"A public project using {row['skill']}",
+        "deliverable": f"A public project using {row['skill']}" + (f" in {context}" if context else ""),
         "criterion": f"{row['skill']} reaches {row['expectedLevel']} from your evidence",
         "estimateWeeks": WEEKS_TO_REACH[row["expected"]],
     }
@@ -518,7 +538,7 @@ def build_roadmap(analysis: Optional[Dict[str, Any]], position: Optional[str]) -
     def stage(key: str, title: str, items: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
         if not items:
             return None
-        milestones = [_milestone(r, present) for r in items]
+        milestones = [_milestone(r, present, analysis["role"]) for r in items]
         return {"key": key, "title": title, "milestones": milestones, "estimateWeeks": sum(m["estimateWeeks"] for m in milestones)}
 
     stages = [s for s in (

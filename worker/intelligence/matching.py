@@ -28,6 +28,12 @@ ROLE_LABELS: Dict[str, str] = {
     "mlops_engineer": "MLOps Engineer", "nlp_engineer": "NLP Engineer", "computer_vision_engineer": "Computer Vision Engineer",
     "robotics_ai_engineer": "Robotics & AI Engineer", "rl_engineer": "RL Engineer",
     "ai_product_founder": "AI Product Builder / Founder", "still_exploring": "Still Exploring",
+    "llm_application_engineer": "LLM Application Engineer", "llm_model_engineer": "LLM Model Engineer",
+    "llmops_engineer": "LLMOps Engineer", "ai_agent_engineer": "AI Agent Engineer",
+    "multimodal_ai_engineer": "Multimodal AI Engineer", "speech_ai_engineer": "Speech AI Engineer",
+    "graph_ai_engineer": "Graph AI Engineer", "ai_infrastructure_engineer": "AI Infrastructure Engineer",
+    "ai_evaluation_safety_engineer": "AI Evaluation & Safety Engineer",
+    "edge_federated_ai_engineer": "Edge & Federated AI Engineer",
 }
 
 STOP = {"and", "of", "the", "in", "for", "to", "a", "an", "with", "on", "engineer", "engineering", "senior", "staff",

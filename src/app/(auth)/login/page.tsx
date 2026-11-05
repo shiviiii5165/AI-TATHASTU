@@ -68,15 +68,17 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
           aria-hidden="true"
         />
 
-        {/* Soft, localized light treatment behind logo — desktop only */}
+        {/* Soft, localized light behind the logo — desktop only. A radial falloff with no hard edges
+            (the former 440×144 linear box washed out the photo and left a visible rectangle). */}
         <div
-          className="absolute top-0 left-0 w-[440px] h-36 bg-gradient-to-br from-white/80 via-white/40 to-transparent pointer-events-none hidden lg:block"
+          className="absolute top-0 left-0 w-[520px] h-56 bg-[radial-gradient(ellipse_at_top_left,rgba(255,255,255,0.55)_0%,rgba(255,255,255,0.25)_38%,rgba(255,255,255,0)_70%)] pointer-events-none hidden lg:block"
           aria-hidden="true"
         />
 
         {/* Brand Logo in Upper-Left Corner */}
         <div className="relative z-10 flex items-center justify-between px-6 pt-6 sm:px-10 sm:pt-8 lg:px-8 xl:px-12 lg:pt-8 xl:pt-10">
-          <BrandLogo href="/" withTagline size="md" taglineClassName="text-slate-600 font-semibold" />
+          {/* tone="onLight": this panel is always the light photograph, in light and dark theme. */}
+          <BrandLogo href="/" withTagline size="md" tone="onLight" taglineClassName="text-slate-600 font-semibold" />
           <Link
             href="/"
             className="lg:hidden inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 hover:text-[#0F172A] bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-slate-200/90 shadow-2xs transition-colors"

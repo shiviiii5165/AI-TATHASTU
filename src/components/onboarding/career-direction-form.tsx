@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  Activity,
+  AudioLines,
   BarChart3,
   Bot,
   Box,
@@ -8,14 +10,21 @@ import {
   Check,
   Code2,
   Compass,
+  Cpu,
   Database,
   FlaskConical,
   Image as ImageIcon,
+  Layers,
   MessageSquare,
   Network,
   Pencil,
   Search,
+  Server,
   Settings,
+  ShieldCheck,
+  Smartphone,
+  Sparkles,
+  Workflow,
   X,
   Zap,
 } from "lucide-react";
@@ -26,7 +35,7 @@ import { ContinueForm } from "@/components/onboarding/continue-form";
 import { SaveStatusText } from "@/components/onboarding/save-status";
 import { Input } from "@/components/ui/input";
 import { useAutosave } from "@/hooks/use-autosave";
-import { CAREER_ROLES } from "@/lib/onboarding/catalog";
+import { CAREER_ROLES, RETIRED_CAREER_ROLES, searchCareerRoles } from "@/lib/onboarding/catalog";
 import { cn } from "@/lib/utils";
 
 const OTHER_DEBOUNCE_MS = 700;
@@ -45,6 +54,16 @@ const ROLE_ICONS: Record<string, React.ElementType> = {
   rl_engineer: Zap,
   ai_product_founder: Box,
   still_exploring: Compass,
+  llm_application_engineer: Sparkles,
+  llm_model_engineer: Cpu,
+  llmops_engineer: Activity,
+  ai_agent_engineer: Workflow,
+  multimodal_ai_engineer: Layers,
+  speech_ai_engineer: AudioLines,
+  graph_ai_engineer: Network,
+  ai_infrastructure_engineer: Server,
+  ai_evaluation_safety_engineer: ShieldCheck,
+  edge_federated_ai_engineer: Smartphone,
 };
 
 export function CareerDirectionForm({ initialRoles, initialOther }: { initialRoles: string[]; initialOther: string }) {
@@ -57,11 +76,15 @@ export function CareerDirectionForm({ initialRoles, initialOther }: { initialRol
 
   useEffect(() => () => clearTimeout(otherTimer.current), []);
 
+  // A retired direction the user already chose stays visible (and selected) so it is never lost.
+  const retiredChosen = useMemo(
+    () => RETIRED_CAREER_ROLES.filter((r) => initialRoles.includes(r.id)),
+    [initialRoles],
+  );
   const visible = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return CAREER_ROLES;
-    return CAREER_ROLES.filter((r) => r.label.toLowerCase().includes(q) || r.blurb.toLowerCase().includes(q));
-  }, [query]);
+    const matches = searchCareerRoles(query);
+    return query.trim() ? matches : [...matches, ...retiredChosen];
+  }, [query, retiredChosen]);
 
   function commit(roles: string[], otherText = other) {
     clearTimeout(otherTimer.current);
@@ -160,10 +183,10 @@ export function CareerDirectionForm({ initialRoles, initialOther }: { initialRol
 
                   {/* Center: Title + Subtitle */}
                   <div className="min-w-0 flex-1">
-                    <span className="block font-sans font-bold text-sm sm:text-[0.9375rem] text-[#0F172A] leading-tight truncate">
+                    <span className="block font-sans font-bold text-sm sm:text-[0.9375rem] text-[#0F172A] leading-tight line-clamp-2">
                       {role.label}
                     </span>
-                    <span className="mt-0.5 block text-xs text-slate-500 font-normal leading-tight truncate">
+                    <span className="mt-0.5 block text-xs text-slate-500 font-normal leading-snug line-clamp-2">
                       {role.blurb}
                     </span>
                   </div>

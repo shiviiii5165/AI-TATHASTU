@@ -217,7 +217,9 @@ Every section except `identity` and `privacy` is `null` when the user hasn't sha
   "skills": {
     "items": [
       { "name": "PyTorch", "category": "ml_framework", "evidenceStrength": 0.9,
-        "verified": true, "verificationStatus": "verified", "sources": ["resume", "github"] }
+        "verified": true, "verificationStatus": "verified", "sources": ["resume", "github"],
+        // added 2026-11 (optional): the engine's evidence-based score; both null when not assessed
+        "proficiency": 62, "level": "Proficient" }
     ],
     "erisReadiness": {             // null unless the user shares the ERIS score
       "score": 0.63,               // 0–1
@@ -256,6 +258,15 @@ Every section except `identity` and `privacy` is `null` when the user hasn't sha
                    "stars": 14, "languages": ["Python"], "lastCommitAt": "2026-10-20T10:00:00.000Z" }]
     },
     "profileUpdatedAt": "2026-10-22T09:12:00.000Z"
+  },
+
+  // scope: eris (added 2026-11, optional; older consumers may ignore it). What the user is working
+  // towards, so an app can find people who can help. null and listed in masked when not shared.
+  "goals": {
+    "targetRole": { "id": "ml_engineer", "label": "ML Engineer" },
+    "needs": [{ "skill": "PyTorch", "priority": "High", "state": "missing", "expectedLevel": "Working" }],
+    "assessed": true,              // false: too little evidence to assess; needs is then [] (not "no gaps")
+    "collaborationIntents": ["collaborate", "people_mentors"]
   },
 
   "privacy": {

@@ -81,7 +81,8 @@ export type LearningRecommendation = {
   status: "not_started" | "in_progress";
 };
 
-export type RoadmapMilestone = { skill: string; state: GapState; done: boolean; requires: string[]; deliverable: string; criterion: string; estimateWeeks: number };
+/** `id` is "<role>:<skill-slug>" from engine version 2; older documents lack it (see roadmap/progress.ts). */
+export type RoadmapMilestone = { id?: string; skill: string; state: GapState; done: boolean; requires: string[]; deliverable: string; criterion: string; estimateWeeks: number };
 export type RoadmapStage = { key: string; title: string; milestones: RoadmapMilestone[]; estimateWeeks: number };
 export type EngineRoadmap = { role: string; currentPosition: string | null; progress: number; completed: string[]; stages: RoadmapStage[]; assumption: string };
 

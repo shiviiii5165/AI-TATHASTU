@@ -80,7 +80,7 @@ export const PERSONA_FORMS = {
     { name: "company", label: "Current company", type: "text", required: true, autoComplete: "organization", maxLength: 160 },
     { name: "jobTitle", label: "Job title", type: "text", required: true, autoComplete: "organization-title", placeholder: "ML Engineer", maxLength: 120 },
     {
-      name: "careerArea", label: "Closest area", type: "select", options: CAREER_ROLES.filter((r) => r.id !== "still_exploring").map((r) => ({ value: r.id, label: r.label })),
+      name: "careerArea", label: "Closest area", type: "select", options: CAREER_ROLES.map((r) => ({ value: r.id, label: r.label })),
       placeholder: "Select an area", hint: "Helps us match you with students heading the same way.", wide: true,
     },
   ],

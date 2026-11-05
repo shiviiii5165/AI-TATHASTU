@@ -20,7 +20,8 @@ describe("onboarding/student-flow - Student Journey Verification", () => {
   describe("Step catalog integrity", () => {
     it("has unique role IDs and valid labels", () => {
       expect(new Set(CAREER_ROLE_IDS).size).toBe(CAREER_ROLE_IDS.length);
-      expect(CAREER_ROLES.length).toBe(CAREER_ROLE_IDS.length);
+      // Every selectable role is a valid id; retired ids stay valid so saved preferences keep loading.
+      for (const role of CAREER_ROLES) expect(CAREER_ROLE_IDS).toContain(role.id);
 
       for (const role of CAREER_ROLES) {
         expect(role.id).toBeDefined();

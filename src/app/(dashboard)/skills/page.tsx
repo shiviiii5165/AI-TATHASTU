@@ -93,7 +93,21 @@ function RoleTable({ role }: { role: RoleAnalysis }) {
       <p className="mt-0.5 text-xs text-muted-foreground">
         {role.assessed ? `${Math.round(role.coverage * 100)}% of what this role calls for has evidence behind it.` : "Not enough evidence to assess this role. That isn't the same as having gaps."}
       </p>
-      <div className="mt-3 overflow-x-auto">
+      {/* Phones: one stacked row per skill (no sideways scrolling). Same data as the table. */}
+      <ul className="mt-3 divide-y divide-border sm:hidden">
+        {role.skills.map((row) => (
+          <li key={row.skill} className="py-2.5">
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="min-w-0 truncate text-sm font-semibold text-foreground" title={row.skill}>{row.skill}</span>
+              <span className="shrink-0 text-[11px] font-semibold text-muted-foreground">{row.priority}</span>
+            </div>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {STATE_LABEL[row.state]} · now {row.level} · needs {row.expectedLevel}
+            </p>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-3 hidden overflow-x-auto sm:block">
         <table className="w-full min-w-[480px] text-left text-xs">
           <thead className="text-muted-foreground">
             <tr className="border-b border-border">

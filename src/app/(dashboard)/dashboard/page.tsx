@@ -24,6 +24,7 @@ import { timeAgo } from "@/lib/format";
 import { matchesForMentor, type MatchCard } from "@/lib/matches";
 
 import { getLiveDashboardData } from "@/lib/dashboard/stats";
+import { listMilestoneSubmissions } from "@/lib/roadmap/submissions";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -42,7 +43,7 @@ async function Dashboard() {
   const { user } = await requireOnboardedUser();
   const isMentor = user.role === "faculty" || user.role === "alumni";
   // One wave: everything the page and its widgets read, in parallel.
-  const [[row], prefs, liveStats, erisRows, [github], mentorMatches] = await Promise.all([
+  const [[row], prefs, liveStats, erisRows, [github], mentorMatches, roadmapSubmissions] = await Promise.all([
     db.select().from(profileViews).where(eq(profileViews.userId, user.id)),
     getWidgetPrefs(user.id),
     getLiveDashboardData({ id: user.id, role: user.role }),
@@ -53,6 +54,11 @@ async function Dashboard() {
       .where(and(eq(connections.userId, user.id), eq(connections.sourceId, "github"))),
     // Faculty and alumni: matched students (compute_matches), shown only with the student's consent.
     isMentor ? matchesForMentor(user.id) : null,
+    // Evidence submitted for roadmap milestones (pending until the engine confirms it).
+    listMilestoneSubmissions(db, user.id).catch((err) => {
+      console.error("[Dashboard] roadmap submissions query failed:", err);
+      return [];
+    }),
   ]);
   const widgetData: WidgetData = {
     erisBreakdown: (role: string | null) => (role ? erisRows.find((e) => e.role === role)?.breakdown : undefined),
@@ -135,6 +141,7 @@ async function Dashboard() {
       internships={liveStats.internships}
       quickActions={liveStats.quickActions}
       intelligence={view.intelligence}
+      roadmapSubmissions={roadmapSubmissions}
       // Older views were written with invented next steps; only the engine's are shown.
       nextActions={view.intelligence ? view.nextActions : undefined}
     >

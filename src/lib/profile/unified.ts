@@ -17,7 +17,7 @@ import {
   type User,
 } from "@/db/schema";
 import type { ProfileViewDoc } from "@/lib/dashboard/types";
-import { CAREER_ROLES } from "@/lib/onboarding/catalog";
+import { careerRoleLabel } from "@/lib/onboarding/catalog";
 import { factDisplayValue } from "@/lib/profile/display";
 import { platformUrlField } from "@/lib/profile/field-groups";
 
@@ -284,7 +284,7 @@ export function toEmbedV1(p: ProfileData, appUrl: string) {
   return {
     name: p.identity.full_name?.best.value ?? p.user.name ?? null,
     // Display label ("ML Engineer"), not the internal id.
-    careerRole: CAREER_ROLES.find((r) => r.id === p.state?.careerRole)?.label ?? p.state?.careerRoleOther ?? null,
+    careerRole: careerRoleLabel(p.state?.careerRole) ?? p.state?.careerRoleOther ?? null,
     erisScore: p.view?.erisScore.overall ?? null,
     topSkills: p.skills.slice(0, 3).map((s) => s.name),
     dashboardUrl: `${appUrl}/dashboard`,

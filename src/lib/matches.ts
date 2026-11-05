@@ -4,7 +4,7 @@ import { and, desc, eq, isNull, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { consents, institutions, matches, onboardingState, users } from "@/db/schema";
-import { CAREER_ROLES } from "@/lib/onboarding/catalog";
+import { careerRoleLabel } from "@/lib/onboarding/catalog";
 
 export type MatchCard = {
   studentId: string;
@@ -49,7 +49,7 @@ export async function matchesForMentor(mentorId: string, limit = 5): Promise<{ v
     visible: discoverable.slice(0, limit).map((r) => ({
       studentId: r.studentId,
       name: r.name ?? "A student",
-      role: CAREER_ROLES.find((c) => c.id === r.role)?.label ?? null,
+      role: careerRoleLabel(r.role),
       university: r.university ?? r.legacyUniversity,
       score: r.score,
       reasons: r.reasons.slice(0, 2),

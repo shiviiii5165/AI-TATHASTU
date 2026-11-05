@@ -65,15 +65,15 @@ function RecentProjectsCard({ projects = [] }: { projects?: RecentProjectItem[] 
   return (
     <div className="flex flex-col justify-between rounded-2xl border border-[#E7EAF3] bg-white p-3.5 sm:p-5 shadow-2xs">
       <div className="flex items-center justify-between border-b border-[#F0F2F7] pb-3">
-        <div className="flex items-center gap-2">
-          <div className="flex size-7 items-center justify-center rounded-lg bg-[#EDF5FF] text-[#2878F0]">
+        <div className="flex min-w-0 items-center gap-2">
+          <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#EDF5FF] text-[#2878F0]">
             <FolderGit2 className="size-4" />
           </div>
           <h2 className="font-sans text-sm font-bold text-[#11182B]">Recent Projects</h2>
         </div>
         <Link
           href="/projects"
-          className="group inline-flex items-center gap-1 text-xs font-semibold text-[#8554FF] hover:text-[#703DE5]"
+          className="group inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-xs font-semibold text-[#8554FF] hover:text-[#703DE5]"
         >
           <span>View All</span>
           <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
@@ -189,15 +189,15 @@ function GitHubActivityCard({ activity }: { activity?: GitHubActivityData | null
   return (
     <div className="flex flex-col justify-between rounded-2xl border border-[#E7EAF3] bg-white p-3.5 sm:p-5 shadow-2xs">
       <div className="flex items-center justify-between border-b border-[#F0F2F7] pb-3">
-        <div className="flex items-center gap-2">
-          <div className="flex size-7 items-center justify-center rounded-lg bg-[#F3EFFF] text-[#8554FF]">
+        <div className="flex min-w-0 items-center gap-2">
+          <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#F3EFFF] text-[#8554FF]">
             <GithubIcon className="size-4" />
           </div>
           <h2 className="font-sans text-sm font-bold text-[#11182B]">GitHub Activity</h2>
         </div>
         <Link
           href="/settings/integrations"
-          className="group inline-flex items-center gap-1 text-xs font-semibold text-[#8554FF] hover:text-[#703DE5]"
+          className="group inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-xs font-semibold text-[#8554FF] hover:text-[#703DE5]"
         >
           <span>Manage</span>
           <ExternalLink className="size-3 transition-transform group-hover:translate-x-0.5" />
@@ -271,15 +271,15 @@ function RecentPublicationsCard({ publications = [] }: { publications?: Publicat
   return (
     <div className="flex flex-col justify-between rounded-2xl border border-[#E7EAF3] bg-white p-3.5 sm:p-5 shadow-2xs">
       <div className="flex items-center justify-between border-b border-[#F0F2F7] pb-3">
-        <div className="flex items-center gap-2">
-          <div className="flex size-7 items-center justify-center rounded-lg bg-[#F4F1FD] text-[#8554FF]">
+        <div className="flex min-w-0 items-center gap-2">
+          <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#F4F1FD] text-[#8554FF]">
             <FileText className="size-4" />
           </div>
           <h2 className="font-sans text-sm font-bold text-[#11182B]">Recent Publications</h2>
         </div>
         <Link
           href="/achievements"
-          className="group inline-flex items-center gap-1 text-xs font-semibold text-[#8554FF] hover:text-[#703DE5]"
+          className="group inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-xs font-semibold text-[#8554FF] hover:text-[#703DE5]"
         >
           <span>View All</span>
           <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
@@ -343,15 +343,15 @@ function AchievementsCard({ achievements = [] }: { achievements?: AchievementIte
   return (
     <div className="flex flex-col justify-between rounded-2xl border border-[#E7EAF3] bg-white p-3.5 sm:p-5 shadow-2xs">
       <div className="flex items-center justify-between border-b border-[#F0F2F7] pb-3">
-        <div className="flex items-center gap-2">
-          <div className="flex size-7 items-center justify-center rounded-lg bg-[#FFF6E9] text-[#FFB547]">
+        <div className="flex min-w-0 items-center gap-2">
+          <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#FFF6E9] text-[#FFB547]">
             <Trophy className="size-4" />
           </div>
           <h2 className="font-sans text-sm font-bold text-[#11182B]">Achievements & Certs</h2>
         </div>
         <Link
           href="/achievements"
-          className="group inline-flex items-center gap-1 text-xs font-semibold text-[#8554FF] hover:text-[#703DE5]"
+          className="group inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-xs font-semibold text-[#8554FF] hover:text-[#703DE5]"
         >
           <span>View All</span>
           <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />

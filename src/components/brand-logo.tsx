@@ -8,6 +8,13 @@ interface BrandLogoProps {
   href?: string;
   size?: "sm" | "md" | "lg";
   taglineClassName?: string;
+  /**
+   * "auto" (default) follows the light/dark theme. "onLight" keeps the light-theme colours in both
+   * themes, for a logo placed on an always-light surface such as the login page photograph.
+   */
+  tone?: "auto" | "onLight";
+  /** Show only the mark below the `sm` breakpoint (crowded mobile headers); the wordmark returns at sm+. */
+  compactOnMobile?: boolean;
 }
 
 const SIZES = {
@@ -22,8 +29,11 @@ export function BrandLogo({
   href,
   size = "md",
   taglineClassName,
+  tone = "auto",
+  compactOnMobile = false,
 }: BrandLogoProps) {
   const currentSize = SIZES[size] || SIZES.md;
+  const onLight = tone === "onLight";
 
   const content = (
     <span className={cn("inline-flex items-center gap-3 select-none", className)}>
@@ -38,10 +48,11 @@ export function BrandLogo({
           currentSize.className
         )}
       />
-      <span className="flex flex-col leading-tight">
+      <span className={cn("flex-col leading-tight", compactOnMobile ? "hidden sm:flex" : "flex")}>
         <span
           className={cn(
-            "font-sans font-extrabold tracking-tight text-[#0F172A] dark:text-white transition-colors group-hover:text-[#FF2A85]",
+            "font-sans font-extrabold tracking-tight text-[#0F172A] transition-colors group-hover:text-[#FF2A85]",
+            !onLight && "dark:text-white",
             currentSize.titleClass
           )}
         >
@@ -50,12 +61,14 @@ export function BrandLogo({
         {withTagline && (
           <span
             className={cn(
-              "font-sans font-medium text-slate-500 dark:text-slate-400 hidden min-[400px]:block tracking-tight",
+              "font-sans font-medium text-slate-500 hidden min-[400px]:block tracking-tight",
+              !onLight && "dark:text-slate-400",
               currentSize.taglineClass,
               taglineClassName
             )}
           >
-            Your Dreams. Our Intelligence. <span className="font-semibold text-slate-800 dark:text-slate-200">Tathastu.</span>
+            Your Dreams. Our Intelligence.{" "}
+            <span className={cn("font-semibold text-slate-800", !onLight && "dark:text-slate-200")}>Tathastu.</span>
           </span>
         )}
       </span>

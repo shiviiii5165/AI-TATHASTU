@@ -774,6 +774,27 @@ export const roadmaps = pgTable(
   (t) => [index("roadmaps_user_idx").on(t.userId)],
 );
 
+/** Evidence submitted for a roadmap milestone: pending until the engine's evidence shows the skill at level. */
+export const roadmapMilestoneSubmissions = pgTable(
+  "roadmap_milestone_submissions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    milestoneId: text("milestone_id").notNull(),
+    role: text("role").notNull(),
+    skill: text("skill").notNull(),
+    evidenceUrl: text("evidence_url").notNull(),
+    note: text("note"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("roadmap_milestone_submissions_unique").on(t.userId, t.milestoneId, t.evidenceUrl),
+    index("roadmap_milestone_submissions_user_idx").on(t.userId),
+  ],
+);
+
 export type Roadmap = typeof roadmaps.$inferSelect;
 
 export const githubScores = pgTable(

@@ -154,6 +154,18 @@ SKILL_ONTOLOGY: Dict[str, List[Tuple[str, float]]] = {
         ("Relational Databases", 0.95),
         ("Backend", 0.80),
     ],
+    # Specialist directions (20-role catalog)
+    "Speech Recognition": [("Deep Learning", 0.85), ("Audio Signal Processing", 0.85), ("Python", 0.80)],
+    "Text-to-Speech": [("Deep Learning", 0.85), ("Audio Signal Processing", 0.85)],
+    "Graph Neural Networks": [("Deep Learning", 0.90), ("PyTorch", 0.80), ("Linear Algebra", 0.75)],
+    "Knowledge Graphs": [("Neo4j", 0.70), ("Natural Language Processing", 0.60)],
+    "Federated Learning": [("Deep Learning", 0.80), ("Differential Privacy", 0.70)],
+    "TensorFlow Lite": [("On-device ML", 0.90), ("TensorFlow", 0.85)],
+    "Model Quantization": [("Deep Learning", 0.80), ("On-device ML", 0.70)],
+    "Distributed Training": [("Deep Learning", 0.85), ("CUDA", 0.70), ("Kubernetes", 0.60)],
+    "LLM Evaluation": [("Large Language Models", 0.90), ("Statistics", 0.75)],
+    "AI Agents": [("Large Language Models", 0.95), ("Prompt Engineering", 0.80), ("Python", 0.80)],
+    "Vision-Language Models": [("Computer Vision", 0.90), ("Large Language Models", 0.85), ("Transformers (architecture)", 0.85)],
 }
 
 

@@ -12,7 +12,7 @@ import { getCurrentConsents } from "@/lib/consent/store";
 import { sourceById } from "@/lib/connectors/sources";
 import { getLatestResumeJob, requireOnboardingStep } from "@/lib/dal";
 import type { OnboardingState, User } from "@/db/schema";
-import { CAREER_ROLES, PRIORITIES } from "@/lib/onboarding/catalog";
+import { careerRoleLabel, PRIORITIES } from "@/lib/onboarding/catalog";
 import { stepHref } from "@/lib/onboarding/steps";
 
 export const metadata: Metadata = { title: "Review & consent · AI Tathastu" };
@@ -73,7 +73,7 @@ async function ReviewConsentStep() {
   return <ReviewConsent summary={summary} initialChoices={initialChoices} />;
 }
 
-const roleLabel = (id: string) => CAREER_ROLES.find((r) => r.id === id)?.label ?? id;
+const roleLabel = (id: string) => careerRoleLabel(id) ?? id;
 const joined = (...parts: (string | number | null | undefined)[]) => parts.filter(Boolean).join(" · ") || null;
 
 /** Steps 1–3 differ per persona: their rows and completeness checks. */

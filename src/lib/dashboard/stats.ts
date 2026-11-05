@@ -92,7 +92,9 @@ export interface LiveDashboardStats {
   repositories: (typeof codeRepositories.$inferSelect)[];
 }
 
-const ACHIEVEMENT_GROUPS = ["achievement", "publication", "certification", "patent", "award"];
+import { isCodingActivityRecord } from "@/lib/profile/coding-activity";
+
+const ACHIEVEMENT_GROUPS =["achievement", "publication", "certification", "patent", "award"];
 const isAchievementGroup = (g: string) => ACHIEVEMENT_GROUPS.some((a) => g.toLowerCase().startsWith(a));
 const OPPORTUNITY_LIMIT = 50;
 
@@ -207,7 +209,8 @@ export async function getLiveDashboardData(viewer: Viewer): Promise<LiveDashboar
   // Group facts by record.
   const factsMap = new Map<string, { group: string; fields: Record<string, string> }>();
   for (const row of factsRows) {
-    if (!row.recordKey) continue;
+    // LeetCode/HackerRank stats are coding activity, not honours: kept out of achievements and the journey.
+    if (!row.recordKey || isCodingActivityRecord(row.recordKey)) continue;
     const entry = factsMap.get(row.recordKey) ?? { group: row.fieldGroup, fields: {} };
     entry.fields[row.fieldName.toLowerCase()] = text(row.normalizedValue || row.extractedValue);
     factsMap.set(row.recordKey, entry);

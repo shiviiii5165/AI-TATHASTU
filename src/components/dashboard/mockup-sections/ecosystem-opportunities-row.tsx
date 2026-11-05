@@ -62,15 +62,15 @@ function PeopleRecommendationsCard() {
   return (
     <div className="flex flex-col justify-between rounded-2xl border border-[#E7EAF3] bg-white p-3.5 sm:p-5 shadow-2xs">
       <div className="flex items-center justify-between border-b border-[#F0F2F7] pb-3">
-        <div className="flex items-center gap-2">
-          <div className="flex size-7 items-center justify-center rounded-lg bg-[#E6F8FB] text-[#00AEC7]">
+        <div className="flex min-w-0 items-center gap-2">
+          <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#E6F8FB] text-[#00AEC7]">
             <Users className="size-4" />
           </div>
           <h2 className="font-sans text-sm font-bold text-[#11182B]">People You Should Know</h2>
         </div>
         <Link
           href="/people"
-          className="group inline-flex items-center gap-1 text-xs font-semibold text-[#8554FF] hover:text-[#703DE5]"
+          className="group inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-xs font-semibold text-[#8554FF] hover:text-[#703DE5]"
         >
           <span>View All</span>
           <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
@@ -148,15 +148,15 @@ function MentorRecommendationsCard() {
   return (
     <div className="flex flex-col justify-between rounded-2xl border border-[#E7EAF3] bg-white p-3.5 sm:p-5 shadow-2xs">
       <div className="flex items-center justify-between border-b border-[#F0F2F7] pb-3">
-        <div className="flex items-center gap-2">
-          <div className="flex size-7 items-center justify-center rounded-lg bg-[#F4F1FD] text-[#8554FF]">
+        <div className="flex min-w-0 items-center gap-2">
+          <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#F4F1FD] text-[#8554FF]">
             <GraduationCap className="size-4" />
           </div>
           <h2 className="font-sans text-sm font-bold text-[#11182B]">Recommended Mentors</h2>
         </div>
         <Link
           href="/mentor"
-          className="group inline-flex items-center gap-1 text-xs font-semibold text-[#8554FF] hover:text-[#703DE5]"
+          className="group inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-xs font-semibold text-[#8554FF] hover:text-[#703DE5]"
         >
           <span>View All</span>
           <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
@@ -189,15 +189,15 @@ function OpportunitiesCard({ opportunities = [] }: { opportunities?: Opportunity
   return (
     <div className="flex flex-col justify-between rounded-2xl border border-[#E7EAF3] bg-white p-3.5 sm:p-5 shadow-2xs">
       <div className="flex items-center justify-between border-b border-[#F0F2F7] pb-3">
-        <div className="flex items-center gap-2">
-          <div className="flex size-7 items-center justify-center rounded-lg bg-[#FFF0F4] text-[#FF496D]">
+        <div className="flex min-w-0 items-center gap-2">
+          <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#FFF0F4] text-[#FF496D]">
             <Briefcase className="size-4" />
           </div>
           <h2 className="font-sans text-sm font-bold text-[#11182B]">Relevant Opportunities</h2>
         </div>
         <Link
           href="/opportunities"
-          className="group inline-flex items-center gap-1 text-xs font-semibold text-[#8554FF] hover:text-[#703DE5]"
+          className="group inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-xs font-semibold text-[#8554FF] hover:text-[#703DE5]"
         >
           <span>View All</span>
           <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
@@ -263,15 +263,15 @@ function NetworkInternshipsCard({ internships = [] }: { internships?: Opportunit
   return (
     <div className="flex flex-col justify-between rounded-2xl border border-[#E7EAF3] bg-white p-3.5 sm:p-5 shadow-2xs">
       <div className="flex items-center justify-between border-b border-[#F0F2F7] pb-3">
-        <div className="flex items-center gap-2">
-          <div className="flex size-7 items-center justify-center rounded-lg bg-[#EDF5FF] text-[#2878F0]">
+        <div className="flex min-w-0 items-center gap-2">
+          <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#EDF5FF] text-[#2878F0]">
             <Sparkles className="size-4" />
           </div>
           <h2 className="font-sans text-sm font-bold text-[#11182B]">Internships for Your Network</h2>
         </div>
         <Link
           href="/internships"
-          className="group inline-flex items-center gap-1 text-xs font-semibold text-[#8554FF] hover:text-[#703DE5]"
+          className="group inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-xs font-semibold text-[#8554FF] hover:text-[#703DE5]"
         >
           <span>View All</span>
           <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />

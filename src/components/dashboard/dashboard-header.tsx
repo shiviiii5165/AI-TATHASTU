@@ -125,7 +125,7 @@ export function DashboardHeader({
             aria-label="AI Tathastu Dashboard"
             className="flex items-center gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF496D]/30 rounded-xl"
           >
-            <BrandLogo withTagline size="sm" />
+            <BrandLogo withTagline size="sm" compactOnMobile />
           </Link>
         </div>
 
@@ -300,11 +300,11 @@ export function DashboardHeader({
             <Search className="size-4" />
           </button>
 
-          {/* Theme toggle button */}
+          {/* Theme toggle button (on phones it lives in the bottom nav's More sheet) */}
           <button
             type="button"
             onClick={toggleTheme}
-            className="flex size-9 sm:size-10 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-xs hover:bg-accent transition-colors cursor-pointer min-h-[44px] min-w-[44px]"
+            className="hidden sm:flex size-9 sm:size-10 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-xs hover:bg-accent transition-colors cursor-pointer min-h-[44px] min-w-[44px]"
             aria-label="Toggle color theme"
           >
             <Sun className="size-4 sm:size-4.5 text-[#F59E0B] dark:hidden" />
@@ -351,7 +351,7 @@ export function DashboardHeader({
                 setProfileMenuOpen(!profileMenuOpen);
                 setNotifMenuOpen(false);
               }}
-              className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2 hover:bg-accent transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF496D]/30"
+              className="flex min-h-[44px] items-center gap-2 rounded-full py-1 pl-1 pr-1 sm:pr-2 hover:bg-accent transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF496D]/30"
               aria-label="User account menu"
               aria-expanded={profileMenuOpen}
             >
@@ -378,7 +378,7 @@ export function DashboardHeader({
                   {displayRole}
                 </p>
               </div>
-              <ChevronDown className="size-3.5 text-muted-foreground" />
+              <ChevronDown className="hidden sm:block size-3.5 text-muted-foreground" />
             </button>
 
             {profileMenuOpen && (

@@ -16,7 +16,7 @@ export function JourneyTimeline({ milestones = [] }: { milestones?: JourneyMiles
   const hidden = items.length - visible.length;
 
   return (
-    <div className="flex h-full flex-col rounded-2xl border border-border bg-card p-4 text-card-foreground shadow-2xs sm:p-5">
+    <div className="flex flex-col rounded-2xl border border-border bg-card p-4 text-card-foreground shadow-2xs sm:p-5">
       <div className="flex items-center justify-between border-b border-border pb-3">
         <div className="flex items-center gap-2">
           <div className="flex size-7 items-center justify-center rounded-lg bg-muted text-foreground">
@@ -31,7 +31,7 @@ export function JourneyTimeline({ milestones = [] }: { milestones?: JourneyMiles
       </div>
 
       {visible.length > 0 ? (
-        <ol className="mt-3 flex-1 space-y-3 border-l border-border pl-4" aria-label="Your education, work and achievements, newest first">
+        <ol className="mt-3 space-y-3 border-l border-border pl-4" aria-label="Your education, work and achievements, newest first">
           {visible.map((item, index) => (
             <li key={`${item.title}-${index}`} className="relative">
               <span

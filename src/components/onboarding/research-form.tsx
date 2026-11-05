@@ -15,7 +15,7 @@ import { CAREER_ROLES } from "@/lib/onboarding/catalog";
 import { cn } from "@/lib/utils";
 
 const MAX_INTERESTS = 15;
-const AREAS = CAREER_ROLES.filter((r) => r.id !== "still_exploring");
+const AREAS = CAREER_ROLES; // selectable roles only ("Still exploring" is retired)
 
 const POPULAR_SUGGESTIONS = [
   "Large Language Models",

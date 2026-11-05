@@ -6,28 +6,13 @@ import dynamic from "next/dynamic";
 import { DashboardHero } from "@/components/dashboard/mockup-sections/dashboard-hero";
 import { MetricCards } from "@/components/dashboard/mockup-sections/metric-cards";
 import { JourneyTimeline } from "@/components/dashboard/mockup-sections/journey-timeline";
-import { QuickActionsPanel } from "@/components/dashboard/mockup-sections/quick-actions-panel";
 import { EvidenceAchievementRow } from "@/components/dashboard/mockup-sections/evidence-achievement-row";
 import { GrowthDevelopmentRow } from "@/components/dashboard/mockup-sections/growth-development-row";
 import { EcosystemOpportunitiesRow } from "@/components/dashboard/mockup-sections/ecosystem-opportunities-row";
 import { NextActionsRow } from "@/components/dashboard/mockup-sections/next-actions-row";
 
-const SkillBubbleChart = dynamic(
-  () =>
-    import("@/components/dashboard/mockup-sections/skill-bubble-chart").then(
-      (m) => m.SkillBubbleChart
-    ),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex h-full min-h-[300px] items-center justify-center rounded-2xl border border-[#E7EAF3] bg-white p-6 shadow-xs animate-pulse">
-        <div className="text-center text-xs text-[#8A9BB5]">
-          Loading skill visualization…
-        </div>
-      </div>
-    ),
-  }
-);
+// Compact Skills Intelligence; the full interactive skill graph is on /skills.
+import { SkillsOverview } from "@/components/dashboard/mockup-sections/skills-overview";
 
 const YoraModal = dynamic(
   () => import("@/components/dashboard/yora-modal").then((m) => m.YoraModal),
@@ -44,6 +29,7 @@ import type {
   RecentProjectItem,
 } from "@/lib/dashboard/stats";
 import type { IntelligenceDoc } from "@/lib/dashboard/types";
+import type { MilestoneSubmission } from "@/lib/roadmap/progress";
 
 interface DashboardViewProps {
   name: string;
@@ -64,7 +50,9 @@ interface DashboardViewProps {
   recentAchievements?: AchievementItem[];
   researchOpportunities?: OpportunityItem[];
   internships?: OpportunityItem[];
+  /** Still accepted from callers; no longer rendered (the Quick Actions panel was removed). */
   quickActions?: QuickActionItem[];
+  roadmapSubmissions?: MilestoneSubmission[];
   children?: React.ReactNode;
 }
 
@@ -87,7 +75,7 @@ export function DashboardView({
   recentAchievements,
   researchOpportunities,
   internships,
-  quickActions,
+  roadmapSubmissions,
   children,
 }: DashboardViewProps) {
   const [yoraOpen, setYoraOpen] = useState(false);
@@ -112,16 +100,15 @@ export function DashboardView({
         networkCount={networkCount}
       />
 
-      {/* E. Main Overview Row: 3 Panels */}
+      {/* E. Main Overview Row: 2 Panels. The Yora Quick Actions panel was removed from the dashboard
+          (its actions had no working behaviour); Yora itself stays available from the hero and next actions. */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-        <div className="lg:col-span-4 h-full">
+        {/* Fits its content: not stretched to the row height (which left a tall empty card). */}
+        <div className="lg:col-span-6 lg:self-start">
           <JourneyTimeline milestones={journeyMilestones} />
         </div>
-        <div className="lg:col-span-4 h-full">
-          <SkillBubbleChart skillGraph={intelligence?.graph} />
-        </div>
-        <div className="lg:col-span-4 h-full">
-          <QuickActionsPanel actions={quickActions} />
+        <div className="lg:col-span-6 lg:self-start">
+          <SkillsOverview skillGraph={intelligence?.graph} />
         </div>
       </div>
 
@@ -134,7 +121,7 @@ export function DashboardView({
       />
 
       {/* G. Growth and Development Row: 4 Panels */}
-      <GrowthDevelopmentRow intelligence={intelligence} />
+      <GrowthDevelopmentRow intelligence={intelligence} roadmapSubmissions={roadmapSubmissions} />
 
       {/* H. Ecosystem and Opportunities Row: 4 Panels */}
       <EcosystemOpportunitiesRow

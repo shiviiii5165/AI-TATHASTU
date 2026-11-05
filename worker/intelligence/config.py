@@ -29,6 +29,10 @@ STRENGTH = {
 ENGINEERING_ROLES = [
     "generative_ai_engineer", "ml_engineer", "ai_engineer", "deep_learning_engineer", "mlops_engineer",
     "nlp_engineer", "computer_vision_engineer", "robotics_ai_engineer", "rl_engineer",
+    # Added with the 20-direction catalog (src/lib/onboarding/catalog.ts).
+    "llm_application_engineer", "llm_model_engineer", "llmops_engineer", "ai_agent_engineer",
+    "multimodal_ai_engineer", "speech_ai_engineer", "graph_ai_engineer", "ai_infrastructure_engineer",
+    "ai_evaluation_safety_engineer", "edge_federated_ai_engineer",
 ]
 
 
@@ -153,6 +157,65 @@ ROLE_SKILLS: Dict[str, List[Tuple[str, float]]] = {
                     ("Simulation", 0.6), ("Deep Learning", 0.7)],
     "ai_product_founder": [("Python", 0.6), ("Large Language Models", 0.8), ("Generative AI", 0.8),
                            ("Prompt Engineering", 0.6), ("Next.js", 0.5), ("REST APIs", 0.5)],
+    # ── Directions added with the 20-role catalog. Every skill is canonical (skills_catalog.CATALOG); the
+    # specialist skills (speech, graph, federated/edge, LLM evaluation, agents, VLMs) carry the role.
+    "llm_application_engineer": [("Python", 1.0), ("Large Language Models", 1.0), ("Retrieval-Augmented Generation", 0.9),
+                                 ("Prompt Engineering", 0.9), ("LangChain", 0.8), ("REST APIs", 0.8), ("FastAPI", 0.7),
+                                 ("Vector Databases", 0.7), ("LLM Evaluation", 0.5), ("TypeScript", 0.4), ("Docker", 0.4)],
+    "llm_model_engineer": [("Python", 1.0), ("Large Language Models", 1.0), ("Fine-tuning", 1.0), ("PyTorch", 1.0),
+                           ("Transformers (architecture)", 0.9), ("Hugging Face Transformers", 0.8), ("Distributed Training", 0.7),
+                           ("CUDA", 0.6), ("Model Quantization", 0.6), ("LLM Evaluation", 0.6), ("Deep Learning", 0.7)],
+    "llmops_engineer": [("Python", 0.9), ("Large Language Models", 0.9), ("Docker", 1.0), ("Kubernetes", 0.9),
+                        ("CI/CD", 0.8), ("LLM Evaluation", 0.8), ("vLLM", 0.7), ("Model Quantization", 0.5),
+                        ("Triton Inference Server", 0.5), ("Weights & Biases", 0.5), ("AWS", 0.6), ("Linux", 0.6)],
+    "ai_agent_engineer": [("Python", 1.0), ("Large Language Models", 1.0), ("AI Agents", 1.0), ("Prompt Engineering", 0.9),
+                          ("LangChain", 0.8), ("Retrieval-Augmented Generation", 0.7), ("REST APIs", 0.8),
+                          ("LLM Evaluation", 0.6), ("FastAPI", 0.6), ("Vector Databases", 0.5), ("LlamaIndex", 0.4)],
+    "multimodal_ai_engineer": [("Python", 1.0), ("Deep Learning", 1.0), ("Vision-Language Models", 1.0), ("PyTorch", 0.9),
+                               ("Computer Vision", 0.9), ("Transformers (architecture)", 0.8),
+                               ("Natural Language Processing", 0.7), ("Hugging Face Transformers", 0.7),
+                               ("Audio Signal Processing", 0.4)],
+    "speech_ai_engineer": [("Python", 1.0), ("Speech Recognition", 1.0), ("Deep Learning", 0.9),
+                           ("Audio Signal Processing", 0.9), ("PyTorch", 0.9), ("Text-to-Speech", 0.7),
+                           ("Transformers (architecture)", 0.7), ("Hugging Face Transformers", 0.6), ("NumPy", 0.5)],
+    "graph_ai_engineer": [("Python", 1.0), ("Graph Neural Networks", 1.0), ("Deep Learning", 0.9), ("PyTorch", 0.8),
+                          ("Knowledge Graphs", 0.8), ("Linear Algebra", 0.7), ("Data Structures and Algorithms", 0.7),
+                          ("NetworkX", 0.6), ("Recommender Systems", 0.5), ("Neo4j", 0.4)],
+    "ai_infrastructure_engineer": [("Python", 0.8), ("Kubernetes", 1.0), ("Docker", 1.0), ("Linux", 0.9), ("CUDA", 0.8),
+                                   ("Distributed Training", 0.8), ("Terraform", 0.7), ("AWS", 0.7),
+                                   ("Triton Inference Server", 0.6), ("TensorRT", 0.5), ("Google Cloud", 0.5)],
+    "ai_evaluation_safety_engineer": [("Python", 1.0), ("LLM Evaluation", 1.0), ("AI Safety", 1.0), ("Statistics", 0.9),
+                                      ("Large Language Models", 0.9), ("Machine Learning", 0.8), ("Probability", 0.7),
+                                      ("Prompt Engineering", 0.6), ("Pandas", 0.5), ("Weights & Biases", 0.4)],
+    "edge_federated_ai_engineer": [("Python", 0.9), ("On-device ML", 1.0), ("Federated Learning", 0.9),
+                                   ("Model Quantization", 0.8), ("Deep Learning", 0.8), ("ONNX", 0.8), ("C++", 0.7),
+                                   ("TensorFlow Lite", 0.7), ("Differential Privacy", 0.6), ("PyTorch", 0.6),
+                                   ("TensorRT", 0.5)],
+}
+
+# Where a roadmap project should sit for each direction, so milestone deliverables differ by goal
+# (e.g. PyTorch for a speech engineer is practised on a speech pipeline). Plain context, not a course.
+ROLE_PROJECT_CONTEXT: Dict[str, str] = {
+    "ml_engineer": "an end-to-end model you train, evaluate and deploy",
+    "data_scientist": "an analysis of a real dataset with a written conclusion",
+    "deep_learning_engineer": "a neural network you train from scratch",
+    "generative_ai_engineer": "a generation pipeline over your own data",
+    "llm_application_engineer": "an LLM-powered app with retrieval and tools",
+    "llm_model_engineer": "fine-tuning and serving an open language model",
+    "mlops_engineer": "a deployed, monitored ML pipeline",
+    "llmops_engineer": "a deployed LLM service with evaluation and tracing",
+    "ai_agent_engineer": "an agent that plans and uses tools",
+    "nlp_engineer": "a text understanding or generation system",
+    "computer_vision_engineer": "an image or video model",
+    "multimodal_ai_engineer": "a model that combines images and text",
+    "speech_ai_engineer": "a speech pipeline (transcription or voice)",
+    "rl_engineer": "an agent trained in a simulated environment",
+    "robotics_ai_engineer": "a robot or simulator controlled through ROS",
+    "graph_ai_engineer": "a graph learning task on real relational data",
+    "ai_infrastructure_engineer": "GPU training or serving infrastructure",
+    "ai_evaluation_safety_engineer": "an evaluation suite for a model's quality and safety",
+    "edge_federated_ai_engineer": "a model running on a device or trained across devices",
+    "ai_researcher": "a reproduced paper or a new experiment",
 }
 
 # ERIS component weights (plan §2.4).

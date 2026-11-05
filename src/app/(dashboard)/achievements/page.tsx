@@ -6,7 +6,9 @@ import { ArrowLeft, Award, BookOpen, CheckCircle, FileCheck, Sparkles, Trophy } 
 import { db } from "@/db";
 import { profileFacts } from "@/db/schema";
 import { requireOnboardedUser } from "@/lib/dal";
+import { codingActivitiesFrom, isCodingActivityRecord } from "@/lib/profile/coding-activity";
 import { usableFactsOf } from "@/lib/profile/unified";
+import { CodingActivitySection } from "./coding-activity-section";
 
 import { Suspense } from "react";
 
@@ -45,6 +47,7 @@ async function AchievementsContent() {
       recordKey: profileFacts.recordKey,
       normalizedValue: profileFacts.normalizedValue,
       extractedValue: profileFacts.extractedValue,
+      sourceEvidence: profileFacts.sourceEvidence,
     })
     .from(profileFacts)
     .where(
@@ -71,8 +74,10 @@ async function AchievementsContent() {
 
   // Group facts by recordKey
   const itemsMap = new Map<string, { group: string; fields: Record<string, string> }>();
+  // LeetCode/HackerRank stats are stored with achievements but are coding activity: listed separately.
+  const codingActivity = codingActivitiesFrom(facts);
   for (const f of facts) {
-    if (!f.recordKey) continue;
+    if (!f.recordKey || isCodingActivityRecord(f.recordKey)) continue;
     if (!itemsMap.has(f.recordKey)) {
       itemsMap.set(f.recordKey, { group: f.fieldGroup, fields: {} });
     }
@@ -255,7 +260,7 @@ async function AchievementsContent() {
             </div>
           </div>
         </>
-      ) : (
+      ) : codingActivity.length > 0 ? null : (
         <div className="rounded-2xl border border-dashed border-[#E7EAF3] bg-white p-12 text-center max-w-lg mx-auto">
           <div className="size-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-3">
             <Trophy className="size-6" />
@@ -275,6 +280,8 @@ async function AchievementsContent() {
           </div>
         </div>
       )}
+
+      {codingActivity.length > 0 && <CodingActivitySection items={codingActivity} />}
     </div>
   );
 }

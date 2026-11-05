@@ -4,7 +4,7 @@ import { createHash } from "node:crypto";
 
 import type { IntegrationClientId, IntegrationConsent, IntegrationScope } from "@/db/schema";
 import { effectiveScopes } from "@/lib/integrations/consent";
-import { CAREER_ROLES } from "@/lib/onboarding/catalog";
+import { careerRoleLabel } from "@/lib/onboarding/catalog";
 import { dateRange, type Fact, type ProfileData } from "@/lib/profile/unified";
 
 /**
@@ -56,7 +56,7 @@ export function toProfessionalProjectionV1(
     name: best("full_name") ?? p.user.name,
     headline: best("headline"),
     avatarUrl: p.user.image ?? null,
-    careerRole: role ? { id: role, label: CAREER_ROLES.find((r) => r.id === role)?.label ?? role } : null,
+    careerRole: role ? { id: role, label: careerRoleLabel(role) ?? role } : null,
     careerRoleOther: p.state?.careerRoleOther ?? null,
     location: { city: p.user.city ?? null, country: p.user.country ?? null },
     university: p.user.university ?? null,
@@ -81,16 +81,25 @@ export function toProfessionalProjectionV1(
     : null;
 
   const eris = p.view?.erisScore;
+  // The intelligence engine's assessment, by skill name. Absent or unassessed → null, never a default.
+  const intelligence = p.view?.intelligence;
+  const assessed = new Map((intelligence?.skills ?? []).map((s) => [s.name.toLowerCase(), s]));
   const skills = shared("skills")
     ? {
-        items: p.skills.map((s) => ({
-          name: s.name,
-          category: s.category,
-          evidenceStrength: s.evidenceStrength,
-          verified: s.verificationStatus === "verified",
-          verificationStatus: s.verificationStatus,
-          sources: s.sources,
-        })),
+        items: p.skills.map((s) => {
+          const a = assessed.get(s.name.toLowerCase());
+          return {
+            name: s.name,
+            category: s.category,
+            evidenceStrength: s.evidenceStrength,
+            verified: s.verificationStatus === "verified",
+            verificationStatus: s.verificationStatus,
+            sources: s.sources,
+            // Additive (contract v1, optional): 0-100 from demonstrated evidence, or null when not assessed.
+            proficiency: a && a.proficiency !== null ? Math.round(a.proficiency) : null,
+            level: a && a.proficiency !== null ? a.level : null,
+          };
+        }),
         erisReadiness:
           shared("eris") && eris && eris.overall !== null
             ? { score: eris.overall, role, byRole: eris.byRole, gaps: eris.gaps, computedAt: p.view?.computedAt ?? null }
@@ -174,7 +183,22 @@ export function toProfessionalProjectionV1(
       }
     : null;
 
-  const sections = { education, skills, projects, experience, achievements, activity };
+  // Goals (additive, contract v1, optional): the target role, what it still needs from the user's
+  // evidence, and what they came to the platform for. Shared under the "eris" scope, whose consent
+  // copy covers "target role and top gaps". Lets Collaborate find people who can help with them.
+  const primary = intelligence?.roles?.[0];
+  const goals = shared("eris")
+    ? {
+        targetRole: role ? { id: role, label: careerRoleLabel(role) ?? role } : null,
+        needs: primary?.assessed
+          ? primary.open.slice(0, 12).map((r) => ({ skill: r.skill, priority: r.priority, state: r.state, expectedLevel: r.expectedLevel }))
+          : [],
+        assessed: Boolean(primary?.assessed),
+        collaborationIntents: [...(p.state?.priorities ?? [])],
+      }
+    : null;
+
+  const sections = { education, skills, projects, experience, achievements, activity, goals };
   const masked = [
     ...Object.entries(sections).filter(([, s]) => s === null).map(([k]) => k),
     ...(skills && !skills.erisReadiness && !shared("eris") ? ["skills.erisReadiness"] : []),

@@ -195,6 +195,8 @@ export function SkillBubbleChart({ skillGraph, className = "", fullView = false 
   const hasNodes = Boolean(skillGraph?.nodes.length);
   const selected = skillGraph?.nodes.find((n) => n.id === selectedId) ?? null;
   const related = useMemo(() => (selected && skillGraph ? skillGraph.edges.filter((e) => e.source === selected.id || e.target === selected.id) : []), [selected, skillGraph]);
+  // Skills connected to the selection stay at full strength; the rest dim so the neighbourhood stands out.
+  const relatedIds = useMemo(() => new Set(related.flatMap((e) => [e.source, e.target])), [related]);
   const hidden = skillGraph ? skillGraph.totalSkills - skillGraph.nodes.length : 0;
   const linkCount = (id: string) => skillGraph?.edges.filter((e) => e.source === id || e.target === id).length ?? 0;
 
@@ -308,7 +310,8 @@ export function SkillBubbleChart({ skillGraph, className = "", fullView = false 
                     x2={t.x}
                     y2={(t.y ?? 0) - t.boxHeight / 2 + t.radius}
                     stroke={active ? "var(--primary)" : "var(--muted-foreground)"}
-                    strokeOpacity={active ? 1 : 0.45}
+                    strokeOpacity={active ? 1 : selectedId !== null ? 0.12 : 0.45}
+                    className="motion-safe:transition-[stroke-opacity,stroke] motion-safe:duration-200"
                     strokeWidth={link.basis === "evidence" ? 1.4 : 1}
                     strokeDasharray={link.basis === "evidence" ? undefined : "3 3"}
                   />
@@ -330,7 +333,8 @@ export function SkillBubbleChart({ skillGraph, className = "", fullView = false 
                     open(node.id);
                   }
                 }}
-                className="cursor-pointer outline-none [&:focus-visible>circle]:stroke-foreground [&:focus-visible>circle]:stroke-[3]"
+                data-dimmed={selectedId !== null && node.id !== selectedId && !relatedIds.has(node.id) ? "" : undefined}
+                className="cursor-pointer outline-none motion-safe:transition-opacity motion-safe:duration-200 data-[dimmed]:opacity-30 [&:focus-visible>circle]:stroke-foreground [&:focus-visible>circle]:stroke-[3]"
               >
                 <title>{node.name}</title>
                 <rect data-hit x={-node.boxWidth / 2} y={-node.radius} width={node.boxWidth} height={node.boxHeight} fill="transparent" />
