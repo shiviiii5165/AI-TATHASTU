@@ -7,11 +7,9 @@ import { randomUUID } from "node:crypto";
 
 import { z } from "zod";
 
-import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
 
 import type { SaveResult } from "@/app/onboarding/actions";
-import { signIn } from "@/auth";
 import { configuredProviders } from "@/lib/auth-providers";
 import { appendConsent } from "@/lib/consent/store";
 import { connectSource, disconnectSource, openCredential } from "@/lib/connectors/connections";
@@ -124,7 +122,9 @@ export async function allowLinkedInImport(): Promise<SaveResult> {
 }
 
 /**
- * Links LinkedIn to the signed-in user via Auth.js; events.linkAccount records the connection.
+ * Connects LinkedIn as a source through the dedicated connector flow (/api/connectors/linkedin/*),
+ * bound to the signed-in user like GitHub. It does not use Auth.js sign-in/account linking, which
+ * failed with OAuthAccountNotLinked whenever the LinkedIn email matched an existing account.
  * `readPublicProfile` is the card's inline linkedin_scrape checkbox, recorded either way
  * (unticked is an explicit opt-out) before leaving for LinkedIn.
  */
@@ -134,12 +134,5 @@ export async function connectLinkedIn(from: ConnectorContext, readPublicProfile:
   if (!configuredProviders().linkedin) {
     redirect(`${connectorReturnPath(from)}?source=linkedin&error=not_configured`);
   }
-  try {
-    await signIn("linkedin", { redirectTo: `${connectorReturnPath(from)}?source=linkedin&connected=1` });
-  } catch (error) {
-    if (error instanceof AuthError) {
-      redirect(`${connectorReturnPath(from)}?source=linkedin&error=${error.type}`);
-    }
-    throw error;
-  }
+  redirect(`/api/connectors/linkedin/start${from === "connections" ? "?from=connections" : ""}`);
 }
