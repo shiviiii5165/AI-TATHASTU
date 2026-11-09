@@ -40,8 +40,8 @@ beforeAll(async () => {
 
 describe("migrations", () => {
   it("all apply on real Postgres with pgvector, with no error tolerated", () => {
-    expect(applied.at(-1)).toBe("0024_auth_code_session_version.sql");
-    expect(applied).toHaveLength(25);
+    expect(applied.at(-1)).toBe("0025_roadmap_milestone_submissions.sql");
+    expect(applied).toHaveLength(26);
   });
 });
 
