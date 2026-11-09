@@ -1,4 +1,5 @@
 import { eq, ilike, or, sql } from "drizzle-orm";
+import { crossSiteRefusal } from "@/lib/same-origin";
 import { connection, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/db";
@@ -91,6 +92,8 @@ const MAX_MESSAGE_CHARS = 2000;
 
 export async function POST(req: Request) {
   await connection();
+  // CSRF: only our own pages may spend this user's chat budget (see lib/same-origin.ts).
+  if (crossSiteRefusal(req)) return NextResponse.json({ error: "Cross-site request refused." }, { status: 403 });
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

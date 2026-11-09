@@ -5,6 +5,8 @@ import { randomUUID } from "node:crypto";
 import { unstable_rethrow } from "next/navigation";
 import { NextResponse } from "next/server";
 
+import { crossSiteRefusal } from "@/lib/same-origin";
+
 const SLOW_ROUTE_MS = 1_000;
 
 /**
@@ -21,6 +23,12 @@ export function guarded<Args extends unknown[]>(handler: (...args: Args) => Prom
     const request = args[0] instanceof Request ? args[0] : null;
     const requestId = request?.headers.get("x-vercel-id") ?? randomUUID();
     const route = request ? `${request.method} ${new URL(request.url).pathname}` : "unknown";
+    // CSRF: cookie-authenticated writes must come from our own pages (see lib/same-origin.ts).
+    const refused = request ? crossSiteRefusal(request) : null;
+    if (refused) {
+      console.warn(JSON.stringify({ event: "csrf_refused", route, reason: refused, requestId }));
+      return NextResponse.json({ error: "Cross-site request refused." }, { status: 403, headers: { "X-Request-Id": requestId } });
+    }
     try {
       const response = await handler(...args);
       response.headers.set("X-Request-Id", requestId);
