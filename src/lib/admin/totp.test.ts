@@ -52,4 +52,11 @@ describe("MFA proof", () => {
     expect(isMfaProofValid(AUTH, `${now / 1000 + 9999}.${proof.split(".")[1]}`, "user-1", 2, now)).toBe(false);
     expect(isMfaProofValid(AUTH, undefined, "user-1", 2, now)).toBe(false);
   });
+
+  it("returns false, never throws, for a tampered MAC with non-ASCII characters of the same length", () => {
+    const mac = proof.split(".")[1];
+    const tampered = `${now / 1000 + 60}.${"é".repeat(mac.length)}`; // same character length, longer in UTF-8
+    expect(() => isMfaProofValid(AUTH, tampered, "user-1", 2, now)).not.toThrow();
+    expect(isMfaProofValid(AUTH, tampered, "user-1", 2, now)).toBe(false);
+  });
 });

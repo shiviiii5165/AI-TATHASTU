@@ -26,7 +26,13 @@ export function hotp(key: Buffer, counter: number, digits = 6) {
   return String(value % 10 ** digits).padStart(digits, "0");
 }
 
-const same = (a: string, b: string) => a.length === b.length && timingSafeEqual(Buffer.from(a), Buffer.from(b));
+// Byte lengths, not string lengths: a non-ASCII value (e.g. from a tampered cookie) of equal character
+// length would otherwise make timingSafeEqual throw instead of returning false.
+const same = (a: string, b: string) => {
+  const x = Buffer.from(a);
+  const y = Buffer.from(b);
+  return x.length === y.length && timingSafeEqual(x, y);
+};
 
 /** The time-step a code belongs to, allowing one step of clock drift; null if it matches none. */
 export function matchTotp(secret: string, code: string, nowMs = Date.now()): number | null {
