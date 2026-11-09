@@ -50,6 +50,14 @@ export const INTEGRATION_CLIENTS: ClientDef[] = [
     flag: "meet_profile_api",
     requested: ["skills"],
   },
+  {
+    id: "avasar",
+    name: "Avsar",
+    description: "Internships, fellowships, competitions and first jobs matched to your profile.",
+    origin: "https://avsar.aitathastu.com",
+    flag: "avasar_profile_api",
+    requested: ["skills", "projects", "experience", "education", "achievements"],
+  },
 ];
 
 export { SCOPE_IDS } from "@/lib/integrations/scopes";

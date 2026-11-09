@@ -493,7 +493,7 @@ export type FeatureFlag = typeof featureFlags.$inferSelect;
 // AI Tathastu is the identity provider and profile source for apps on their
 // own domains. Registry: src/lib/integrations/clients.ts.
 
-export type IntegrationClientId = "collaborate" | "meet";
+export type IntegrationClientId = "collaborate" | "meet" | "avasar";
 export type IntegrationScope =
   | "education"
   | "skills"

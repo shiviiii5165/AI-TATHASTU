@@ -12,7 +12,7 @@ import { dispatchWebhooks, enqueueProfileUpdated, enqueueRevoked } from "@/lib/i
 import { allowPaidWork } from "@/lib/paid-work";
 
 const consentSchema = z.object({
-  clientId: z.enum(["collaborate", "meet"]),
+  clientId: z.enum(["collaborate", "meet", "avasar"]),
   scopes: z.record(z.string(), z.boolean()),
   hiddenProjects: z.array(z.string().regex(/^p_[0-9a-f]{16}$/)).max(500),
 });
