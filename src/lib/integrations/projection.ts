@@ -67,18 +67,37 @@ export function toProfessionalProjectionV1(
     company: p.user.company ?? null,
     jobTitle: p.user.jobTitle ?? null,
     graduationYear: p.user.graduationYear ?? null,
+    // Additive (contract v1, optional): the academic answers from onboarding, so apps don't
+    // see an empty profile for a student who hasn't uploaded a resume yet.
+    degree: p.user.degree ?? null,
+    specialization: p.user.specialization ?? null,
+    academicYear: p.user.currentAcademicYear ?? p.user.academicYear ?? null,
+    expectedGraduationYear: p.user.expectedGraduationYear ?? null,
   };
 
-  const education = shared("education")
-    ? p.education.map((e) => ({
-        institution: e.fields.institution?.value ?? null,
-        degree: e.fields.degree?.value ?? null,
-        fieldOfStudy: e.fields.field_of_study?.value ?? null,
-        dates: dateRange(e),
-        grade: e.fields.grade?.value ?? null,
-        sources: e.origins,
-      }))
-    : null;
+  const factEducation = p.education.map((e) => ({
+    institution: e.fields.institution?.value ?? null,
+    degree: e.fields.degree?.value ?? null,
+    fieldOfStudy: e.fields.field_of_study?.value ?? null,
+    dates: dateRange(e),
+    grade: e.fields.grade?.value ?? null,
+    sources: e.origins,
+  }));
+  // No confirmed education facts yet: fall back to what the student entered at onboarding
+  // (the same fallback /api/profile/v1/me uses), marked as user-entered.
+  const gradYear = p.user.expectedGraduationYear ?? p.user.graduationYear ?? null;
+  const onboardingEducation =
+    p.user.university
+      ? [{
+          institution: p.user.university,
+          degree: p.user.degree ?? null,
+          fieldOfStudy: p.user.specialization ?? null,
+          dates: gradYear ? String(gradYear) : null,
+          grade: null,
+          sources: ["user_entered"],
+        }]
+      : [];
+  const education = shared("education") ? (factEducation.length ? factEducation : onboardingEducation) : null;
 
   const eris = p.view?.erisScore;
   // The intelligence engine's assessment, by skill name. Absent or unassessed → null, never a default.

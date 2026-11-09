@@ -56,7 +56,8 @@ export const INTEGRATION_CLIENTS: ClientDef[] = [
     description: "Internships, fellowships, competitions and first jobs matched to your profile.",
     origin: "https://avsar.aitathastu.com",
     flag: "avasar_profile_api",
-    requested: ["skills", "projects", "experience", "education", "achievements"],
+    // ERIS (target role, readiness, gaps) and activity (GitHub) feed Avsar's career insights and matching.
+    requested: ["skills", "projects", "experience", "education", "achievements", "eris", "activity"],
   },
 ];
 

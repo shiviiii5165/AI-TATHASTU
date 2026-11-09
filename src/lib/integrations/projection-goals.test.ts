@@ -69,3 +69,32 @@ describe("ProfessionalProjectionV1 additive fields", () => {
     expect(p.goals).toMatchObject({ needs: [], assessed: false });
   });
 });
+
+describe("onboarding academic answers", () => {
+  const onboarded = {
+    ...profile,
+    user: { ...profile.user, university: "Lovely Professional University", degree: "B.Tech", specialization: "Computer Science", currentAcademicYear: "3rd year", expectedGraduationYear: 2027 },
+  } as unknown as typeof profile;
+
+  it("sends them in identity (additive)", () => {
+    const p = toProfessionalProjectionV1(onboarded, "avasar", consent({}));
+    expect(p.identity).toMatchObject({ university: "Lovely Professional University", degree: "B.Tech", specialization: "Computer Science", academicYear: "3rd year", expectedGraduationYear: 2027 });
+  });
+
+  it("falls back to them for education when there are no confirmed education facts, only under the education scope", () => {
+    const p = toProfessionalProjectionV1(onboarded, "avasar", consent({ education: true }));
+    expect(p.education).toEqual([{ institution: "Lovely Professional University", degree: "B.Tech", fieldOfStudy: "Computer Science", dates: "2027", grade: null, sources: ["user_entered"] }]);
+    expect(toProfessionalProjectionV1(onboarded, "avasar", consent({})).education).toBeNull();
+    expect(toProfessionalProjectionV1(profile, "avasar", consent({ education: true })).education).toEqual([]); // nothing entered: nothing invented
+  });
+
+  it("prefers confirmed education facts over the onboarding answer", () => {
+    const withFacts = {
+      ...onboarded,
+      education: [{ key: "resume:e1", origins: ["resume"], fields: { institution: { value: "IIT Delhi" }, degree: { value: "M.Tech" }, start_date: { value: "2027" }, end_date: { value: "2029" } } }],
+    } as unknown as typeof profile;
+    const p = toProfessionalProjectionV1(withFacts, "avasar", consent({ education: true }));
+    expect(p.education).toHaveLength(1);
+    expect(p.education![0]).toMatchObject({ institution: "IIT Delhi", degree: "M.Tech", sources: ["resume"] });
+  });
+});
