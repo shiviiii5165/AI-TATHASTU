@@ -25,6 +25,9 @@ const MAX_RELATED = 5;
 
 const ORDER: Record<SkillStatus, number> = { verified: 0, claimed: 1, inferred: 2 };
 const STATUS_LABEL: Record<SkillStatus, string> = { verified: "Verified", claimed: "Claimed by you", inferred: "AI-suggested" };
+// /skills uses the same words as its skill cards (lib/dashboard/skill-assessment EVIDENCE_STATE).
+const FULL_STATUS_LABEL: Record<SkillStatus, string> = { verified: "Demonstrated", claimed: "Claimed", inferred: "Suggested" };
+type Labels = Record<SkillStatus, string>;
 
 export function topSkills(graph: SkillGraphData | undefined, max = MAX_NODES): SkillGraphNode[] {
   if (!graph?.nodes.length) return [];
@@ -46,8 +49,17 @@ export function relatedSkills(graph: SkillGraphData | undefined, id: string, max
     });
 }
 
-export function SkillsOverview({ skillGraph }: { skillGraph?: SkillGraphData }) {
-  const nodes = useMemo(() => topSkills(skillGraph), [skillGraph]);
+export interface SkillsOverviewProps {
+  skillGraph?: SkillGraphData;
+  /** How many skills the network draws. The dashboard shows the top 16; /skills draws every engine node. */
+  maxNodes?: number;
+  /** The /skills page: no "Full graph" link, and pointers say the rest is below rather than on another page. */
+  fullView?: boolean;
+}
+
+export function SkillsOverview({ skillGraph, maxNodes = MAX_NODES, fullView = false }: SkillsOverviewProps) {
+  const nodes = useMemo(() => topSkills(skillGraph, maxNodes), [skillGraph, maxNodes]);
+  const labels = fullView ? FULL_STATUS_LABEL : STATUS_LABEL;
   const colours = useMemo(() => skillColours(nodes), [nodes]);
   // The list (the text alternative) shows every skill in the engine graph, not only those drawn.
   const allNodes = useMemo(() => topSkills(skillGraph, Number.POSITIVE_INFINITY), [skillGraph]);
@@ -109,13 +121,13 @@ export function SkillsOverview({ skillGraph }: { skillGraph?: SkillGraphData }) 
   }, [selectedId, close]);
 
   return (
-    <section className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card p-4 text-card-foreground shadow-2xs sm:p-5" data-testid="skills-overview">
+    <section className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card p-4 text-card-foreground shadow-2xs sm:p-5" data-testid={fullView ? "skill-graph" : "skills-overview"}>
       <div className="relative flex flex-wrap items-center justify-between gap-x-2 gap-y-2 border-b border-border pb-3">
         <div className="flex min-w-0 items-center gap-2">
           <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-cyan-50 text-cyan-600 dark:bg-cyan-500/15 dark:text-cyan-300">
             <Network aria-hidden className="size-4" />
           </div>
-          <h2 className="whitespace-nowrap font-sans text-sm font-bold text-foreground">Skills Intelligence</h2>
+          <h2 className="whitespace-nowrap font-sans text-sm font-bold text-foreground">{fullView ? "Skill graph" : "Skills Intelligence"}</h2>
         </div>
         <div className="flex items-center gap-2 whitespace-nowrap">
           {nodes.length > 0 && (
@@ -134,10 +146,12 @@ export function SkillsOverview({ skillGraph }: { skillGraph?: SkillGraphData }) 
               ))}
             </div>
           )}
-          <Link href="/skills" className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
-            <span>Full graph</span>
-            <ArrowRight aria-hidden className="size-3" />
-          </Link>
+          {!fullView && (
+            <Link href="/skills" className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
+              <span>Full graph</span>
+              <ArrowRight aria-hidden className="size-3" />
+            </Link>
+          )}
         </div>
       </div>
 
@@ -163,7 +177,7 @@ export function SkillsOverview({ skillGraph }: { skillGraph?: SkillGraphData }) 
               <div className="flex items-baseline justify-between gap-2">
                 <p className="text-[11px] font-semibold text-foreground">Evidence behind these skills</p>
                 <p className="text-[11px] tabular-nums text-muted-foreground">
-                  {counts.verified} verified · {counts.claimed} claimed · {counts.inferred} suggested
+                  {counts.verified} {fullView ? "demonstrated" : "verified"} · {counts.claimed} claimed · {counts.inferred} suggested
                 </p>
               </div>
               <div className="mt-1.5 flex h-1.5 w-full gap-0.5 overflow-hidden rounded-full" role="img" aria-label={`Evidence: ${mix.map((m) => `${m.count} from ${evidenceKind(m.kind).label}`).join(", ")}`}>
@@ -220,6 +234,7 @@ export function SkillsOverview({ skillGraph }: { skillGraph?: SkillGraphData }) 
                         lines={p.lines}
                         colour={colours.get(n.id)!}
                         uid={uid}
+                        statusLabel={labels[n.status]}
                         glowDelay={(i % 7) * 0.7}
                         active={n.id === selectedId}
                         dimmed={neighbours !== null && !neighbours.has(n.id)}
@@ -236,12 +251,12 @@ export function SkillsOverview({ skillGraph }: { skillGraph?: SkillGraphData }) 
               )}
             </div>
           ) : (
-            <SkillList nodes={allNodes} edges={skillGraph?.edges ?? []} total={skillGraph?.totalSkills ?? allNodes.length} selectedId={selectedId} onSelect={(id) => setSelectedId(id === selectedId ? null : id)} />
+            <SkillList nodes={allNodes} edges={skillGraph?.edges ?? []} total={skillGraph?.totalSkills ?? allNodes.length} selectedId={selectedId} onSelect={(id) => setSelectedId(id === selectedId ? null : id)} fullView={fullView} labels={labels} />
           )}
 
           <div aria-live="polite" className="relative">
             {selected ? (
-              <SkillDetail node={selected} accent={colours.get(selected.id)} related={related} onSelect={(id) => setSelectedId(id)} onClose={close} />
+              <SkillDetail node={selected} accent={colours.get(selected.id)} related={related} onSelect={(id) => setSelectedId(id)} onClose={close} fullView={fullView} labels={labels} />
             ) : (
               <p className="mt-3 rounded-xl bg-muted/40 px-3 py-2 text-[11px] text-muted-foreground">
                 Select a skill to see why it was identified and the evidence behind it.{" "}
@@ -255,18 +270,18 @@ export function SkillsOverview({ skillGraph }: { skillGraph?: SkillGraphData }) 
           <div className="relative mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border pt-2 text-[10px] text-muted-foreground">
             <span className="flex items-center gap-1">
               <svg aria-hidden width="12" height="12"><circle cx="6" cy="6" r="5" fill="#7c3aed" /></svg>
-              Verified
+              {labels.verified}
             </span>
             <span className="flex items-center gap-1">
               <svg aria-hidden width="12" height="12"><circle cx="6" cy="6" r="5" fill="#7c3aed" fillOpacity="0.8" /><circle cx="6" cy="6" r="3" fill="none" stroke="#fff" strokeWidth="0.9" strokeDasharray="1.5 1.2" /></svg>
-              Claimed
+              {fullView ? labels.claimed : "Claimed"}
             </span>
             <span className="flex items-center gap-1">
               <svg aria-hidden width="12" height="12"><circle cx="6" cy="6" r="5" fill="#fff" stroke="#7c3aed" strokeWidth="1.2" strokeDasharray="2 1.5" /></svg>
               Suggested
             </span>
             <span>Size reflects recorded evidence; colour tells skills apart.</span>
-            {more > 0 && <span className="ml-auto">{more} more on Skills</span>}
+            {more > 0 && <span className="ml-auto">{fullView ? `${more} more in the lists below` : `${more} more on Skills`}</span>}
           </div>
         </>
       )}
@@ -313,6 +328,7 @@ type CircleProps = {
   lines: string[];
   colour: SkillColour;
   uid: string;
+  statusLabel: string;
   glowDelay: number;
   active: boolean;
   dimmed: boolean;
@@ -321,7 +337,7 @@ type CircleProps = {
   ref: (el: SVGGElement | null) => void;
 };
 
-function SkillCircle({ node, x, y, r, lines, colour, uid, glowDelay, active, dimmed, onSelect, onHover, ref }: CircleProps) {
+function SkillCircle({ node, x, y, r, lines, colour, uid, statusLabel, glowDelay, active, dimmed, onSelect, onHover, ref }: CircleProps) {
   const suggested = node.status === "inferred";
   const claimed = node.status === "claimed";
   const showCount = node.evidenceCount > 0;
@@ -343,7 +359,7 @@ function SkillCircle({ node, x, y, r, lines, colour, uid, glowDelay, active, dim
       data-node={node.id}
       data-status={node.status}
       aria-pressed={active}
-      aria-label={`${node.name}: ${STATUS_LABEL[node.status]}${node.proficiency === null ? ", not scored" : `, ${node.level}`}, ${node.evidenceCount} evidence ${node.evidenceCount === 1 ? "item" : "items"}`}
+      aria-label={`${node.name}: ${statusLabel}${node.proficiency === null ? ", not scored" : `, ${node.level}`}, ${node.evidenceCount} evidence ${node.evidenceCount === 1 ? "item" : "items"}`}
       onClick={onSelect}
       onKeyDown={onKeyDown}
       onPointerEnter={() => onHover(true)}
@@ -399,7 +415,7 @@ function SkillCircle({ node, x, y, r, lines, colour, uid, glowDelay, active, dim
   );
 }
 
-function SkillList({ nodes, edges, total, selectedId, onSelect }: { nodes: SkillGraphNode[]; edges: SkillGraphEdge[]; total: number; selectedId: string | null; onSelect: (id: string) => void }) {
+function SkillList({ nodes, edges, total, selectedId, onSelect, fullView, labels }: { nodes: SkillGraphNode[]; edges: SkillGraphEdge[]; total: number; selectedId: string | null; onSelect: (id: string) => void; fullView: boolean; labels: Labels }) {
   const links = (id: string) => edges.filter((e) => e.basis === "evidence" && (e.source === id || e.target === id)).length;
   return (
     <ul className="mt-3 divide-y divide-border rounded-xl border border-border" aria-label="Skills">
@@ -415,7 +431,7 @@ function SkillList({ nodes, edges, total, selectedId, onSelect }: { nodes: Skill
             >
               <span aria-hidden className="size-2.5 shrink-0 rounded-full" style={{ background: c.hex }} />
               <span className="min-w-0 flex-1 truncate font-semibold text-foreground">{n.name}</span>
-              <span className="shrink-0 text-[11px] text-muted-foreground">{STATUS_LABEL[n.status]}</span>
+              <span className="shrink-0 text-[11px] text-muted-foreground">{labels[n.status]}</span>
               <span className="w-24 shrink-0 text-right text-[11px] tabular-nums text-muted-foreground">
                 {n.evidenceCount} evidence · {links(n.id)} {links(n.id) === 1 ? "link" : "links"}
               </span>
@@ -423,7 +439,8 @@ function SkillList({ nodes, edges, total, selectedId, onSelect }: { nodes: Skill
           </li>
         );
       })}
-      {total > nodes.length && (
+      {total > nodes.length && fullView && <li className="px-3 py-2 text-[11px] text-muted-foreground">{total - nodes.length} more {total - nodes.length === 1 ? "skill" : "skills"} in the lists below</li>}
+      {total > nodes.length && !fullView && (
         <li className="px-3 py-2 text-[11px] text-muted-foreground">
           {total - nodes.length} more {total - nodes.length === 1 ? "skill" : "skills"} with their evidence on the{" "}
           <Link href="/skills" className="font-semibold text-primary hover:underline">
@@ -435,7 +452,7 @@ function SkillList({ nodes, edges, total, selectedId, onSelect }: { nodes: Skill
   );
 }
 
-function SkillDetail({ node, accent, related, onSelect, onClose }: { node: SkillGraphNode; accent?: SkillColour; related: ReturnType<typeof relatedSkills>; onSelect: (id: string) => void; onClose: () => void }) {
+function SkillDetail({ node, accent, related, onSelect, onClose, fullView = false, labels = STATUS_LABEL }: { node: SkillGraphNode; accent?: SkillColour; related: ReturnType<typeof relatedSkills>; onSelect: (id: string) => void; onClose: () => void; fullView?: boolean; labels?: Labels }) {
   const group = CLUSTERS[clusterOf(node)];
   // The same colour as the circle that was selected; the group only names the category.
   const meta = { label: group.label, hex: accent?.deep ?? group.hex, tint: accent ? accent.light : group.tint, alpha: accent ? "1f" : "66" };
@@ -451,7 +468,7 @@ function SkillDetail({ node, accent, related, onSelect, onClose }: { node: Skill
           </h3>
           <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[11px] text-muted-foreground">
             <Icon aria-hidden className="size-3" />
-            {STATUS_LABEL[node.status]} · {meta.label}
+            {labels[node.status]} · {meta.label}
           </p>
         </div>
         <button type="button" onClick={onClose} aria-label="Close skill details" className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
@@ -505,7 +522,7 @@ function SkillDetail({ node, accent, related, onSelect, onClose }: { node: Skill
               </ul>
             </div>
           ))}
-          {node.evidenceCount > node.evidence.length && <p className="pl-2.5 text-[10px] text-muted-foreground">+{node.evidenceCount - node.evidence.length} more on Skills</p>}
+          {node.evidenceCount > node.evidence.length && <p className="pl-2.5 text-[10px] text-muted-foreground">+{node.evidenceCount - node.evidence.length} more {fullView ? "recorded" : "on Skills"}</p>}
         </div>
       )}
 

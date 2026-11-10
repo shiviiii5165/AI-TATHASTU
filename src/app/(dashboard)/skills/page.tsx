@@ -4,12 +4,13 @@ import Link from "next/link";
 import { ArrowLeft, FileUp } from "lucide-react";
 import { Suspense } from "react";
 
-import { SkillBubbleChart } from "@/components/dashboard/mockup-sections/skill-bubble-chart";
+import { SkillsOverview } from "@/components/dashboard/mockup-sections/skills-overview";
+import { SkillCollection } from "@/components/skills/skill-collection";
 import { roleLabel } from "@/components/dashboard/widgets/labels";
 import { db } from "@/db";
 import { profileViews } from "@/db/schema";
 import { requireOnboardedUser } from "@/lib/dal";
-import type { EngineSkill, GapState, ProfileViewDoc, RoleAnalysis } from "@/lib/dashboard/types";
+import type { GapState, ProfileViewDoc, RoleAnalysis } from "@/lib/dashboard/types";
 
 export const metadata: Metadata = {
   title: "Skills | AI Tathastu",
@@ -55,7 +56,7 @@ async function SkillsContent() {
           <span>Back to Dashboard</span>
         </Link>
         <h1 className="editorial-title text-3xl tracking-tight text-foreground sm:text-4xl">Skills</h1>
-        <p className="mt-1 text-sm text-muted-foreground">What your evidence shows, where it comes from, and how sure we are.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Each skill, the level your evidence supports, and where that evidence comes from.</p>
       </div>
 
       {!intelligence ? (
@@ -74,12 +75,11 @@ async function SkillsContent() {
         </div>
       ) : (
         <>
-          <SkillBubbleChart skillGraph={intelligence.graph} fullView />
+          <SkillsOverview skillGraph={intelligence.graph} maxNodes={Number.POSITIVE_INFINITY} fullView />
+          <SkillCollection skills={intelligence.skills} inferred={intelligence.inferred} />
           {intelligence.roles.map((role) => (
             <RoleTable key={role.role} role={role} />
           ))}
-          <SkillList title="Your skills" description="Proficiency is a score from your evidence. Confidence is how much we trust that score." skills={intelligence.skills} />
-          {intelligence.inferred.length > 0 && <SkillList title="Suggested skills" description="Related skills imply these, but nothing shows them yet, so they have no score." skills={intelligence.inferred} />}
         </>
       )}
     </div>
@@ -133,43 +133,6 @@ function RoleTable({ role }: { role: RoleAnalysis }) {
           </tbody>
         </table>
       </div>
-    </section>
-  );
-}
-
-function SkillList({ title, description, skills }: { title: string; description: string; skills: EngineSkill[] }) {
-  return (
-    <section className="rounded-2xl border border-border bg-card p-5 shadow-2xs sm:p-6">
-      <h2 className="text-base font-bold text-foreground">{title}</h2>
-      <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
-      <ul className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {skills.map((skill) => (
-          <li key={skill.name} className="rounded-xl border border-border p-3.5">
-            <div className="flex items-baseline justify-between gap-2">
-              <span className="min-w-0 truncate text-sm font-bold text-foreground" title={skill.name}>{skill.name}</span>
-              <span className="shrink-0 text-[11px] font-semibold capitalize text-muted-foreground">{skill.status}</span>
-            </div>
-            <p className="mt-1 text-xs text-foreground">{skill.proficiency === null ? "Not assessed" : `${skill.level} · ${Math.round(skill.proficiency)} of 100`}</p>
-            <p className="text-[11px] text-muted-foreground">Confidence {Math.round(skill.confidence * 100)}%</p>
-            {skill.inferredFrom?.length ? <p className="mt-1 truncate text-[11px] text-muted-foreground" title={skill.inferredFrom.join(", ")}>Suggested by {skill.inferredFrom.join(", ")}</p> : null}
-            {skill.evidence.length > 0 && (
-              <ul className="mt-2 space-y-0.5 border-t border-border pt-2 text-[11px]">
-                {skill.evidence.slice(0, 3).map((e, i) => (
-                  <li key={i} className="flex items-baseline justify-between gap-2">
-                    {e.ref?.startsWith("https://") ? (
-                      <a href={e.ref} target="_blank" rel="noopener noreferrer" className="min-w-0 truncate text-primary hover:underline">{e.label}</a>
-                    ) : (
-                      <span className="min-w-0 truncate text-foreground">{e.label}</span>
-                    )}
-                    <span className="shrink-0 capitalize text-muted-foreground">{e.kind}</span>
-                  </li>
-                ))}
-                {skill.evidenceCount > 3 && <li className="text-muted-foreground">And {skill.evidenceCount - 3} more</li>}
-              </ul>
-            )}
-          </li>
-        ))}
-      </ul>
     </section>
   );
 }
