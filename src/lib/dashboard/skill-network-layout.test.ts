@@ -4,7 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { clusterOf } from "./skill-intel";
-import { layoutSkillNetwork, nodeRadius, outOfBounds, overlaps, shortLabel, type LayoutInput } from "./skill-network-layout";
+import { labelLines, layoutSkillNetwork, nodeRadius, outOfBounds, overlaps, shortLabel, type LayoutInput } from "./skill-network-layout";
 
 const NAMES = ["JavaScript", "CSS", "TypeScript", "Python", "HTML", "C", "C++", "PLpgSQL", "Dockerfile", "PowerShell", "Procfile", "Framer Motion", "Next.js", "React", "Retrieval-Augmented Generation", "Kubernetes"];
 const input = (n: number): LayoutInput[] =>
@@ -37,7 +37,11 @@ describe("skill network layout", () => {
 
   it("keeps labels readable: long names are shortened, short ones untouched", () => {
     expect(shortLabel("Python")).toBe("Python");
-    expect(shortLabel("Retrieval-Augmented Generation").length).toBeLessThanOrEqual(16);
+    expect(shortLabel("Retrieval-Augmented Generation").length).toBeLessThanOrEqual(20);
+    expect(labelLines("Retrieval-Augmented Generation")).toHaveLength(2);
+    expect(labelLines("Python")).toEqual(["Python"]);
+    // Every circle is big enough for the name drawn inside it.
+    for (const name of NAMES) expect(nodeRadius(0, false, false, name) * 2).toBeGreaterThan(Math.max(...labelLines(name).map((l) => l.length * 6.6)));
   });
 
   it("lays out the real engine graph cleanly", () => {

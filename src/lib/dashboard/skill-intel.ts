@@ -125,3 +125,30 @@ export const RELATIONSHIP_LABEL: Record<string, string> = {
   enables: "Enables",
   relates_to: "Related",
 };
+
+/**
+ * Vivid per-skill colours for the network, in the reference's palette. `light` is the glow and gradient
+ * highlight, `deep` the gradient base that the white name sits on. Purely visual identity: it says nothing about
+ * a skill's level, status or relationships.
+ */
+export const SKILL_PALETTE = [
+  { light: "#a78bfa", deep: "#6d28d9" }, // violet
+  { light: "#22d3ee", deep: "#0e7490" }, // cyan
+  { light: "#34d399", deep: "#047857" }, // emerald
+  { light: "#fb923c", deep: "#c2410c" }, // coral
+  { light: "#f472b6", deep: "#be185d" }, // pink
+  { light: "#60a5fa", deep: "#1d4ed8" }, // blue
+  { light: "#2dd4bf", deep: "#0f766e" }, // turquoise
+  { light: "#e879f9", deep: "#a21caf" }, // magenta
+] as const;
+
+export type SkillColour = (typeof SKILL_PALETTE)[number] & { index: number };
+
+/**
+ * One colour per skill, assigned in the order the network places them (most evidence first, at the centre), so
+ * neighbouring circles get different hues and every palette colour is used before any repeats. Deterministic.
+ */
+export function skillColours(nodes: { id: string; evidenceCount: number }[]): Map<string, SkillColour> {
+  const order = nodes.map((n, i) => ({ n, i })).sort((a, b) => b.n.evidenceCount - a.n.evidenceCount || a.i - b.i);
+  return new Map(order.map(({ n }, k) => [n.id, { ...SKILL_PALETTE[k % SKILL_PALETTE.length], index: k % SKILL_PALETTE.length }]));
+}

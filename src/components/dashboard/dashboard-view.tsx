@@ -85,7 +85,7 @@ export function DashboardView({
 }: DashboardViewProps) {
   const [yoraOpen, setYoraOpen] = useState(false);
   // Next steps come from the roadmap for the chosen goal, not from the generic next-action list.
-  const next = useMemo(() => nextStepsFromRoadmap(intelligence, roadmapSubmissions), [intelligence, roadmapSubmissions]);
+  const next = useMemo(() => nextStepsFromRoadmap(intelligence, roadmapSubmissions, 3, { excludeNext: true }), [intelligence, roadmapSubmissions]);
 
   return (
     <div className="space-y-6 sm:space-y-7 pb-12">
@@ -121,14 +121,9 @@ export function DashboardView({
 
       {/* F. Career development: what's missing for the chosen goal, the plan to close it, then what to do next. */}
       <section aria-label="Career development" className="space-y-4">
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
-          <div className="xl:col-span-4 xl:self-start">
-            <SkillGaps intelligence={intelligence} />
-          </div>
-          <div className="min-w-0 xl:col-span-8">
-            <CareerRoadmap intelligence={intelligence} submissions={roadmapSubmissions} />
-          </div>
-        </div>
+        <SkillGaps intelligence={intelligence} />
+        {/* Full width: the journey runs left to right on wide screens. */}
+        <CareerRoadmap intelligence={intelligence} submissions={roadmapSubmissions} />
         <NextActionsRow actions={next.steps} empty={next.empty} />
       </section>
 

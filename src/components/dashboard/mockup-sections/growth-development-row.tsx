@@ -250,7 +250,7 @@ function SkillGapsCard({ intelligence, role, roleIndex, onRole }: { intelligence
       {!intelligence ? (
         <Empty {...UPDATING} />
       ) : !role ? (
-        <Empty title="No role framework to compare with" body={intelligence.unsupportedRoles.length ? "Your selected goal doesn't have a competency framework yet." : "Choose a career goal to see what it needs."} href="/settings" action="Your settings" />
+        <Empty title="No role framework to compare with" body={intelligence.unsupportedRoles.length ? "Your selected goal doesn't have a competency framework yet." : "Choose a career goal to see what it needs. Goals are chosen during onboarding."} />
       ) : !role.assessed ? (
         <>
           <RolePicker roles={intelligence.roles} index={roleIndex} onChange={onRole} />
@@ -264,8 +264,8 @@ function SkillGapsCard({ intelligence, role, roleIndex, onRole }: { intelligence
       ) : (
         <>
           <RolePicker roles={intelligence.roles} index={roleIndex} onChange={onRole} />
-          <ul className="space-y-0.5">
-            {role.open.slice(0, 4).map((row) => (
+          <ul className="grid grid-cols-1 gap-x-4 gap-y-0.5 sm:grid-cols-2 xl:grid-cols-4">
+            {role.open.slice(0, 8).map((row) => (
               <GapRow key={row.skill} row={row} />
             ))}
           </ul>

@@ -110,23 +110,34 @@ test("skills are clustered by category, linked only by recorded edges, and expla
   await context.close();
 });
 
-test("the roadmap shows where you are, your goal, a next step, and blocked milestones with reasons", async ({ browser }) => {
+test("the roadmap shows the goal, coverage, next milestone, journey, skill progress and one next action", async ({ browser }) => {
   const { context, page } = await setUp(browser, "Roadmap", 1280);
   const roadmap = page.getByTestId("career-roadmap");
-  await expect(roadmap).toContainText("ML Intern at Acme");
-  await expect(roadmap).toContainText("Where you want to go");
-  await expect(roadmap.getByText("What to do next")).toBeVisible();
-  await expect(roadmap.getByText("A public project using Docker").first()).toBeVisible();
-  await expect(roadmap.locator('[data-status="active"]')).toContainText("Docker");
-  await expect(roadmap.locator('[data-status="blocked"]')).toContainText("Kubernetes");
+  await expect(roadmap.getByTestId("roadmap-goal")).toHaveText("ML Engineer");
   await expect(page.getByTestId("roadmap-progress-bar")).toHaveAttribute("style", /width:\s*60%/);
+  await expect(roadmap.getByTestId("roadmap-next-milestone")).toContainText("Build the foundations");
 
-  await roadmap.locator('[data-status="blocked"]').click();
+  // The journey: where you are (from the profile) → the engine's stages → the goal.
+  await expect(roadmap.getByTestId("journey-current")).toContainText("ML Intern at Acme");
+  await expect(roadmap.getByTestId("journey-stage-foundation")).toHaveAttribute("data-status", "active");
+  await expect(roadmap.getByTestId("journey-stage-build")).toHaveAttribute("data-status", "blocked");
+  await expect(roadmap.getByTestId("journey-stage-build")).toContainText("Waiting on Docker");
+  await expect(roadmap.getByTestId("journey-goal")).toContainText("ML Engineer");
+
+  // Next action: the engine's next milestone, with why and what it moves you towards.
+  const action = roadmap.getByTestId("roadmap-next-action");
+  await expect(action).toContainText("A public project using Docker");
+  await expect(action).toContainText("Short term");
+
+  // A blocked stage opens with its milestone and the real missing prerequisite.
+  await roadmap.getByTestId("journey-stage-build").getByRole("button").click();
+  const stage = roadmap.getByTestId("roadmap-stage-detail");
+  await stage.locator('button[data-status="blocked"]', { hasText: "Kubernetes" }).click();
   const detail = roadmap.locator("#roadmap-milestone-detail");
   await expect(detail).toContainText("Why this is on your roadmap");
   await expect(detail).toContainText("Start with Docker first.");
   await detail.getByRole("button", { name: /Docker/ }).click();
-  await expect(detail.getByRole("heading", { name: "Docker" })).toBeVisible();
+  await expect(roadmap.locator("#roadmap-milestone-detail").getByRole("heading", { name: "Docker" })).toBeVisible();
   await context.close();
 });
 
@@ -136,6 +147,20 @@ test("reduced motion shows the finished state without animation", async ({ brows
   expect(names.length).toBeGreaterThan(0);
   expect(names.every((n) => n === "none")).toBe(true);
   expect(await page.getByTestId("roadmap-progress-bar").evaluate((e) => getComputedStyle(e).animationName)).toBe("none");
+  // The skill network's glow stays visible but doesn't pulse.
+  const glows = page.getByTestId("skill-network").locator(".skill-glow");
+  await expect(glows.first()).toBeAttached();
+  expect(await glows.evaluateAll((els) => els.every((e) => getComputedStyle(e).animationName === "none"))).toBe(true);
+  await context.close();
+});
+
+test("the skill network's glow pulses slowly when motion is allowed", async ({ browser }) => {
+  const { context, page } = await setUp(browser, "Glow", 1280);
+  const glow = page.getByTestId("skill-network").locator(".skill-glow").first();
+  await expect(glow).toBeAttached();
+  const anim = await glow.evaluate((e) => ({ name: getComputedStyle(e).animationName, seconds: parseFloat(getComputedStyle(e).animationDuration) }));
+  expect(anim.name).toBe("skillGlow");
+  expect(anim.seconds).toBeGreaterThanOrEqual(3); // slow, never a fast pulse
   await context.close();
 });
 
@@ -190,7 +215,7 @@ test("with no evidence, each section explains what's missing instead of drawing 
   const { context, page } = await setUp(browser, "Empty", 1280, { seeded: false });
   await expect(page.getByTestId("journey-timeline")).toContainText("Nothing on your timeline yet");
   await expect(page.getByTestId("skills-overview")).toContainText("No skills identified yet");
-  await expect(page.getByTestId("career-roadmap")).toContainText(/being calculated|Choose where you want to go|No roadmap for your goal yet/);
+  await expect(page.getByTestId("career-roadmap")).toContainText(/being calculated|No career goal to plan towards|No roadmap for your goal yet/);
   await expect(page.getByTestId("journey-node")).toHaveCount(0);
   await expect(page.locator('[data-testid="skill-network"]')).toHaveCount(0);
   await context.close();

@@ -2,10 +2,11 @@
 
 import { ArrowRight, BadgeCheck, ExternalLink, Lightbulb, List, MessageSquareQuote, Network, X } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 
-import { CLUSTERS, RELATIONSHIP_LABEL, clusterOf, confidenceLabel, evidenceKind, evidenceMix, groupEvidence, skillClusters, visibleEdges, whyIdentified } from "@/lib/dashboard/skill-intel";
+import { CLUSTERS, RELATIONSHIP_LABEL, clusterOf, confidenceLabel, evidenceKind, evidenceMix, groupEvidence, SKILL_PALETTE, skillColours, visibleEdges, whyIdentified } from "@/lib/dashboard/skill-intel";
 import { LABEL_PX, layoutSkillNetwork, type NetworkLayout } from "@/lib/dashboard/skill-network-layout";
+import type { SkillColour } from "@/lib/dashboard/skill-intel";
 import type { SkillGraphData, SkillGraphEdge, SkillGraphNode, SkillStatus } from "@/lib/dashboard/types";
 
 /**
@@ -47,7 +48,10 @@ export function relatedSkills(graph: SkillGraphData | undefined, id: string, max
 
 export function SkillsOverview({ skillGraph }: { skillGraph?: SkillGraphData }) {
   const nodes = useMemo(() => topSkills(skillGraph), [skillGraph]);
-  const clusters = useMemo(() => skillClusters(nodes), [nodes]);
+  const colours = useMemo(() => skillColours(nodes), [nodes]);
+  // The list (the text alternative) shows every skill in the engine graph, not only those drawn.
+  const allNodes = useMemo(() => topSkills(skillGraph, Number.POSITIVE_INFINITY), [skillGraph]);
+  const uid = useId().replace(/:/g, "");
   const ids = useMemo(() => new Set(nodes.map((n) => n.id)), [nodes]);
   const edges = useMemo(() => visibleEdges(skillGraph, ids), [skillGraph, ids]);
   const evidenceEdges = useMemo(() => edges.filter((e) => e.basis === "evidence"), [edges]);
@@ -179,15 +183,31 @@ export function SkillsOverview({ skillGraph }: { skillGraph?: SkillGraphData }) 
           )}
 
           {view === "network" ? (
-            <div ref={box} className="relative mt-3 w-full rounded-xl bg-slate-50/60 dark:bg-muted/20" data-testid="skill-network">
+            <div
+              ref={box}
+              className="relative mt-3 w-full rounded-xl border border-border/60 dark:bg-muted/20"
+              style={{ backgroundColor: "#fbfcff", backgroundImage: "radial-gradient(circle, #e2e8f0 1px, transparent 1px)", backgroundSize: "18px 18px" }}
+              data-testid="skill-network"
+            >
               {layout && (
                 <svg width={layout.width} height={layout.height} viewBox={`0 0 ${layout.width} ${layout.height}`} className="block" role="group" aria-label={`Skill network: ${nodes.length} skills, ${evidenceEdges.length} links from your work`}>
+                  <defs>
+                    <filter id={`${uid}-glow`} x="-60%" y="-60%" width="220%" height="220%">
+                      <feGaussianBlur stdDeviation="7" />
+                    </filter>
+                    {SKILL_PALETTE.map((p, i) => (
+                      <radialGradient key={i} id={`${uid}-fill-${i}`} cx="35%" cy="30%" r="75%">
+                        <stop offset="0%" stopColor={p.light} />
+                        <stop offset="100%" stopColor={p.deep} />
+                      </radialGradient>
+                    ))}
+                  </defs>
                   <g aria-hidden>
                     {edges.map((e) => (
-                      <Edge key={`${e.source}-${e.target}`} edge={e} layout={layout} focusId={focusId} nodes={nodes} />
+                      <Edge key={`${e.source}-${e.target}`} edge={e} layout={layout} focusId={focusId} colours={colours} />
                     ))}
                   </g>
-                  {nodes.map((n) => {
+                  {nodes.map((n, i) => {
                     const p = layout.nodes.get(n.id);
                     if (!p) return null;
                     return (
@@ -197,7 +217,10 @@ export function SkillsOverview({ skillGraph }: { skillGraph?: SkillGraphData }) 
                         x={p.x}
                         y={p.y}
                         r={p.r}
-                        label={p.label}
+                        lines={p.lines}
+                        colour={colours.get(n.id)!}
+                        uid={uid}
+                        glowDelay={(i % 7) * 0.7}
                         active={n.id === selectedId}
                         dimmed={neighbours !== null && !neighbours.has(n.id)}
                         ref={(el) => {
@@ -213,12 +236,12 @@ export function SkillsOverview({ skillGraph }: { skillGraph?: SkillGraphData }) 
               )}
             </div>
           ) : (
-            <SkillList nodes={nodes} edges={edges} selectedId={selectedId} onSelect={(id) => setSelectedId(id === selectedId ? null : id)} />
+            <SkillList nodes={allNodes} edges={skillGraph?.edges ?? []} total={skillGraph?.totalSkills ?? allNodes.length} selectedId={selectedId} onSelect={(id) => setSelectedId(id === selectedId ? null : id)} />
           )}
 
           <div aria-live="polite" className="relative">
             {selected ? (
-              <SkillDetail node={selected} related={related} onSelect={(id) => setSelectedId(id)} onClose={close} />
+              <SkillDetail node={selected} accent={colours.get(selected.id)} related={related} onSelect={(id) => setSelectedId(id)} onClose={close} />
             ) : (
               <p className="mt-3 rounded-xl bg-muted/40 px-3 py-2 text-[11px] text-muted-foreground">
                 Select a skill to see why it was identified and the evidence behind it.{" "}
@@ -230,25 +253,19 @@ export function SkillsOverview({ skillGraph }: { skillGraph?: SkillGraphData }) 
           </div>
 
           <div className="relative mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border pt-2 text-[10px] text-muted-foreground">
-            {clusters.map((c) => (
-              <span key={c.key} className="flex items-center gap-1">
-                <span aria-hidden className="size-2 rounded-full" style={{ background: CLUSTERS[c.key].hex }} />
-                {CLUSTERS[c.key].label}
-              </span>
-            ))}
-            <span aria-hidden className="h-3 w-px bg-border" />
             <span className="flex items-center gap-1">
-              <svg aria-hidden width="10" height="10"><circle cx="5" cy="5" r="4" fill="#e0f2fe" stroke="#0ea5e9" strokeWidth="1" /></svg>
+              <svg aria-hidden width="12" height="12"><circle cx="6" cy="6" r="5" fill="#7c3aed" /></svg>
               Verified
             </span>
             <span className="flex items-center gap-1">
-              <svg aria-hidden width="10" height="10"><circle cx="5" cy="5" r="4" fill="#fff" stroke="#0ea5e9" strokeWidth="1.2" /></svg>
+              <svg aria-hidden width="12" height="12"><circle cx="6" cy="6" r="5" fill="#7c3aed" fillOpacity="0.8" /><circle cx="6" cy="6" r="3" fill="none" stroke="#fff" strokeWidth="0.9" strokeDasharray="1.5 1.2" /></svg>
               Claimed
             </span>
             <span className="flex items-center gap-1">
-              <svg aria-hidden width="10" height="10"><circle cx="5" cy="5" r="4" fill="#fff" stroke="#94a3b8" strokeWidth="1" strokeDasharray="2 1.5" /></svg>
+              <svg aria-hidden width="12" height="12"><circle cx="6" cy="6" r="5" fill="#fff" stroke="#7c3aed" strokeWidth="1.2" strokeDasharray="2 1.5" /></svg>
               Suggested
             </span>
+            <span>Size reflects recorded evidence; colour tells skills apart.</span>
             {more > 0 && <span className="ml-auto">{more} more on Skills</span>}
           </div>
         </>
@@ -257,7 +274,7 @@ export function SkillsOverview({ skillGraph }: { skillGraph?: SkillGraphData }) 
   );
 }
 
-function Edge({ edge, layout, focusId, nodes }: { edge: SkillGraphEdge; layout: NetworkLayout; focusId: string | null; nodes: SkillGraphNode[] }) {
+function Edge({ edge, layout, focusId, colours }: { edge: SkillGraphEdge; layout: NetworkLayout; focusId: string | null; colours: Map<string, SkillColour> }) {
   const a = layout.nodes.get(edge.source);
   const b = layout.nodes.get(edge.target);
   if (!a || !b) return null;
@@ -265,12 +282,11 @@ function Edge({ edge, layout, focusId, nodes }: { edge: SkillGraphEdge; layout: 
   const isEvidence = edge.basis === "evidence";
   // Documented relations aren't from the user's work: only shown while one of their skills is in focus.
   if (!isEvidence && !touches) return null;
-  const src = nodes.find((n) => n.id === edge.source);
-  const hex = src ? CLUSTERS[clusterOf(src)].hex : "#94a3b8";
+  const hex = colours.get(edge.source)?.light ?? "#94a3b8";
   const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
   const dx = b.x - a.x, dy = b.y - a.y;
   const len = Math.hypot(dx, dy) || 1;
-  const bend = Math.min(18, len * 0.12);
+  const bend = Math.min(22, len * 0.12);
   const d = `M ${a.x} ${a.y} Q ${mx - (dy / len) * bend} ${my + (dx / len) * bend} ${b.x} ${b.y}`;
   const faded = focusId !== null && !touches;
   return isEvidence ? (
@@ -280,23 +296,39 @@ function Edge({ edge, layout, focusId, nodes }: { edge: SkillGraphEdge; layout: 
       fill="none"
       stroke={hex}
       strokeLinecap="round"
-      strokeWidth={touches ? 1.75 : 1}
-      strokeOpacity={faded ? 0.06 : touches ? 0.75 : 0.22}
-      className="transition-[stroke-opacity,stroke-width] duration-200"
+      strokeWidth={touches ? 2.25 : 1.25}
+      strokeOpacity={faded ? 0.1 : touches ? 0.95 : 0.5}
+      className="transition-[stroke-opacity,stroke-width] duration-300"
     />
   ) : (
-    <path d={d} data-basis="ontology" fill="none" stroke="#94a3b8" strokeDasharray="3 4" strokeWidth={1} strokeOpacity={0.8} />
+    <path d={d} data-basis="ontology" fill="none" stroke="#94a3b8" strokeDasharray="3 4" strokeWidth={1.25} strokeOpacity={0.85} />
   );
 }
 
-type CircleProps = { node: SkillGraphNode; x: number; y: number; r: number; label: string; active: boolean; dimmed: boolean; onSelect: () => void; onHover: (on: boolean) => void; ref: (el: SVGGElement | null) => void };
+type CircleProps = {
+  node: SkillGraphNode;
+  x: number;
+  y: number;
+  r: number;
+  lines: string[];
+  colour: SkillColour;
+  uid: string;
+  glowDelay: number;
+  active: boolean;
+  dimmed: boolean;
+  onSelect: () => void;
+  onHover: (on: boolean) => void;
+  ref: (el: SVGGElement | null) => void;
+};
 
-function SkillCircle({ node, x, y, r, label, active, dimmed, onSelect, onHover, ref }: CircleProps) {
-  const c = CLUSTERS[clusterOf(node)];
-  const verified = node.status === "verified";
+function SkillCircle({ node, x, y, r, lines, colour, uid, glowDelay, active, dimmed, onSelect, onHover, ref }: CircleProps) {
   const suggested = node.status === "inferred";
-  const fill = verified ? c.tint : "#ffffff";
-  const stroke = suggested ? "#94a3b8" : c.hex;
+  const claimed = node.status === "claimed";
+  const showCount = node.evidenceCount > 0;
+  // Name lines (and the evidence count beneath them) centred as one block.
+  const lineH = LABEL_PX + 1.5;
+  const block = lines.length * lineH + (showCount ? 11 : 0);
+  const firstY = y - block / 2 + LABEL_PX - 1;
   const onKeyDown = (e: KeyboardEvent<SVGGElement>) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
@@ -318,25 +350,56 @@ function SkillCircle({ node, x, y, r, label, active, dimmed, onSelect, onHover, 
       onPointerLeave={() => onHover(false)}
       onFocus={() => onHover(true)}
       onBlur={() => onHover(false)}
-      className="cursor-pointer outline-none transition-opacity duration-200 [&:focus-visible>circle.ring]:opacity-100"
-      style={{ opacity: dimmed ? 0.3 : 1 }}
+      className="cursor-pointer outline-none transition-opacity duration-300 [&:focus-visible>circle.focus]:opacity-100"
+      style={{ opacity: dimmed ? 0.28 : 1 }}
     >
       <title>{node.name}</title>
-      <circle className="ring opacity-0" cx={x} cy={y} r={r + 4} fill="none" stroke={c.hex} strokeWidth={1.5} strokeOpacity={0.6} style={active ? { opacity: 1 } : undefined} />
-      <circle cx={x} cy={y} r={r} fill={fill} stroke={stroke} strokeWidth={active ? 2 : verified ? 1 : 1.25} strokeDasharray={suggested ? "3 2.5" : undefined} />
-      {node.evidenceCount > 0 && (
-        <text x={x} y={y} dy="0.35em" textAnchor="middle" fontSize={10} fontWeight={700} fill={c.hex} className="pointer-events-none select-none tabular-nums">
-          {node.evidenceCount}
+      {/* Soft glow: slow, low-amplitude, stronger when selected. Suggestions have none. */}
+      {!suggested && (
+        <circle
+          className={active ? undefined : "skill-glow"}
+          cx={x}
+          cy={y}
+          r={r + (active ? 8 : 5)}
+          fill={colour.light}
+          filter={`url(#${uid}-glow)`}
+          style={{ animationDelay: `${glowDelay}s`, opacity: active ? 0.75 : undefined }}
+        />
+      )}
+      <circle className="focus opacity-0 transition-opacity" cx={x} cy={y} r={r + 5} fill="none" stroke={colour.deep} strokeWidth={2} />
+      {suggested ? (
+        <circle data-main cx={x} cy={y} r={r} fill="#ffffff" stroke={colour.light} strokeWidth={1.75} strokeDasharray="5 4" />
+      ) : (
+        <>
+          <circle data-main cx={x} cy={y} r={r} fill={`url(#${uid}-fill-${colour.index})`} fillOpacity={claimed ? 0.82 : 1} stroke="#ffffff" strokeOpacity={0.9} strokeWidth={active ? 3 : 2} className="transition-[stroke-width] duration-300" />
+          {claimed && <circle cx={x} cy={y} r={r - 5} fill="none" stroke="#ffffff" strokeOpacity={0.75} strokeWidth={1.25} strokeDasharray="3 3" />}
+        </>
+      )}
+      <text
+        x={x}
+        textAnchor="middle"
+        fontSize={LABEL_PX}
+        fontWeight={700}
+        fill={suggested ? colour.deep : "#ffffff"}
+        className="pointer-events-none select-none"
+        style={suggested ? undefined : { textShadow: "0 1px 2px rgba(15, 23, 42, 0.28)" }}
+      >
+        {lines.map((line, i) => (
+          <tspan key={i} x={x} y={firstY + i * lineH}>
+            {line}
+          </tspan>
+        ))}
+      </text>
+      {showCount && (
+        <text x={x} y={firstY + lines.length * lineH + 0.5} textAnchor="middle" fontSize={9.5} fontWeight={600} fill="#ffffff" fillOpacity={0.88} className="pointer-events-none select-none tabular-nums">
+          {node.evidenceCount} evidence
         </text>
       )}
-      <text x={x} y={y + r + 4 + LABEL_PX} textAnchor="middle" fontSize={LABEL_PX} fontWeight={600} className={`pointer-events-none select-none ${suggested ? "fill-muted-foreground" : "fill-foreground"}`}>
-        {label}
-      </text>
     </g>
   );
 }
 
-function SkillList({ nodes, edges, selectedId, onSelect }: { nodes: SkillGraphNode[]; edges: SkillGraphEdge[]; selectedId: string | null; onSelect: (id: string) => void }) {
+function SkillList({ nodes, edges, total, selectedId, onSelect }: { nodes: SkillGraphNode[]; edges: SkillGraphEdge[]; total: number; selectedId: string | null; onSelect: (id: string) => void }) {
   const links = (id: string) => edges.filter((e) => e.basis === "evidence" && (e.source === id || e.target === id)).length;
   return (
     <ul className="mt-3 divide-y divide-border rounded-xl border border-border" aria-label="Skills">
@@ -360,16 +423,26 @@ function SkillList({ nodes, edges, selectedId, onSelect }: { nodes: SkillGraphNo
           </li>
         );
       })}
+      {total > nodes.length && (
+        <li className="px-3 py-2 text-[11px] text-muted-foreground">
+          {total - nodes.length} more {total - nodes.length === 1 ? "skill" : "skills"} with their evidence on the{" "}
+          <Link href="/skills" className="font-semibold text-primary hover:underline">
+            Skills page
+          </Link>
+        </li>
+      )}
     </ul>
   );
 }
 
-function SkillDetail({ node, related, onSelect, onClose }: { node: SkillGraphNode; related: ReturnType<typeof relatedSkills>; onSelect: (id: string) => void; onClose: () => void }) {
-  const meta = CLUSTERS[clusterOf(node)];
+function SkillDetail({ node, accent, related, onSelect, onClose }: { node: SkillGraphNode; accent?: SkillColour; related: ReturnType<typeof relatedSkills>; onSelect: (id: string) => void; onClose: () => void }) {
+  const group = CLUSTERS[clusterOf(node)];
+  // The same colour as the circle that was selected; the group only names the category.
+  const meta = { label: group.label, hex: accent?.deep ?? group.hex, tint: accent ? accent.light : group.tint, alpha: accent ? "1f" : "66" };
   const groups = groupEvidence(node.evidence);
   const Icon = node.status === "verified" ? BadgeCheck : node.status === "claimed" ? MessageSquareQuote : Lightbulb;
   return (
-    <div role="region" aria-label={`${node.name} evidence`} className="mt-3 rounded-xl border border-border p-3 motion-safe:animate-in motion-safe:fade-in" style={{ background: `${meta.tint}66` }}>
+    <div role="region" aria-label={`${node.name} evidence`} className="mt-3 rounded-xl border border-border p-3 motion-safe:animate-in motion-safe:fade-in" style={{ background: `${meta.tint}${meta.alpha}` }}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <h3 className="flex items-center gap-1.5 truncate text-sm font-bold text-foreground">

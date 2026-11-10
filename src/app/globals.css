@@ -381,6 +381,26 @@ html:has(#step-content) {
   }
 }
 
+/* Skills network: a slow, low-amplitude glow behind each coloured circle. Off under reduced motion. */
+@keyframes skillGlow {
+  from {
+    opacity: 0.32;
+  }
+  to {
+    opacity: 0.55;
+  }
+}
+
+.skill-glow {
+  animation: skillGlow 4.8s ease-in-out infinite alternate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skill-glow {
+    animation: none;
+  }
+}
+
 /* Skills graph: evidence links draw in after the nodes appear. */
 @keyframes graphLinkDraw {
   from {

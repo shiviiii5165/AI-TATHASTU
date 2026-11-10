@@ -19,19 +19,20 @@ const STATE_NOTE: Record<string, string> = {
  * completed ones, each with its course when the catalogue has one. With no goal, no framework or no evidence, it
  * says what's missing instead of inventing steps.
  */
-export function nextStepsFromRoadmap(intelligence: IntelligenceDoc | undefined, submissions: MilestoneSubmission[] = [], max = 3): NextSteps {
+export function nextStepsFromRoadmap(intelligence: IntelligenceDoc | undefined, submissions: MilestoneSubmission[] = [], max = 3, { excludeNext = false } = {}): NextSteps {
   if (!intelligence) return { steps: [], empty: { message: "Your next steps appear once your profile has been processed." } };
   const roadmap = intelligence.roadmap;
   if (!roadmap) {
     return intelligence.unsupportedRoles.length
-      ? { steps: [], empty: { message: "Your career goal doesn't have a competency framework yet, so there are no next steps we can stand behind.", href: "/settings", action: "Review your career goal" } }
-      : { steps: [], empty: { message: "Choose a career goal, and your next steps will come from what it needs.", href: "/settings", action: "Set a career goal" } };
+      ? { steps: [], empty: { message: "Your career goal doesn't have a competency framework yet, so there are no next steps we can stand behind." } }
+      : { steps: [], empty: { message: "Next steps come from a career goal you've chosen. Goals are chosen during onboarding; changing them afterwards isn't available yet." } };
   }
   const progress = roadmapProgress(roadmap, intelligence.computedAt, submissions);
   const goal = roleLabel(roadmap.role);
   const rows = new Map((intelligence.roles.find((r) => r.role === roadmap.role)?.skills ?? []).map((r) => [r.skill, r]));
   const recs = new Map(intelligence.recommendations.map((r) => [r.skill, r]));
-  const workable = progress.steps.filter((s) => s.status === "active" || s.status === "needs_more_evidence" || s.status === "upcoming");
+  // excludeNext: the roadmap's own Next action already shows the engine's next milestone, so don't repeat it here.
+  const workable = progress.steps.filter((s) => (s.status === "active" || s.status === "needs_more_evidence" || s.status === "upcoming") && !(excludeNext && s.id === progress.nextId));
   workable.sort((a, b) => Number(b.id === progress.nextId) - Number(a.id === progress.nextId));
 
   if (!workable.length) {

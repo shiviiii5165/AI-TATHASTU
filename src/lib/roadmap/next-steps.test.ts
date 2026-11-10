@@ -35,6 +35,12 @@ describe("next steps from the roadmap", () => {
     for (const s of nextStepsFromRoadmap(engine).steps) expect(s.desc).toMatch(/^ML Engineer expects .+ at .+; /);
   });
 
+  it("can leave out the engine's next milestone when the roadmap already shows it as the next action", () => {
+    const steps = nextStepsFromRoadmap(engine, [], 3, { excludeNext: true }).steps;
+    expect(steps.some((s) => s.title.startsWith("Statistics:"))).toBe(false);
+    expect(steps.length).toBeGreaterThan(0);
+  });
+
   it("drops a milestone with evidence pending review", () => {
     const steps = nextStepsFromRoadmap(engine, [{ milestoneId: "ml_engineer:statistics", evidenceUrl: "https://x.dev", createdAt: new Date(Date.parse(engine.computedAt) + 60_000) }]).steps;
     expect(steps.some((s) => s.title.startsWith("Statistics:"))).toBe(false);
@@ -42,8 +48,10 @@ describe("next steps from the roadmap", () => {
 
   it("says what's missing instead of inventing steps", () => {
     expect(nextStepsFromRoadmap(undefined)).toMatchObject({ steps: [], empty: { message: expect.stringMatching(/processed/) } });
-    expect(nextStepsFromRoadmap({ ...engine, roadmap: null, unsupportedRoles: [] })).toMatchObject({ steps: [], empty: { href: "/settings", action: "Set a career goal" } });
-    expect(nextStepsFromRoadmap({ ...engine, roadmap: null, unsupportedRoles: ["astronaut"] })).toMatchObject({ steps: [], empty: { action: "Review your career goal" } });
+    expect(nextStepsFromRoadmap({ ...engine, roadmap: null, unsupportedRoles: [] })).toMatchObject({ steps: [], empty: { message: expect.stringMatching(/career goal/) } });
+    // No link to a page that can't change the goal.
+    expect(nextStepsFromRoadmap({ ...engine, roadmap: null, unsupportedRoles: [] }).empty?.href).toBeUndefined();
+    expect(nextStepsFromRoadmap({ ...engine, roadmap: null, unsupportedRoles: ["astronaut"] })).toMatchObject({ steps: [], empty: { message: expect.stringMatching(/competency framework/) } });
     const done = { ...engine, roadmap: { ...engine.roadmap!, stages: [] } };
     expect(nextStepsFromRoadmap(done).empty?.message).toMatch(/Every skill ML Engineer needs/);
   });
