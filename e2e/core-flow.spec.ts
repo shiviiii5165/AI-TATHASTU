@@ -169,14 +169,15 @@ test("Phase 1–3 journey: onboarding to a personalized dashboard", async ({ pag
     await expect(gaps.getByRole("link", { name: "Learn Kubernetes" })).toBeVisible();
     await expect(gaps.getByRole("link", { name: "Learn Docker" })).toBeVisible();
 
-    // Widgets with data come first; the empty Avasar widget is last.
+    // Widgets with data come first. The Avasar jobs placeholder and the profile-complete widget aren't shown.
     const order = await page
       .getByRole("article")
       .filter({ has: page.getByRole("button", { name: /^Hide / }) }) // widgets, not other cards on the page
       .getByRole("heading", { level: 2 })
       .allTextContents();
     expect(order[0]).toBe("Interview readiness");
-    expect(order.at(-1)).toBe("Jobs that fit you");
+    expect(order).not.toContain("Jobs that fit you");
+    expect(order).not.toContain("Finish your profile");
   });
 
   await test.step("dismissing a widget hides it, and it stays hidden", async () => {

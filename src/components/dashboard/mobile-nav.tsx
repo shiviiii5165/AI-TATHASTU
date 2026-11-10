@@ -12,24 +12,22 @@ import {
   ChevronRight,
   FileText,
   FolderGit2,
-  GraduationCap,
   Home,
   LogOut,
   Menu,
   Moon,
   Plug,
+  Share2,
   ShieldCheck,
   Sparkles,
   Sun,
   Trophy,
   User,
   UserRoundCheck,
-  Users,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { BrandLogo } from "@/components/brand-logo";
 import { cn } from "@/lib/utils";
-import { YoraModal } from "@/components/dashboard/yora-modal";
 import { useTheme } from "@/components/theme-provider";
 
 interface MobileNavProps {
@@ -47,7 +45,6 @@ export function MobileNav({ user, onSignOut }: MobileNavProps) {
   const pathname = usePathname();
   const { resolvedTheme, toggleTheme } = useTheme();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [yoraOpen, setYoraOpen] = useState(false);
 
   const displayName = user?.name?.trim() || (user?.email ? user.email.split("@")[0] : "Scholar");
   const displayRole =
@@ -201,27 +198,6 @@ export function MobileNav({ user, onSignOut }: MobileNavProps) {
 
           {/* Drawer Navigation Links */}
           <div className="flex-1 overflow-y-auto px-4 py-3 space-y-5 [scrollbar-width:none]">
-            {/* Ask Yora AI Feature Banner */}
-            <button
-              type="button"
-              onClick={() => {
-                setDrawerOpen(false);
-                setYoraOpen(true);
-              }}
-              className="w-full flex items-center justify-between p-3 rounded-2xl bg-gradient-to-r from-[#FFF1F2] via-[#FAF5FF] to-white border border-[#FCE7F3] shadow-2xs hover:shadow-xs transition-all text-left cursor-pointer group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-tr from-[#FF496D] to-[#8554FF] text-white shadow-xs">
-                  <Sparkles className="size-4" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-900">Ask Yora Assistant</p>
-                  <p className="text-[11px] text-slate-500">AI career intelligence & insights</p>
-                </div>
-              </div>
-              <ChevronRight className="size-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
-            </button>
-
             {/* Section 1: Core Modules */}
             <div>
               <p className="px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
@@ -268,7 +244,6 @@ export function MobileNav({ user, onSignOut }: MobileNavProps) {
               <div className="space-y-0.5">
                 {[
                   { href: "/opportunities", label: "Opportunities", icon: Briefcase },
-                  { href: "/internships", label: "Internships", icon: GraduationCap },
                   { href: "/learn", label: "Learning Paths", icon: BookOpen },
                   { href: "/cv-builder", label: "CV Builder", icon: FileText },
                 ].map((item) => {
@@ -294,18 +269,16 @@ export function MobileNav({ user, onSignOut }: MobileNavProps) {
               </div>
             </div>
 
-            {/* Section 3: People & Network */}
+            {/* Section 3: Network (full networking lives in Collaborate) */}
             <div>
               <p className="px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
                 Network & Collaboration
               </p>
               <div className="space-y-0.5">
                 {[
-                  { href: "/people", label: "People & Network", icon: Users },
                   { href: "/mentor", label: "Mentors", icon: UserRoundCheck },
                   { href: "/research", label: "Research Calls", icon: FileText },
                   { href: "/ai-interview", label: "AI Interview Practice", icon: Bot },
-                  { href: "/collaborate", label: "Communities", icon: Users },
                 ].map((item) => {
                   const Icon = item.icon;
                   const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -333,8 +306,9 @@ export function MobileNav({ user, onSignOut }: MobileNavProps) {
                   onClick={() => setDrawerOpen(false)}
                   className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-semibold transition-colors min-h-[44px] text-slate-700 hover:bg-slate-50 hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-[#FF5A5F]/20 focus-visible:outline-none"
                 >
-                  <ArrowUpRight aria-hidden className="size-4 shrink-0 text-slate-400" />
-                  <span>Open Collaborate</span>
+                  <Share2 aria-hidden className="size-4 shrink-0 text-slate-400" />
+                  <span className="flex-1">Collaborate</span>
+                  <ArrowUpRight aria-hidden className="size-3.5 shrink-0 text-slate-400" />
                 </a>
               </div>
             </div>
@@ -407,9 +381,6 @@ export function MobileNav({ user, onSignOut }: MobileNavProps) {
           </div>
         </SheetContent>
       </Sheet>
-
-      {/* Yora Assistant Modal */}
-      <YoraModal open={yoraOpen} onOpenChange={setYoraOpen} userName={displayName} />
     </>
   );
 }

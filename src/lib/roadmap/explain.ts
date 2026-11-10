@@ -4,8 +4,8 @@ import type { RoadmapStep } from "@/lib/roadmap/progress";
 const GAP_TEXT: Record<GapState, string> = {
   met: "your evidence shows it at that level",
   underdeveloped: "your evidence shows it, but below that level",
-  unverified: "you've listed it, but no independent work shows it yet",
-  inferred: "it's only suggested from related skills so far",
+  unverified: "you have listed it, but we need more proof of your ability",
+  inferred: "it's only suggested by your other skills so far",
   missing: "nothing on your profile shows it yet",
   not_assessed: "there isn't enough evidence to assess it",
 };

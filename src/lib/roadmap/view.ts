@@ -9,7 +9,11 @@ import { ALL_CAREER_ROLES } from "@/lib/onboarding/catalog";
 import { milestoneReason } from "@/lib/roadmap/explain";
 import { roadmapProgress, type MilestoneSubmission, type RoadmapStep } from "@/lib/roadmap/progress";
 
-export const HORIZON_LABELS = ["Short term", "Mid term", "Long term"] as const;
+/**
+ * The engine's stages are groups ordered by prerequisites (the first holds every open skill with no open
+ * prerequisite), not time horizons, so they're labelled by order, never "short / mid / long term".
+ */
+export const stageLabel = (index: number) => `Stage ${index + 1}`;
 
 export type StageStatus = "completed" | "active" | "upcoming" | "blocked";
 
@@ -17,7 +21,7 @@ export type RoadmapStageView = {
   key: string;
   /** The engine's own stage title ("Build the foundations"). */
   title: string;
-  /** Short / mid / long term, by the engine's stage order. */
+  /** "Stage 1", "Stage 2"… in the engine's order. */
   horizon: string;
   status: StageStatus;
   steps: RoadmapStep[];
@@ -40,6 +44,12 @@ export type RoadmapView =
       position: string | null;
       coverage: { met: number; total: number; percent: number | null; assessed: boolean };
       stages: RoadmapStageView[];
+      /**
+       * Where the progress marker stands, as a node index on the journey (0 = where you are, 1.. = stages,
+       * stages.length + 1 = the goal): after the last stage completed in an unbroken run from the start. It never
+       * passes a stage the engine hasn't completed.
+       */
+      reachedIndex: number;
       nextStage: RoadmapStageView | null;
       nextAction: { step: RoadmapStep; reason: string; row: RoleSkillRow | null; rec: LearningRecommendation | null; horizon: string } | null;
       skills: SkillBucket[];
@@ -69,7 +79,7 @@ export function roadmapView(intelligence: IntelligenceDoc | undefined, submissio
     return {
       key: stage.key,
       title: stage.title,
-      horizon: HORIZON_LABELS[Math.min(i, HORIZON_LABELS.length - 1)],
+      horizon: stageLabel(i),
       status,
       steps,
       blockedBy: allBlocked ? [...new Set(open.flatMap((s) => s.blockedBy))] : [],
@@ -89,6 +99,10 @@ export function roadmapView(intelligence: IntelligenceDoc | undefined, submissio
     position: roadmap.currentPosition,
     coverage: { met: progress.completed.length, total, percent: assessed ? Math.round(progress.progress * 100) : null, assessed },
     stages,
+    reachedIndex: (() => {
+      const lead = stages.findIndex((s) => s.status !== "completed");
+      return lead === -1 ? stages.length + 1 : lead;
+    })(),
     nextStage,
     nextAction: next
       ? { step: next, reason: milestoneReason(roleLabel(roadmap.role), rowOf(next.skill) ?? undefined, next), row: rowOf(next.skill), rec: recs.get(next.skill) ?? null, horizon: stages.find((s) => s.key === next.stageKey)?.horizon ?? "" }

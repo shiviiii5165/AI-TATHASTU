@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import {
-  ArrowRight,
+  ArrowUpRight,
   Briefcase,
   Sparkles,
   Users,
@@ -29,110 +29,64 @@ export function EcosystemOpportunitiesRow({
   );
 }
 
+/**
+ * A short preview of relevant people (at most three) from the existing matching: discoverable people only
+ * (mentor_discovery), ranked by profile similarity, each with one genuine reason (lib/people-preview.ts).
+ * Full discovery, profiles and connecting live in Collaborate, reached through the authorised launch route.
+ */
 function PeopleRecommendationsCard() {
-  const [people, setPeople] = useState<
-    Array<{
-      id: string;
-      name: string;
-      role: string;
-      institution: string | null;
-      reason: string;
-      matchPercentage: number;
-      initials: string;
-      color: string;
-    }>
-  >([]);
+  const [people, setPeople] = useState<Array<{ id: string; name: string; role: string; institution: string | null; reason: string; initials: string }>>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetch("/api/collaboration/matches")
       .then((res) => res.json())
       .then((data) => {
-        if (data?.matches && data.matches.length > 0) {
-          setPeople(data.matches.slice(0, 3));
-        }
+        if (Array.isArray(data?.matches)) setPeople(data.matches.slice(0, 3));
       })
       .catch(() => null)
       .finally(() => setLoading(false));
   }, []);
 
-  const hasPeople = people.length > 0;
-
   return (
-    <div className="flex flex-col justify-between rounded-2xl border border-[#E7EAF3] bg-white p-3.5 sm:p-5 shadow-2xs">
-      <div className="flex items-center justify-between border-b border-[#F0F2F7] pb-3">
-        <div className="flex min-w-0 items-center gap-2">
-          <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#E6F8FB] text-[#00AEC7]">
-            <Users className="size-4" />
-          </div>
-          <h2 className="font-sans text-sm font-bold text-[#11182B]">People you may know</h2>
+    <div className="flex flex-col rounded-2xl border border-[#E7EAF3] bg-white p-3.5 sm:p-5 shadow-2xs" data-testid="people-preview">
+      <div className="flex items-center gap-2 border-b border-[#F0F2F7] pb-3">
+        <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#E6F8FB] text-[#00AEC7]">
+          <Users aria-hidden className="size-4" />
         </div>
-        <Link
-          href="/people"
-          className="group inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-xs font-semibold text-[#8554FF] hover:text-[#703DE5]"
-        >
-          <span>View All</span>
-          <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
-        </Link>
+        <h2 className="font-sans text-sm font-bold text-[#11182B]">People you may know</h2>
       </div>
 
-      {hasPeople ? (
-        <div className="my-auto divide-y divide-[#F4F6F9] py-1">
-          {people.map((p, i) => {
-            return (
-              <div key={p.id || i} className="flex items-center justify-between py-2.5">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div
-                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                      p.color || "bg-blue-100 text-blue-700"
-                    }`}
-                  >
-                    {p.initials || "PR"}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <p className="truncate text-xs font-bold text-[#11182B]">{p.name}</p>
-                      <span className="rounded-xs bg-[#E8FAF4] px-1 py-0.2 text-[10px] font-bold text-[#0E9D6D]">
-                        {p.matchPercentage}%
-                      </span>
-                    </div>
-                    <p className="truncate text-[10px] text-[#617493]">
-                      {[p.role, p.institution].filter(Boolean).join(" · ")}
-                    </p>
-                    <p className="truncate text-[10px] text-[#617493]">{p.reason}</p>
-                  </div>
-                </div>
-                {/* No connection backend yet, so link to the profile list instead of a fake "Connected". */}
-                <Link
-                  href="/people"
-                  className="shrink-0 min-h-[34px] inline-flex items-center rounded-lg border border-[#E2E8F0] px-2.5 py-1 text-[11px] font-bold text-[#2878F0] transition-colors hover:bg-[#EDF5FF] touch-manipulation"
-                >
-                  View
-                </Link>
-              </div>
-            );
-          })}
-        </div>
+      {loading ? (
+        <p className="py-4 text-xs text-[#617493]" role="status">Looking for people…</p>
+      ) : people.length > 0 ? (
+        <ul className="divide-y divide-[#F4F6F9] py-1" aria-label="People you may know">
+          {people.map((p) => (
+            <li key={p.id} className="flex items-center gap-2.5 py-2.5">
+              <span aria-hidden className="flex size-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700">
+                {p.initials}
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate text-xs font-bold text-[#11182B]">{p.name}</span>
+                <span className="block truncate text-[11px] text-[#617493]">{[p.role, p.institution].filter(Boolean).join(" · ")}</span>
+                <span className="block truncate text-[11px] text-[#0E7C66]">{p.reason}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
       ) : (
-        <div className="my-auto py-6 px-2 text-center flex flex-col items-center">
-          <div className="size-10 rounded-full bg-cyan-50 text-[#00AEC7] flex items-center justify-center mb-2.5">
-            <Users className="size-5" />
-          </div>
-          <p className="text-xs font-bold text-[#11182B]">
-            {loading ? "Looking for people…" : "No suggestions yet"}
-          </p>
-          <p className="text-[11px] text-[#617493] mt-1 max-w-[220px]">
-            People with overlapping skills and interests appear here when they choose to be discoverable.
-          </p>
-          <Link
-            href="/people"
-            className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#00AEC7] text-white text-xs font-semibold hover:bg-[#0098AD] transition-colors"
-          >
-            <span>Browse Network</span>
-          </Link>
-        </div>
+        <p className="py-4 text-xs text-[#617493]">No suggestions yet. People appear here when your skills overlap and they&apos;ve chosen to be discoverable.</p>
       )}
 
+      {/* Plain <a>: a server redirect into Collaborate's own sign-in (authorised launch), never prefetched. */}
+      {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- route handler that redirects off-site; needs a full navigation */}
+      <a
+        href="/integrations/launch/collaborate"
+        className="mt-auto inline-flex items-center gap-1 self-start border-t border-transparent pt-2 text-xs font-semibold text-[#8554FF] hover:text-[#703DE5]"
+      >
+        Explore more on Collaborate
+        <ArrowUpRight aria-hidden className="size-3.5" />
+      </a>
     </div>
   );
 }

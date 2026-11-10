@@ -96,10 +96,12 @@ test("sections run journey, skills, skill gaps and roadmap, then next steps from
   expect(Math.max(gaps, roadmap)).toBeLessThan(nextSteps);
 
   // Next steps are the roadmap's workable milestones for the chosen goal.
-  const steps = page.getByRole("heading", { name: "Your next steps" }).locator("xpath=ancestor::section[1]").getByRole("listitem");
+  const steps = page.getByTestId("roadmap-next-steps").getByRole("listitem");
   // The engine's next milestone is the roadmap's Next action, so the list continues after it without repeating it.
   await expect(page.getByTestId("roadmap-next-action")).toContainText("Statistics");
-  await expect(steps.first()).toContainText("ML Engineer expects");
+  // Each step names its skill and the engine's deliverable; why it's recommended is on hover.
+  await expect(steps.first()).toContainText("A public project using");
+  await expect(steps.first().locator("[title^='ML Engineer expects']")).toHaveCount(1);
   for (const t of await steps.allInnerTexts()) expect(t).not.toMatch(/Statistics:|Machine Learning:|MLflow:|Connect with research peers/);
   await context.close();
 });
@@ -252,29 +254,32 @@ test("roadmap: evidenced position, coverage, blocked milestone, catalogue course
   await progress.locator('[data-bucket="inProgress"]').click();
   for (const s of role.skills.filter((x) => x.state === "underdeveloped")) await expect(progress.getByTestId("roadmap-skill-bucket")).toContainText(s.skill);
 
-  // Machine Learning requires Statistics, which the evidence doesn't show: its stage is blocked, with the reason.
-  await expect(roadmap.getByTestId("journey-stage-build")).toContainText("Waiting on Statistics");
+  // Machine Learning requires Statistics, which the evidence doesn't show: its stage is locked, with the reason.
+  await expect(roadmap.getByTestId("journey-stage-build")).toContainText("Complete Statistics first to unlock this step");
   await roadmap.getByTestId("journey-stage-build").getByRole("button").click();
   const stage = roadmap.getByTestId("roadmap-stage-detail");
-  await stage.locator('button[data-status="blocked"]', { hasText: "Machine Learning" }).click();
+  await expect(roadmap.getByTestId("roadmap-focus-skill")).toHaveText("Machine Learning");
+  await stage.getByRole("button", { name: "View skill details" }).click();
   const detail = roadmap.locator("#roadmap-milestone-detail");
-  await expect(detail).toContainText("Start with Statistics first.");
+  await expect(detail).toContainText("Complete Statistics first to unlock this step.");
 
   // Statistics: the engine's next milestone, with the catalogue course it recommends, also as the next action.
   const rec = intel.recommendations.find((r) => r.skill === "Statistics")!;
   expect(rec.resource).not.toBeNull();
   await expect(roadmap.getByTestId("roadmap-next-action").getByRole("link", { name: /Start the course/ })).toHaveAttribute("href", rec.resource!.url);
-  await detail.getByRole("button", { name: /Statistics/ }).click();
+  await detail.getByRole("button", { name: /Statistics/ }).click(); // follows the prerequisite to its stage
+  await expect(roadmap.getByTestId("roadmap-focus-skill")).toHaveText("Statistics");
   await expect(roadmap.locator("#roadmap-milestone-detail").getByRole("heading", { name: "Statistics" })).toBeVisible();
   await expect(roadmap.locator("#roadmap-milestone-detail").getByRole("link", { name: new RegExp(rec.resource!.title.replace(/[&]/g, "\\$&")) })).toHaveAttribute("href", rec.resource!.url);
 
-  // A milestone the catalogue has no course for says so instead of inventing one.
+  // Other skills in the stage are compact chips; one the catalogue has no course for says so instead of inventing one.
   await stage.locator("button[data-status]", { hasText: "Docker" }).click();
   await expect(roadmap.locator("#roadmap-milestone-detail")).toContainText("No catalogued course for this skill");
 
-  // Evidence submission: saved, shown as pending review, and never marks the milestone complete.
-  await stage.locator("button[data-status]", { hasText: "Statistics" }).click();
+  // Evidence submission: saved, shown as in review, and never marks the milestone complete.
+  await stage.getByRole("button", { name: "View skill details" }).click();
   const statsDetail = roadmap.locator("#roadmap-milestone-detail");
+  await expect(statsDetail.getByRole("heading", { name: "Statistics" })).toBeVisible();
   await statsDetail.getByRole("button", { name: "Submit evidence of your work" }).click();
   await statsDetail.getByLabel("Link to your work for Statistics").fill("https://github.com/asha/stats-notebooks");
   await statsDetail.getByRole("button", { name: "Submit" }).click();
@@ -283,28 +288,51 @@ test("roadmap: evidenced position, coverage, blocked milestone, catalogue course
     .poll(async () => (await sql.query("SELECT milestone_id, evidence_url FROM roadmap_milestone_submissions WHERE user_id = $1", [user.id])).rows)
     .toEqual([{ milestone_id: "ml_engineer:statistics", evidence_url: "https://github.com/asha/stats-notebooks" }]);
   await page.reload();
-  await expect(roadmap.getByTestId("roadmap-stage-detail").locator('button[data-status="submitted"]', { hasText: "Statistics" })).toBeVisible();
+  await expect(roadmap.getByTestId("roadmap-focus-skill")).toHaveText("Statistics");
+  await expect(roadmap.getByTestId("roadmap-stage-detail")).toContainText("In review");
   await expect(page.getByTestId("roadmap-progress-bar")).toHaveAttribute("style", new RegExp(`width:\\s*${Math.round(rm.progress * 100)}%`));
+  // Still nothing completed: the runner hasn't moved.
+  await expect(roadmap.getByTestId("journey-runner")).toHaveAttribute("data-at", "0");
   await context.close();
 });
 
 for (const width of [1440, 390]) {
-  test(`roadmap journey at ${width}px: ${width < 768 ? "vertical" : "horizontal"}, no overflow, no sample data`, async ({ browser }) => {
+  test(`roadmap journey at ${width}px: ${width < 768 ? "vertical" : "curved, left to right"}, runner at real progress, no sample data`, async ({ browser }) => {
     const { context, page } = await setUp(browser, `Engine roadmap ${width}`, { width });
-    const journey = page.getByTestId("roadmap-journey");
+    const mobile = width < 768;
+    const journey = page.getByTestId(mobile ? "roadmap-journey-mobile" : "roadmap-journey");
     await expect(journey).toBeVisible();
-    const pos = await journey.evaluate((el) => {
-      const items = [...el.querySelectorAll(":scope > ol > li")].map((li) => li.getBoundingClientRect());
-      return { xs: items.map((r) => Math.round(r.left)), ys: items.map((r) => Math.round(r.top)), overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth };
-    });
-    expect(pos.xs.length).toBe(intel.roadmap!.stages.length + 2); // where you are, each engine stage, the goal
-    if (width < 768) expect(pos.ys).toEqual([...pos.ys].sort((a, b) => a - b)); // a vertical timeline
-    else expect(new Set(pos.ys).size).toBe(1); // one horizontal row
-    expect(pos.overflow).toBeLessThanOrEqual(0);
-    // None of the mockup's placeholder values: only the engine's estimates, labelled as estimates.
+    const report = await journey.evaluate((el, mob) => {
+      const nodes = [...el.querySelectorAll("[data-journey-node]")].map((n) => n.getBoundingClientRect());
+      const runner = el.querySelector(mob ? "[data-testid=journey-runner-mobile]" : "[data-testid=journey-runner]")!;
+      const r = runner.getBoundingClientRect();
+      return {
+        count: nodes.length,
+        xs: nodes.map((b) => Math.round(b.left + b.width / 2)),
+        ys: nodes.map((b) => Math.round(b.top)),
+        at: Number(runner.getAttribute("data-at")),
+        runnerX: r.left + r.width / 2,
+        runnerY: r.top + r.height / 2,
+        segments: [...el.querySelectorAll("[data-segment]")].map((s) => s.getAttribute("data-segment")),
+        overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      };
+    }, mobile);
+    expect(report.count).toBe(intel.roadmap!.stages.length + 2); // where you are, each engine stage, the goal
+    if (mobile) expect(report.ys).toEqual([...report.ys].sort((a, b) => a - b));
+    else expect(report.xs).toEqual([...report.xs].sort((a, b) => a - b));
+    // Nothing completed in this profile: the runner is at the start, and the path ahead isn't drawn as done.
+    expect(report.at).toBe(0);
+    if (mobile) expect(report.runnerY).toBeLessThan(report.ys[1]);
+    else expect(report.runnerX).toBeLessThan(report.xs[1]);
+    expect(report.segments).not.toContain("done");
+    expect(report.segments[0]).toBe("active");
+    expect(report.overflow).toBeLessThanOrEqual(0);
+
+    // None of the mockup's placeholder values or time-horizon labels; only the engine's estimates, labelled as such.
     const text = await page.getByTestId("career-roadmap").innerText();
-    for (const sample of ["4-8 weeks", "4–8 weeks", "2–3 months", "3–6 months", "Strengthen ML Foundations", "B.Tech Student (AI & ML)", "3 of 10 skills"]) expect(text).not.toContain(sample);
-    for (const s of intel.roadmap!.stages) expect(text).toContain(`about ${s.estimateWeeks} weeks (estimate)`);
+    for (const sample of ["4-8 weeks", "4–8 weeks", "2–3 months", "3–6 months", "Strengthen ML Foundations", "B.Tech Student (AI & ML)", "B.Tech / B.E.", "3 of 10 skills"]) expect(text).not.toContain(sample);
+    expect(text).not.toMatch(/short term|mid term|long term/i);
+    for (const s of intel.roadmap!.stages) expect(text).toContain(`≈ ${s.estimateWeeks} weeks (estimate)`);
     await context.close();
   });
 }

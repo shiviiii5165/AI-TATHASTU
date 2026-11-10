@@ -121,23 +121,32 @@ test("the roadmap shows the goal, coverage, next milestone, journey, skill progr
   await expect(roadmap.getByTestId("journey-current")).toContainText("ML Intern at Acme");
   await expect(roadmap.getByTestId("journey-stage-foundation")).toHaveAttribute("data-status", "active");
   await expect(roadmap.getByTestId("journey-stage-build")).toHaveAttribute("data-status", "blocked");
-  await expect(roadmap.getByTestId("journey-stage-build")).toContainText("Waiting on Docker");
+  await expect(roadmap.getByTestId("journey-stage-build")).toContainText("Complete Docker first to unlock this step");
   await expect(roadmap.getByTestId("journey-goal")).toContainText("ML Engineer");
+  // Nothing completed yet: the runner stands at where you are, not ahead of it.
+  await expect(roadmap.getByTestId("journey-runner")).toHaveAttribute("data-at", "0");
 
   // Next action: the engine's next milestone, with why and what it moves you towards.
   const action = roadmap.getByTestId("roadmap-next-action");
   await expect(action).toContainText("A public project using Docker");
-  await expect(action).toContainText("Short term");
+  await expect(action).toContainText("Stage 1");
 
-  // A blocked stage opens with its milestone and the real missing prerequisite.
+  // The active stage's panel focuses on that same skill.
+  await expect(roadmap.getByTestId("roadmap-focus-skill")).toHaveText("Docker");
+
+  // A locked stage opens with its skill and the real missing prerequisite, in plain words.
   await roadmap.getByTestId("journey-stage-build").getByRole("button").click();
   const stage = roadmap.getByTestId("roadmap-stage-detail");
-  await stage.locator('button[data-status="blocked"]', { hasText: "Kubernetes" }).click();
+  await expect(stage).toContainText("Complete Docker first to unlock this step");
+  await expect(roadmap.getByTestId("roadmap-focus-skill")).toHaveText("Kubernetes");
+  await stage.getByRole("button", { name: "View skill details" }).click();
   const detail = roadmap.locator("#roadmap-milestone-detail");
   await expect(detail).toContainText("Why this is on your roadmap");
-  await expect(detail).toContainText("Start with Docker first.");
+  await expect(detail).toContainText("Complete Docker first to unlock this step.");
+  // Following the prerequisite switches to its stage and opens it.
   await detail.getByRole("button", { name: /Docker/ }).click();
   await expect(roadmap.locator("#roadmap-milestone-detail").getByRole("heading", { name: "Docker" })).toBeVisible();
+  await expect(roadmap.getByTestId("roadmap-focus-skill")).toHaveText("Docker");
   await context.close();
 });
 
@@ -215,7 +224,7 @@ test("with no evidence, each section explains what's missing instead of drawing 
   const { context, page } = await setUp(browser, "Empty", 1280, { seeded: false });
   await expect(page.getByTestId("journey-timeline")).toContainText("Nothing on your timeline yet");
   await expect(page.getByTestId("skills-overview")).toContainText("No skills identified yet");
-  await expect(page.getByTestId("career-roadmap")).toContainText(/being calculated|No career goal to plan towards|No roadmap for your goal yet/);
+  await expect(page.getByTestId("career-roadmap")).toContainText(/being prepared|No career goal to plan towards|No roadmap for your goal yet/);
   await expect(page.getByTestId("journey-node")).toHaveCount(0);
   await expect(page.locator('[data-testid="skill-network"]')).toHaveCount(0);
   await context.close();

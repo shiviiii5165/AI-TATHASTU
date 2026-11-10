@@ -1,4 +1,4 @@
-import { ArrowUpRight, LogOut, Plug, ShieldCheck } from "lucide-react";
+import { ArrowUpRight, LogOut, Plug, Share2, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
 import { signOut } from "@/auth";
@@ -38,8 +38,10 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
               href="/integrations/launch/collaborate"
               className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-[#FF5A5F]/20 focus-visible:outline-none"
             >
-              <ArrowUpRight aria-hidden className="size-4 text-muted-foreground" />
-              Open Collaborate
+              <Share2 aria-hidden className="size-4 text-muted-foreground" />
+              <span className="flex-1">Collaborate</span>
+              <ArrowUpRight aria-hidden className="size-3.5 text-muted-foreground" />
+              <span className="sr-only">(opens Collaborate)</span>
             </a>
             <Link
               href="/settings/privacy"

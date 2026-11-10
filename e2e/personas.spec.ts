@@ -145,6 +145,8 @@ test("faculty: Step 0 → faculty flow → faculty dashboard", async ({ page, co
     expect(titles.slice(0, 3)).toEqual(["Students who match your expertise", "Mentee requests", "Papers and events in your areas"]);
     await expect(page.getByRole("article", { name: "Students who match your expertise" })).toContainText("Preview");
     expect(titles).not.toContain("Interview readiness");
+    // Scored by the worker, but not shown: it offered nothing to do.
+    expect(titles).not.toContain("Finish your profile");
     await expect(page.getByRole("article", { name: "Mentee requests" })).toContainText("Fills in when mentoring requests in Collaborate is connected.");
   });
 

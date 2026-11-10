@@ -52,7 +52,8 @@ describe("career roadmap view", () => {
   it("maps the engine's stages in order, marks the active one and explains a blocked one", () => {
     const v = ready(engine);
     expect(v.stages.map((s) => s.key)).toEqual(engine.roadmap!.stages.map((s) => s.key));
-    expect(v.stages.map((s) => s.horizon)).toEqual(["Short term", "Mid term", "Long term"].slice(0, v.stages.length));
+    // Prerequisite groups, labelled by order: never "short / mid / long term", which their estimates would contradict.
+    expect(v.stages.map((s) => s.horizon)).toEqual(v.stages.map((_, i) => `Stage ${i + 1}`));
     expect(v.nextStage?.key).toBe("foundation");
     const blocked = v.stages.find((s) => s.status === "blocked");
     expect(blocked).toBeDefined();
@@ -75,7 +76,22 @@ describe("career roadmap view", () => {
     expect(v.nextAction?.step.skill).toBe("Statistics");
     expect(v.nextAction?.reason).toMatch(/ML Engineer expects Statistics/);
     expect(v.nextAction?.rec?.resource?.url).toBe(engine.recommendations.find((r) => r.skill === "Statistics")!.resource!.url);
-    expect(v.nextAction?.horizon).toBe("Short term");
+    expect(v.nextAction?.horizon).toBe("Stage 1");
+    // The next action sits in the active stage.
+    expect(v.nextAction?.step.stageKey).toBe(v.nextStage?.key);
+  });
+
+  it("places the progress marker only as far as completed stages reach", () => {
+    expect(ready(engine).reachedIndex).toBe(0); // nothing completed: at where you are
+    const plan = engine.roadmap!;
+    const withDone = (skills: string[]) => ({ ...engine, roadmap: { ...plan, completed: [...plan.completed, ...skills] } });
+    const v1 = ready(withDone(plan.stages[0].milestones.map((m) => m.skill)));
+    expect(v1.stages[0].status).toBe("completed");
+    expect(v1.reachedIndex).toBe(1); // after Stage 1, not beyond
+    // A later stage done while an earlier one isn't: the marker doesn't jump ahead.
+    expect(ready(withDone(plan.stages[1].milestones.map((m) => m.skill))).reachedIndex).toBe(0);
+    const all = ready(withDone(plan.stages.flatMap((s) => s.milestones.map((m) => m.skill))));
+    expect(all.reachedIndex).toBe(plan.stages.length + 1); // at the goal
   });
 
   it("says what's missing instead of drawing a plan", () => {

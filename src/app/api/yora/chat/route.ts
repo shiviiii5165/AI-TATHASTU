@@ -162,7 +162,7 @@ export async function POST(req: Request) {
             : top.department
               ? ` in ${top.department}`
               : "";
-          reply = `You have a ${Math.round(top.similarity * 100)}% match with ${peerName}${peerWork}. See People & Network to learn more.`;
+          reply = `You have a ${Math.round(top.similarity * 100)}% match with ${peerName}${peerWork}. Explore more people on Collaborate.`;
         } else {
           reply =
             "I don't have a match for you yet. Matches appear once your profile has been processed and people who have chosen to be discoverable fit your goals.";

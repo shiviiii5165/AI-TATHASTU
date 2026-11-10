@@ -2,7 +2,7 @@ import { roleLabel } from "@/components/dashboard/widgets/labels";
 import type { IntelligenceDoc } from "@/lib/dashboard/types";
 import { roadmapProgress, type MilestoneSubmission } from "@/lib/roadmap/progress";
 
-export type NextStep = { num: number; title: string; desc: string; btnText: string; btnHref: string; category?: string };
+export type NextStep = { num: number; title: string; desc: string; btnText: string; btnHref: string; category?: string; stepId?: string; skill?: string };
 export type NextSteps = { steps: NextStep[]; empty: { message: string; href?: string; action?: string } | null };
 
 const STATE_NOTE: Record<string, string> = {
@@ -58,6 +58,8 @@ export function nextStepsFromRoadmap(intelligence: IntelligenceDoc | undefined, 
       btnText: rec?.resource ? `Course: ${rec.resource.title}` : "Open in roadmap",
       btnHref: rec?.resource?.url ?? "#career-roadmap",
       category: s.stageKey,
+      stepId: s.id,
+      skill: s.skill,
     };
   });
   return { steps, empty: null };

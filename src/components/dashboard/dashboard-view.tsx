@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Activity } from "lucide-react";
 import dynamic from "next/dynamic";
 import { DashboardHero } from "@/components/dashboard/mockup-sections/dashboard-hero";
@@ -10,7 +10,6 @@ import { JourneyTimeline } from "@/components/dashboard/mockup-sections/journey-
 import { EvidenceAchievementRow } from "@/components/dashboard/mockup-sections/evidence-achievement-row";
 import { GrowthDevelopmentRow, SkillGaps } from "@/components/dashboard/mockup-sections/growth-development-row";
 import { EcosystemOpportunitiesRow } from "@/components/dashboard/mockup-sections/ecosystem-opportunities-row";
-import { NextActionsRow } from "@/components/dashboard/mockup-sections/next-actions-row";
 
 // Compact Skills Intelligence; the full interactive skill graph is on /skills.
 import { SkillsOverview } from "@/components/dashboard/mockup-sections/skills-overview";
@@ -30,7 +29,6 @@ import type {
   RecentProjectItem,
 } from "@/lib/dashboard/stats";
 import type { IntelligenceDoc } from "@/lib/dashboard/types";
-import { nextStepsFromRoadmap } from "@/lib/roadmap/next-steps";
 import type { MilestoneSubmission } from "@/lib/roadmap/progress";
 
 interface DashboardViewProps {
@@ -84,8 +82,6 @@ export function DashboardView({
   children,
 }: DashboardViewProps) {
   const [yoraOpen, setYoraOpen] = useState(false);
-  // Next steps come from the roadmap for the chosen goal, not from the generic next-action list.
-  const next = useMemo(() => nextStepsFromRoadmap(intelligence, roadmapSubmissions, 3, { excludeNext: true }), [intelligence, roadmapSubmissions]);
 
   return (
     <div className="space-y-6 sm:space-y-7 pb-12">
@@ -119,12 +115,11 @@ export function DashboardView({
         </div>
       </div>
 
-      {/* F. Career development: what's missing for the chosen goal, the plan to close it, then what to do next. */}
+      {/* F. Career development: what's missing for the chosen goal, then the roadmap (which ends with the next steps). */}
       <section aria-label="Career development" className="space-y-4">
         <SkillGaps intelligence={intelligence} />
         {/* Full width: the journey runs left to right on wide screens. */}
         <CareerRoadmap intelligence={intelligence} submissions={roadmapSubmissions} />
-        <NextActionsRow actions={next.steps} empty={next.empty} />
       </section>
 
       {/* G. Skill proficiency and learning paths. */}

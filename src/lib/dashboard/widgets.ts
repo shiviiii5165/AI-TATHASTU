@@ -64,24 +64,11 @@ export const widgets: WidgetDefinition[] = [
       action: { label: "Review your skills", href: "/skills" },
     },
   },
-  {
-    id: "job_matches",
-    personas: ["student"],
-    module: "avasar",
-    label: "Jobs that fit you",
-    requiredIntent: ["avasar_jobs"],
-    requiredData: ["skills", "experience", "education"],
-    // Avasar isn't connected yet (Phase 4), so there is never data to show.
-    eligibility: (_view, scored) => Boolean(scored?.data),
-    primaryAction: { label: "View matches", href: "/avasar" },
-    freshnessField: null,
-    size: "regular",
-    empty: {
-      title: "Connect your Avasar account to see jobs that fit you",
-      body: "Internship and job matches ranked against your confirmed skills will appear here.",
-      action: { label: "Connect Avasar", href: "/avasar", disabled: true },
-    },
-  },
+  // Not on the dashboard for now (the worker still scores them; their ids stay valid):
+  //  - "job_matches" (Jobs that fit you): the Avasar integration isn't ready, so it only ever showed a disabled
+  //    "Connect Avasar" state. Opportunities are unaffected.
+  //  - "profile_completeness" (Finish your profile): it offered no action once the profile was complete. The
+  //    completeness figure still drives the "Profile complete" metric, and profile editing is unchanged.
   {
     id: "skill_gaps",
     personas: ["student"],
@@ -114,19 +101,6 @@ export const widgets: WidgetDefinition[] = [
       body: "We'll pull your repositories and languages as evidence for your skills.",
       action: { label: "Go to connections", href: "/connections" },
     },
-  },
-  {
-    id: "profile_completeness",
-    personas: ["student", "faculty", "alumni"],
-    module: "profile",
-    label: "Finish your profile",
-    requiredIntent: [],
-    requiredData: [],
-    eligibility: (_view, scored) => scored !== undefined,
-    primaryAction: { label: "Open profile", href: "/profile" },
-    freshnessField: null,
-    size: "regular",
-    empty: { title: "Your profile is complete", body: "Nothing left to add right now." },
   },
   // ─── Faculty / mentor (previews until Collaborate and Meet supply data) ───
   {
