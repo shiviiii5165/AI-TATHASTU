@@ -72,6 +72,31 @@ test("calendar shows GitHub's totals, days, legend and sync time; a later failur
     await expect(card).toContainText("Forks");
     await expect(card).not.toContainText("month of last push");
 
+    // Opens on the newest weeks; no month label is cut by the pinned weekday labels, there or after scrolling back.
+    const scroller = cal.getByLabel("Contribution calendar, scroll for earlier weeks");
+    const clipped = () =>
+      scroller.evaluate((el) => {
+        const pinned = el.querySelector(".sticky")!.getBoundingClientRect();
+        const box = el.getBoundingClientRect();
+        // The month row: absolutely positioned labels above the weeks (independent of any test attribute).
+        const labels = [...el.querySelectorAll<HTMLElement>("span")].filter((s) => getComputedStyle(s).position === "absolute");
+        if (labels.length === 0) return ["<no month labels found>"];
+        return labels
+          .filter((l) => getComputedStyle(l).visibility !== "hidden")
+          .map((l) => ({ label: l.textContent, r: l.getBoundingClientRect() }))
+          .filter(({ r }) => r.right > box.left && r.left < box.right) // on screen
+          .filter(({ r }) => r.left < pinned.right - 0.5 || r.right > box.right + 0.5)
+          .map(({ label }) => label);
+      });
+    if (await scroller.evaluate((el) => el.scrollWidth > el.clientWidth)) {
+      expect(await scroller.evaluate((el) => el.scrollLeft)).toBeGreaterThan(0);
+    }
+    await expect.poll(clipped).toEqual([]);
+    await expect(cal.getByText("Mon")).toBeVisible();
+    await scroller.evaluate((el) => el.scrollTo({ left: 0 }));
+    await expect.poll(clipped).toEqual([]);
+    await scroller.evaluate((el) => el.scrollTo({ left: el.scrollWidth }));
+
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth > window.innerWidth || document.body.scrollWidth > window.innerWidth,
     );

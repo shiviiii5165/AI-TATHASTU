@@ -17,7 +17,7 @@ import {
   Trophy,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { describeDay, layoutCalendar } from "@/lib/dashboard/github-contributions";
 import type {
   AchievementItem,
@@ -174,10 +174,15 @@ const plural = (n: number, one: string, many: string) => `${n.toLocaleString("en
 function ContributionCalendar({ data }: { data: GitHubContributionsData }) {
   const { weeks, months } = useMemo(() => layoutCalendar(data.days), [data.days]);
   const scroller = useRef<HTMLDivElement>(null);
+  // How far the grid is scrolled. A month label whose start sits under the pinned weekday column would be cut in
+  // half, so it is hidden until scrolled back into view (labels and cells shift by the same amount).
+  const [scrolled, setScrolled] = useState(0);
   // Open on the most recent weeks, as GitHub does; earlier weeks scroll into view.
   useEffect(() => {
     const el = scroller.current;
-    if (el) el.scrollLeft = el.scrollWidth;
+    if (!el) return;
+    el.scrollLeft = el.scrollWidth;
+    setScrolled(el.scrollLeft);
   }, [weeks.length]);
 
   const t = data.totals;
@@ -199,6 +204,7 @@ function ContributionCalendar({ data }: { data: GitHubContributionsData }) {
 
       <div
         ref={scroller}
+        onScroll={(e) => setScrolled(e.currentTarget.scrollLeft)}
         className="mt-2 overflow-x-auto pb-1 [scrollbar-width:thin]"
         tabIndex={0}
         aria-label="Contribution calendar, scroll for earlier weeks"
@@ -217,7 +223,8 @@ function ContributionCalendar({ data }: { data: GitHubContributionsData }) {
                 <span
                   key={`${m.column}-${m.label}`}
                   className="absolute top-0 text-[9px] leading-none text-[#64748B]"
-                  style={{ left: m.column * 11 }}
+                  data-month-label={m.label}
+                  style={{ left: m.column * 11, visibility: m.column * 11 < scrolled - 0.5 ? "hidden" : undefined }}
                 >
                   {m.label}
                 </span>

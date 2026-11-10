@@ -21,7 +21,7 @@ import urllib.error
 from datetime import date, datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from db import fetch_one, jsonb
+from db import jsonb
 
 log = logging.getLogger("worker.github.contributions")
 
@@ -166,8 +166,13 @@ def describe_error(exc: BaseException) -> str:
 
 
 def table_exists(cur: Any) -> bool:
-    row = fetch_one(cur, "SELECT to_regclass('public.github_contributions') IS NOT NULL AS present")
-    return bool(row and row["present"])
+    """Whether migration 0027 has run. Reads the value directly so it is right for tuple and dict cursors alike
+    (db.fetch_one re-zips rows, which turns a dict row into {"present": "present"}, always truthy)."""
+    cur.execute("SELECT to_regclass('public.github_contributions') IS NOT NULL AS present")
+    row = cur.fetchone()
+    if row is None:
+        return False
+    return bool(row["present"] if isinstance(row, dict) else row[0])
 
 
 def fetch(client: Any) -> Dict[str, Any]:

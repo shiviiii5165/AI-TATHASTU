@@ -165,10 +165,14 @@ def _sync_contributions(conn: Any, job: Job, connection_id: Any, client: Any) ->
     Never raises for a GitHub failure: the repository sync goes ahead, and the next sync tries
     again. A failure leaves the last successful snapshot untouched (record_failure).
     """
-    with conn, conn.cursor() as cur:
-        if not contributions.table_exists(cur):
-            log.info("github_contributions table missing (migration 0027 not applied); skipping calendar")
-            return
+    try:
+        with conn, conn.cursor() as cur:
+            if not contributions.table_exists(cur):
+                log.info("github_contributions table missing (migration 0027 not applied); skipping calendar")
+                return
+    except Exception as exc:  # noqa: BLE001 - the calendar is optional; the repository sync must still run
+        log.warning("github contributions for %s skipped: table check failed (%s)", job.user_id, type(exc).__name__)
+        return
 
     snapshot: Optional[Dict[str, Any]] = None
     reason = ""
@@ -178,14 +182,28 @@ def _sync_contributions(conn: Any, job: Job, connection_id: Any, client: Any) ->
         reason = contributions.describe_error(exc)
         log.warning("github contributions for %s not refreshed: %s", job.user_id, reason)
 
+    # Ownership is checked outside the guarded write: losing the job lock must stop the whole sync.
     with conn, conn.cursor() as cur:
         assert_still_owner(cur, job)
         if not still_connected(cur, connection_id, job.user_id):
             return
-        if snapshot is not None:
-            contributions.write_snapshot(cur, job.user_id, snapshot)
-        else:
-            contributions.record_failure(cur, job.user_id, reason)
+
+    try:
+        # Its own transaction: a failed write rolls back completely, so the previous snapshot is untouched.
+        with conn, conn.cursor() as cur:
+            if snapshot is not None:
+                contributions.write_snapshot(cur, job.user_id, snapshot)
+            else:
+                contributions.record_failure(cur, job.user_id, reason)
+    except Exception as exc:  # noqa: BLE001 - a storage problem here must not break the repository sync
+        log.warning("github contributions for %s not stored: %s", job.user_id, type(exc).__name__)
+        if snapshot is None:
+            return
+        try:
+            with conn, conn.cursor() as cur:
+                contributions.record_failure(cur, job.user_id, f"Could not store the calendar ({type(exc).__name__})")
+        except Exception as exc2:  # noqa: BLE001
+            log.warning("github contributions for %s: failure not recorded either (%s)", job.user_id, type(exc2).__name__)
 
 
 def _write(cur: Any, user_id: str, profile: Dict[str, Any], repos: List[Dict[str, Any]], languages: Dict[str, Dict[str, int]]) -> None:

@@ -205,6 +205,91 @@ class SyncIndependence(unittest.TestCase):
         self.assertFalse(calls["repos_written"])
         self.assertIsNotNone(calls["raised"], "the repository failure still goes to the job's retry")
 
+    def test_storage_failure_never_breaks_the_repository_sync(self):
+        def broken_write(c, u, s):
+            raise RuntimeError("deadlock detected")
+
+        failures = []
+        with mock.patch.object(gc, "write_snapshot", side_effect=broken_write), \
+             mock.patch.object(gc, "record_failure", side_effect=lambda c, u, r: failures.append(r)):
+            calls = self.run_sync_raw(lambda: calendar_response(date(2025, 11, 9), [1] * 365))
+        self.assertTrue(calls["repos_written"])
+        self.assertIsNone(calls["raised"])
+        self.assertEqual(failures, ["Could not store the calendar (RuntimeError)"])
+
+    def test_table_check_failure_skips_the_calendar_and_repositories_still_sync(self):
+        with mock.patch.object(gc, "table_exists", side_effect=RuntimeError("connection reset")):
+            calls = self.run_sync_raw(lambda: self.fail("GitHub must not be asked"))
+        self.assertTrue(calls["repos_written"])
+        self.assertIsNone(calls["raised"])
+
+    def test_repositories_are_listed_with_the_documented_affiliations_and_forks_dropped(self):
+        seen = []
+
+        class Client:
+            def __init__(self, _t): pass
+            def get(self, path): return ({"login": "asha"}, {}) if path == "/user" else ({}, {})
+            def graphql(self, q, v): return {"data": {"viewer": None}}
+            def paginate(self, path, limit):
+                seen.append(path)
+                return [{"full_name": "asha/a", "name": "a", "fork": False}, {"full_name": "asha/f", "name": "f", "fork": True}]
+
+        written = {}
+        conn, cur = mock.MagicMock(), mock.MagicMock()
+        conn.cursor.return_value.__enter__.return_value = cur
+        job = Job(id="j", type="connector_sync", user_id="u1", payload={"connection_id": "c"}, attempts=1, max_attempts=3)
+        with mock.patch.object(github, "fetch_one", return_value={"id": "c", "token_enc": "x"}), \
+             mock.patch.object(github, "open_credential", return_value={"access_token": "t"}), \
+             mock.patch.object(gc, "table_exists", return_value=False), \
+             mock.patch.object(github, "still_connected", return_value=True), \
+             mock.patch.object(github, "assert_still_owner"), \
+             mock.patch.object(github, "_write", side_effect=lambda c, u, p, repos, l: written.update(repos=[r["full_name"] for r in repos])), \
+             mock.patch.object(github, "enqueue_compute_intelligence"):
+            github.sync_github(conn, job, client_factory=Client)
+        self.assertEqual(len(seen), 1)
+        self.assertIn("affiliation=owner,collaborator,organization_member", seen[0])
+        self.assertIn("sort=pushed", seen[0])
+        self.assertNotIn("visibility=", seen[0])  # public and private, as the token allows
+        self.assertEqual(written["repos"], ["asha/a"])
+
+    def run_sync_raw(self, graphql):
+        """run_sync without its write_snapshot/record_failure/table_exists mocks, so callers can set their own."""
+        calls = {"repos_written": False}
+
+        class Client:
+            def __init__(self, _token): pass
+            def get(self, path):
+                return ({"login": "asha"}, {}) if path == "/user" else ({"Python": 10}, {})
+            def paginate(self, path, limit):
+                return [{"full_name": "asha/a", "name": "a", "fork": False}]
+            def graphql(self, query, variables):
+                return graphql()
+
+        conn, cur = mock.MagicMock(), mock.MagicMock()
+        conn.cursor.return_value.__enter__.return_value = cur
+        job = Job(id="j", type="connector_sync", user_id="u1", payload={"connection_id": "c"}, attempts=1, max_attempts=3)
+        patches = [
+            mock.patch.object(github, "fetch_one", return_value={"id": "c", "token_enc": "x"}),
+            mock.patch.object(github, "open_credential", return_value={"access_token": "t"}),
+            mock.patch.object(github, "still_connected", return_value=True),
+            mock.patch.object(github, "assert_still_owner"),
+            mock.patch.object(github, "_write", side_effect=lambda *a: calls.update(repos_written=True)),
+            mock.patch.object(github, "enqueue_compute_intelligence"),
+        ]
+        if not isinstance(gc.table_exists, mock.Mock):
+            patches.append(mock.patch.object(gc, "table_exists", return_value=True))
+        for p in patches:
+            p.start()
+        try:
+            github.sync_github(conn, job, client_factory=Client)
+            calls["raised"] = None
+        except Exception as exc:  # noqa: BLE001
+            calls["raised"] = exc
+        finally:
+            for p in patches:
+                p.stop()
+        return calls
+
     def test_missing_table_skips_the_api_call(self):
         called = []
         conn, cur = mock.MagicMock(), mock.MagicMock()
@@ -249,6 +334,20 @@ class ContributionsOnPostgres(unittest.TestCase):
         with self.conn, self.conn.cursor() as cur:
             self.assertTrue(gc.table_exists(cur))
 
+    def test_missing_table_is_detected_with_dict_and_tuple_cursors(self):
+        """Without migration 0027 the calendar is skipped. Dropped inside a transaction that is rolled back."""
+        for factory in (None, __import__("psycopg2.extras").extras.RealDictCursor):
+            cur = self.conn.cursor(cursor_factory=factory) if factory else self.conn.cursor()
+            try:
+                self.assertTrue(gc.table_exists(cur))
+                cur.execute("DROP TABLE github_contributions")
+                self.assertFalse(gc.table_exists(cur), f"cursor {factory}")
+            finally:
+                self.conn.rollback()
+                cur.close()
+        with self.conn, self.conn.cursor() as cur:
+            self.assertTrue(gc.table_exists(cur))
+
     def test_failure_keeps_last_good_snapshot_and_records_the_error(self):
         user = self.new_user()
         snap = gc.parse_contributions(calendar_response(date(2025, 11, 9), [4] * 365, totals=(1460, 0, 0, 0)))
@@ -268,6 +367,23 @@ class ContributionsOnPostgres(unittest.TestCase):
         with self.conn, self.conn.cursor() as cur:
             gc.write_snapshot(cur, user, snap)
         self.assertIsNone(self.row(user)["last_error"])
+
+    def test_a_rejected_write_rolls_back_and_keeps_the_last_good_snapshot(self):
+        user = self.new_user()
+        good_snap = gc.parse_contributions(calendar_response(date(2025, 11, 9), [4] * 365, totals=(1460, 0, 0, 0)))
+        with self.conn, self.conn.cursor() as cur:
+            gc.write_snapshot(cur, user, good_snap)
+        good = self.row(user)
+        bad = dict(good_snap, total=-5)  # violates CHECK (total_contributions >= 0)
+        job = Job(id="j", type="connector_sync", user_id=user, payload={}, attempts=1, max_attempts=3)
+        with mock.patch.object(gc, "fetch", return_value=bad), \
+             mock.patch.object(github, "assert_still_owner"), \
+             mock.patch.object(github, "still_connected", return_value=True):
+            github._sync_contributions(self.conn, job, "c", client=None)  # must not raise
+        after = self.row(user)
+        for col in ("total_contributions", "days", "category_totals", "synced_at"):
+            self.assertEqual(after[col], good[col], col)
+        self.assertEqual(after["last_error"], "Could not store the calendar (CheckViolation)")
 
     def test_failure_before_any_success_is_unavailable_not_zero(self):
         user = self.new_user()
