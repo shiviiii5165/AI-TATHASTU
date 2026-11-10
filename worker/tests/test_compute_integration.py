@@ -107,6 +107,66 @@ class ComputeOnPostgres(unittest.TestCase):
             compute.process_compute_intelligence(self.conn, lost)
         self.assertEqual(self.sql("SELECT count(*) FROM profile_views WHERE user_id = %s", (self.user,), fetch=True)[0][0], 0)
 
+    def test_a_failed_recompute_keeps_the_last_good_assessment(self):
+        compute.process_compute_intelligence(self.conn, self.job)
+        good, before = self.view(), self.counts()
+        with mock.patch("intelligence.compute.score_repos", side_effect=RuntimeError("provider down")):
+            with self.assertRaises(RuntimeError):
+                compute.process_compute_intelligence(self.conn, self.job)
+        with mock.patch("intelligence.career_engine.compute", side_effect=RuntimeError("engine bug")):
+            with self.assertRaises(RuntimeError):
+                compute.process_compute_intelligence(self.conn, self.job)
+        self.assertEqual(self.view(), good)
+        self.assertEqual(self.counts(), before)
+
+    def test_engine_v3_output_and_framework_status_are_stored(self):
+        compute.process_compute_intelligence(self.conn, self.job)
+        intel = self.view()["intelligence"]
+        self.assertEqual(intel["engineVersion"], 3)
+        self.assertEqual(intel["framework"]["status"], "draft_unreviewed")
+        self.assertNotIn("_ledger", intel)
+        role = intel["roles"][0]
+        self.assertIn(role["alignment"]["state"], ("not_enough_evidence", "early", "developing", "strong", "requirements_demonstrated"))
+        self.assertTrue(all(m["estimateWeeks"] is None for s in intel["roadmap"]["stages"] for m in s["milestones"]))
+
+    def test_skill_evidence_is_a_projection_of_the_engine_ledger(self):
+        fid = str(uuid.uuid4())
+        self.sql(
+            """INSERT INTO profile_facts (id, user_id, field_group, field_name, record_key, normalized_value, extracted_value, origin, confirmation, extraction_method)
+               VALUES (%s, %s, 'skills', 'skill', NULL, '"Python"', '"Python"', 'resume', 'confirmed', 'test')""",
+            (fid, self.user),
+        )
+        compute.process_compute_intelligence(self.conn, self.job)
+        rows = self.sql(
+            "SELECT s.canonical_name, e.fact_id::text, e.evidence_strength FROM skill_evidence e JOIN skills s ON s.id = e.skill_id WHERE e.user_id = %s",
+            (self.user,), fetch=True,
+        )
+        self.assertEqual([(n, f) for n, f, _ in rows], [("Python", fid)])
+        engine_python = next(s for s in self.view()["intelligence"]["skills"] if s["name"] == "Python")
+        self.assertAlmostEqual(float(rows[0][2]), engine_python["confidence"], places=3)
+
+    def test_learning_records_are_read_and_a_verified_certification_only_supports(self):
+        self.sql(
+            """INSERT INTO learning_records (user_id, kind, title, status, verification, source, skills)
+               VALUES (%s, 'course', 'Machine Learning Specialization', 'completed', 'unverified', 'user_entered', '{}'),
+                      (%s, 'certification', 'AWS Certified ML', 'completed', 'verified', 'issuer', ARRAY['AWS'])""",
+            (self.user, self.user),
+        )
+        compute.process_compute_intelligence(self.conn, self.job)
+        skills = {s["name"]: s for s in self.view()["intelligence"]["skills"]}
+        self.assertEqual(skills["AWS"]["credential"], "verified")
+        self.assertIsNone(skills["AWS"]["proficiency"], "a certification alone is never proficiency")
+        self.assertEqual(skills["Machine Learning"]["coursesCompleted"], 1)
+        self.assertEqual(skills["Machine Learning"]["evidenceState"], "demonstrated")  # the repos' topics, not the course
+
+    def test_another_users_learning_records_are_never_read(self):
+        other = str(uuid.uuid4())
+        self.sql("INSERT INTO users (id, email, name, role) VALUES (%s, %s, 'Other', 'student')", (other, f"{other}@example.com"))
+        self.sql("INSERT INTO learning_records (user_id, kind, title, status, verification, source, skills) VALUES (%s, 'certification', 'Secret Cert', 'completed', 'verified', 'issuer', ARRAY['Kubernetes'])", (other,))
+        compute.process_compute_intelligence(self.conn, self.job)
+        self.assertNotIn("Secret Cert", json.dumps(self.view()))
+        self.assertIsNone(next((s for s in self.view()["intelligence"]["skills"] if s["name"] == "Kubernetes"), None))
+
     def grant_ai(self, granted=True, version=EXTERNAL_AI_FULL_SCOPE_SINCE):
         self.sql(
             "INSERT INTO consents (user_id, purpose, granted, policy_version) VALUES (%s, 'external_ai', %s, %s)",

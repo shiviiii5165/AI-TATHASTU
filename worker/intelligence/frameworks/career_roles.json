@@ -1,0 +1,29 @@
+{
+ "registryVersion": "2026-11-10.1",
+ "note": "The one list of career role ids and labels. Read by src/lib/onboarding/catalog.ts (web) and worker/intelligence/frameworks.py (worker). Ids are stable storage keys: never rename one; retire it instead.",
+ "roles": [
+  { "id": "ml_engineer", "status": "current", "label": "ML Engineer", "blurb": "Builds, trains and ships machine learning models into products", "keywords": "machine learning ml models training deployment scikit-learn" },
+  { "id": "data_scientist", "status": "current", "label": "Data Scientist", "blurb": "Analyses data, runs experiments and builds predictive models", "keywords": "analytics statistics sql pandas insights" },
+  { "id": "deep_learning_engineer", "status": "current", "label": "Deep Learning Engineer", "blurb": "Designs and trains neural networks with PyTorch or TensorFlow", "keywords": "neural networks pytorch tensorflow cuda" },
+  { "id": "generative_ai_engineer", "status": "current", "label": "Generative AI Engineer", "blurb": "Works with generative models, RAG, generation pipelines and model integration", "keywords": "genai rag diffusion embeddings generation" },
+  { "id": "llm_application_engineer", "status": "current", "label": "LLM Application Engineer", "blurb": "Builds LLM-powered apps: APIs, tools and orchestration", "keywords": "llm apps rag chatbots langchain api prompt tools" },
+  { "id": "llm_model_engineer", "status": "current", "label": "LLM Model Engineer", "blurb": "Trains, fine-tunes, optimises and serves language models", "keywords": "fine-tuning pretraining lora quantization inference" },
+  { "id": "mlops_engineer", "status": "current", "label": "MLOps Engineer", "blurb": "Deploys, monitors and runs ML pipelines reliably", "keywords": "deployment monitoring docker kubernetes ci/cd mlflow" },
+  { "id": "llmops_engineer", "status": "current", "label": "LLMOps Engineer", "blurb": "Deploys LLMs and owns evaluation, observability and reliability", "keywords": "llm deployment evaluation observability tracing" },
+  { "id": "ai_agent_engineer", "status": "current", "label": "AI Agent Engineer", "blurb": "Builds agent workflows: tool use, planning and orchestration", "keywords": "agents agentic tools planning multi-agent langgraph" },
+  { "id": "nlp_engineer", "status": "current", "label": "Natural Language Processing (NLP) Engineer", "blurb": "Builds systems that understand and generate text", "keywords": "nlp language text transformers hugging face" },
+  { "id": "computer_vision_engineer", "status": "current", "label": "Computer Vision Engineer", "blurb": "Builds models for images and video", "keywords": "cv vision images video opencv detection" },
+  { "id": "multimodal_ai_engineer", "status": "current", "label": "Multimodal AI Engineer", "blurb": "Builds models that combine text, images, audio and video", "keywords": "multimodal vision-language vlm clip" },
+  { "id": "speech_ai_engineer", "status": "current", "label": "Speech AI Engineer", "blurb": "Builds speech recognition, synthesis and voice systems", "keywords": "speech asr tts voice audio whisper" },
+  { "id": "rl_engineer", "status": "current", "label": "Reinforcement Learning Engineer", "blurb": "Trains agents that learn from rewards and environments", "keywords": "rl reinforcement rewards policy gym" },
+  { "id": "robotics_ai_engineer", "status": "current", "label": "Robotics Engineer", "blurb": "Brings AI to robots: perception, control and ROS", "keywords": "robotics ros control perception embedded" },
+  { "id": "graph_ai_engineer", "status": "current", "label": "Graph AI Engineer", "blurb": "Builds graph neural networks and knowledge-graph systems", "keywords": "graph gnn knowledge graph networkx" },
+  { "id": "ai_infrastructure_engineer", "status": "current", "label": "AI Infrastructure Engineer", "blurb": "Runs GPU clusters, distributed training and model serving", "keywords": "infrastructure gpu distributed serving cloud kubernetes" },
+  { "id": "ai_evaluation_safety_engineer", "status": "current", "label": "AI Evaluation & Safety Engineer", "blurb": "Tests models for quality, bias, robustness and safety", "keywords": "evaluation safety alignment red teaming benchmarks" },
+  { "id": "edge_federated_ai_engineer", "status": "current", "label": "Edge & Federated AI Engineer", "blurb": "Runs AI on devices and trains models privately across them", "keywords": "edge on-device tinyml federated privacy mobile" },
+  { "id": "ai_researcher", "status": "current", "label": "AI Research Engineer / Applied AI Scientist", "blurb": "Turns research ideas into experiments, papers and prototypes", "keywords": "research papers experiments scientist" },
+  { "id": "ai_engineer", "status": "retired", "label": "AI Engineer", "blurb": "Build AI features", "keywords": "" },
+  { "id": "ai_product_founder", "status": "retired", "label": "AI Product Builder", "blurb": "Build AI products", "keywords": "" },
+  { "id": "still_exploring", "status": "retired", "label": "Still exploring", "blurb": "Help me choose", "keywords": "" }
+ ]
+}

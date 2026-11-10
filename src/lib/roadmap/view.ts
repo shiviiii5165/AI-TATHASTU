@@ -4,7 +4,7 @@
 // and the UI says so.
 
 import { roleLabel } from "@/components/dashboard/widgets/labels";
-import type { GapState, IntelligenceDoc, LearningRecommendation, RoleSkillRow } from "@/lib/dashboard/types";
+import type { AlignmentState, GapState, IntelligenceDoc, LearningRecommendation, RoleSkillRow } from "@/lib/dashboard/types";
 import { ALL_CAREER_ROLES } from "@/lib/onboarding/catalog";
 import { milestoneReason } from "@/lib/roadmap/explain";
 import { roadmapProgress, type MilestoneSubmission, type RoadmapStep } from "@/lib/roadmap/progress";
@@ -27,7 +27,9 @@ export type RoadmapStageView = {
   steps: RoadmapStep[];
   /** Prerequisite skills holding the whole stage back, when every open milestone in it is blocked. */
   blockedBy: string[];
-  /** The engine's planning estimate, in weeks, stated with `assumption`; null when it gave none. */
+  /** Optional stage: supporting skills only, never a condition for the goal. */
+  optional: boolean;
+  /** Older documents' planning estimate in weeks; engine v3 gives none and the UI shows none. */
   estimateWeeks: number | null;
 };
 
@@ -42,7 +44,14 @@ export type RoadmapView =
       computedAt: string;
       goal: { id: string; label: string; blurb: string | null };
       position: string | null;
-      coverage: { met: number; total: number; percent: number | null; assessed: boolean };
+      /** Counts only, never a percentage: how many of the goal's competencies the engine found at level. */
+      coverage: { met: number; total: number; assessed: boolean };
+      /** The engine's rule-based alignment state, in plain words; null on documents from before engine v3. */
+      alignment: { state: AlignmentState; label: string; explanation: string; requiredMet: number; required: number; criticalGaps: string[] } | null;
+      /** The role framework is a draft our team wrote, not an industry standard; the UI says so. */
+      frameworkDraft: boolean;
+      /** Every required competency is demonstrated: what's left is optional. */
+      requirementsMet: boolean;
       stages: RoadmapStageView[];
       /**
        * Where the progress marker stands, as a node index on the journey (0 = where you are, 1.. = stages,
@@ -56,6 +65,17 @@ export type RoadmapView =
       steps: RoadmapStep[];
       assumption: string;
     };
+
+/** Student-facing wording for each alignment state (career_engine.ALIGNMENT_RULES decides the state). */
+export const ALIGNMENT_TEXT: Record<AlignmentState, string> = {
+  not_enough_evidence: "We don't have enough of your work yet to see where you stand. Add your resume or connect GitHub.",
+  early: "You're at the start: we haven't yet seen practical proof of this goal's required skills.",
+  developing: "Some of the required skills are showing in your work. Keep building on them.",
+  strong: "Most required skills, including the foundations, are showing in your work.",
+  requirements_demonstrated: "Your available evidence now covers the required skills for your selected career path.",
+};
+
+const ROADMAP_BASIS_FALLBACK = "Ordered by what each skill builds on and how central it is to your goal. No time estimates: they'd depend on hours we don't know you have.";
 
 const IN_PROGRESS: GapState[] = ["underdeveloped"];
 const NOT_YET: GapState[] = ["unverified", "inferred", "missing", "not_assessed"];
@@ -83,7 +103,8 @@ export function roadmapView(intelligence: IntelligenceDoc | undefined, submissio
       status,
       steps,
       blockedBy: allBlocked ? [...new Set(open.flatMap((s) => s.blockedBy))] : [],
-      estimateWeeks: Number.isFinite(stage.estimateWeeks) && stage.estimateWeeks > 0 ? stage.estimateWeeks : null,
+      optional: Boolean(stage.optional),
+      estimateWeeks: typeof stage.estimateWeeks === "number" && stage.estimateWeeks > 0 ? stage.estimateWeeks : null,
     };
   });
 
@@ -91,13 +112,17 @@ export function roadmapView(intelligence: IntelligenceDoc | undefined, submissio
   const nextStage = stages.find((s) => s.status === "active") ?? null;
   const total = rows.length || progress.completed.length + progress.steps.length;
   const assessed = Boolean(analysis?.assessed);
+  const a = analysis?.alignment ?? null;
 
   return {
     state: "ready",
     computedAt: intelligence.computedAt,
     goal: { id: roadmap.role, label: roleLabel(roadmap.role), blurb: ALL_CAREER_ROLES.find((r) => r.id === roadmap.role)?.blurb ?? null },
     position: roadmap.currentPosition,
-    coverage: { met: progress.completed.length, total, percent: assessed ? Math.round(progress.progress * 100) : null, assessed },
+    coverage: { met: progress.completed.length, total, assessed },
+    alignment: a ? { state: a.state, label: a.label, explanation: ALIGNMENT_TEXT[a.state], requiredMet: a.requiredMet, required: a.required, criticalGaps: a.criticalGaps } : null,
+    frameworkDraft: (analysis?.framework?.status ?? intelligence.framework?.status ?? "").startsWith("draft"),
+    requirementsMet: Boolean(roadmap.requirementsMet),
     stages,
     reachedIndex: (() => {
       const lead = stages.findIndex((s) => s.status !== "completed");
@@ -113,6 +138,7 @@ export function roadmapView(intelligence: IntelligenceDoc | undefined, submissio
       { key: "notYet", label: "Not yet demonstrated", note: "listed only, suggested, or no evidence yet", rows: rows.filter((r) => NOT_YET.includes(r.state)) },
     ],
     steps: progress.steps,
-    assumption: roadmap.assumption,
+    // Documents from before engine v3 state an hours-a-week assumption for estimates the UI no longer shows.
+    assumption: intelligence.engineVersion >= 3 ? roadmap.assumption : ROADMAP_BASIS_FALLBACK,
   };
 }

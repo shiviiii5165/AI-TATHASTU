@@ -1,13 +1,21 @@
 {
  "intelligence": {
-  "engineVersion": 2,
-  "computedAt": "2026-11-10T11:38:04.072689+00:00",
+  "engineVersion": 3,
+  "framework": {
+   "version": "2026.11-draft.1",
+   "status": "draft_unreviewed",
+   "basis": "Internal judgement of the AI Tathastu team, carried over from the engine v2 weighted skill lists (worker/intelligence/config.py) and restructured. Not an industry standard, employer requirement or job-market dataset.",
+   "reviewed": false,
+   "alignmentRules": "not_enough_evidence: nothing to read yet, or no competency in the framework has any evidence (even a claim). requirements_demonstrated: every required competency is met (expected level, demonstrated evidence). strong: every required competency has an assessed level, at least half are met, and every required competency with no required prerequisite (the foundations) is met. developing: at least one required competency is met, or at least half have an assessed level. early: anything else with some evidence. Supporting competencies never raise the state."
+  },
+  "computedAt": "2026-11-10T18:00:19.344413+00:00",
   "hasEvidenceBase": true,
   "skills": [
    {
     "name": "Python",
     "category": "language",
     "status": "verified",
+    "evidenceState": "demonstrated",
     "proficiency": 51.6,
     "level": "Proficient",
     "confidence": 0.6,
@@ -24,36 +32,39 @@
       "source": "github",
       "label": "asha/resume-parser",
       "ref": "https://github.com/asha/resume-parser",
-      "at": "2026-10-21T11:38:04.072689+00:00"
+      "at": "2026-10-21T18:00:19.344413+00:00"
      },
      {
       "kind": "repository",
       "source": "github",
       "label": "asha/sql-dashboards",
       "ref": "https://github.com/asha/sql-dashboards",
-      "at": "2026-10-21T11:38:04.072689+00:00"
+      "at": "2026-10-21T18:00:19.344413+00:00"
      },
      {
       "kind": "project",
       "source": "resume",
       "label": "Resume Parser",
       "ref": "f16",
-      "at": "2026-10-21T11:38:04.072689+00:00"
+      "at": "2026-10-21T18:00:19.344413+00:00"
      },
      {
       "kind": "project",
       "source": "resume",
       "label": "Undated Side Project",
       "ref": "f18",
-      "at": "2026-10-21T11:38:04.072689+00:00"
+      "at": "2026-10-21T18:00:19.344413+00:00"
      }
     ],
-    "lastEvidenceAt": "2026-10-21T11:38:04.072689+00:00"
+    "lastEvidenceAt": "2026-10-21T18:00:19.344413+00:00",
+    "credential": null,
+    "coursesCompleted": 0
    },
    {
     "name": "SQL",
     "category": "language",
     "status": "verified",
+    "evidenceState": "demonstrated",
     "proficiency": 21.8,
     "level": "Foundational",
     "confidence": 0.35,
@@ -69,15 +80,18 @@
       "source": "github",
       "label": "asha/sql-dashboards",
       "ref": "https://github.com/asha/sql-dashboards",
-      "at": "2026-10-21T11:38:04.072689+00:00"
+      "at": "2026-10-21T18:00:19.344413+00:00"
      }
     ],
-    "lastEvidenceAt": "2026-10-21T11:38:04.072689+00:00"
+    "lastEvidenceAt": "2026-10-21T18:00:19.344413+00:00",
+    "credential": null,
+    "coursesCompleted": 0
    },
    {
     "name": "scikit-learn",
     "category": "ml_framework",
     "status": "verified",
+    "evidenceState": "demonstrated",
     "proficiency": 19.3,
     "level": "Foundational",
     "confidence": 0.6,
@@ -93,22 +107,25 @@
       "source": "github",
       "label": "asha/resume-parser",
       "ref": "https://github.com/asha/resume-parser",
-      "at": "2026-10-21T11:38:04.072689+00:00"
+      "at": "2026-10-21T18:00:19.344413+00:00"
      },
      {
       "kind": "project",
       "source": "resume",
       "label": "Resume Parser",
       "ref": "f16",
-      "at": "2026-10-21T11:38:04.072689+00:00"
+      "at": "2026-10-21T18:00:19.344413+00:00"
      }
     ],
-    "lastEvidenceAt": "2026-10-21T11:38:04.072689+00:00"
+    "lastEvidenceAt": "2026-10-21T18:00:19.344413+00:00",
+    "credential": null,
+    "coursesCompleted": 0
    },
    {
     "name": "PyTorch",
     "category": "ml_framework",
     "status": "verified",
+    "evidenceState": "demonstrated",
     "proficiency": 11.0,
     "level": "Foundational",
     "confidence": 0.35,
@@ -123,15 +140,18 @@
       "source": "github",
       "label": "asha/resume-parser",
       "ref": "https://github.com/asha/resume-parser",
-      "at": "2026-10-21T11:38:04.072689+00:00"
+      "at": "2026-10-21T18:00:19.344413+00:00"
      }
     ],
-    "lastEvidenceAt": "2026-10-21T11:38:04.072689+00:00"
+    "lastEvidenceAt": "2026-10-21T18:00:19.344413+00:00",
+    "credential": null,
+    "coursesCompleted": 0
    },
    {
     "name": "Kubernetes",
     "category": "mlops",
     "status": "claimed",
+    "evidenceState": "claimed",
     "proficiency": null,
     "level": "Not assessed",
     "confidence": 0.35,
@@ -143,10 +163,12 @@
       "source": "resume",
       "label": "Listed in your skills",
       "ref": "f21",
-      "at": "2026-10-21T11:38:04.072689+00:00"
+      "at": "2026-10-21T18:00:19.344413+00:00"
      }
     ],
-    "lastEvidenceAt": "2026-10-21T11:38:04.072689+00:00"
+    "lastEvidenceAt": "2026-10-21T18:00:19.344413+00:00",
+    "credential": null,
+    "coursesCompleted": 0
    }
   ],
   "inferred": [
@@ -154,6 +176,7 @@
     "name": "Data Science",
     "category": "other",
     "status": "inferred",
+    "evidenceState": "inferred",
     "proficiency": null,
     "level": "Not assessed",
     "confidence": 0.0,
@@ -161,6 +184,8 @@
     "evidenceCount": 0,
     "evidence": [],
     "lastEvidenceAt": null,
+    "credential": null,
+    "coursesCompleted": 0,
     "inferredFrom": [
      "scikit-learn"
     ]
@@ -169,6 +194,7 @@
     "name": "Deep Learning",
     "category": "other",
     "status": "inferred",
+    "evidenceState": "inferred",
     "proficiency": null,
     "level": "Not assessed",
     "confidence": 0.0,
@@ -176,6 +202,8 @@
     "evidenceCount": 0,
     "evidence": [],
     "lastEvidenceAt": null,
+    "credential": null,
+    "coursesCompleted": 0,
     "inferredFrom": [
      "PyTorch"
     ]
@@ -184,6 +212,7 @@
     "name": "Machine Learning",
     "category": "other",
     "status": "inferred",
+    "evidenceState": "inferred",
     "proficiency": null,
     "level": "Not assessed",
     "confidence": 0.0,
@@ -191,6 +220,8 @@
     "evidenceCount": 0,
     "evidence": [],
     "lastEvidenceAt": null,
+    "credential": null,
+    "coursesCompleted": 0,
     "inferredFrom": [
      "PyTorch",
      "scikit-learn"
@@ -200,6 +231,7 @@
     "name": "Neural Networks",
     "category": "other",
     "status": "inferred",
+    "evidenceState": "inferred",
     "proficiency": null,
     "level": "Not assessed",
     "confidence": 0.0,
@@ -207,6 +239,8 @@
     "evidenceCount": 0,
     "evidence": [],
     "lastEvidenceAt": null,
+    "credential": null,
+    "coursesCompleted": 0,
     "inferredFrom": [
      "PyTorch"
     ]
@@ -215,294 +249,631 @@
   "roles": [
    {
     "role": "ml_engineer",
+    "label": "Machine Learning Engineer",
+    "framework": {
+     "version": "2026.11-draft.1",
+     "status": "draft_unreviewed",
+     "responsibilities": [
+      "Frame business problems as ML tasks",
+      "Train, evaluate and compare models",
+      "Package and deploy models into products",
+      "Monitor model quality after release"
+     ],
+     "completionCriteria": "Every required competency is at its expected level, shown by independent evidence (repositories, platform activity or assessments)."
+    },
     "coverage": 0.149,
     "assessed": true,
+    "alignment": {
+     "state": "developing",
+     "label": "Developing alignment",
+     "required": 4,
+     "requiredMet": 1,
+     "requiredAssessed": 3,
+     "requiredClaimedOnly": 0,
+     "requiredMissing": 0,
+     "supportingMet": 0,
+     "supporting": 6,
+     "criticalGaps": [
+      "Machine Learning"
+     ],
+     "foundationsMet": true
+    },
     "skills": [
      {
       "skill": "Python",
+      "tier": "required",
+      "required": true,
       "weight": 1.0,
       "priority": "High",
       "expected": 50,
       "expectedLevel": "Proficient",
+      "evidenceRequirement": "independent",
       "proficiency": 51.6,
       "level": "Proficient",
       "confidence": 0.6,
+      "evidenceState": "demonstrated",
+      "hasEvidence": true,
       "state": "met",
+      "gapType": "completed",
       "insufficientEvidence": false,
       "action": null,
+      "demonstration": null,
       "evidence": [
        "asha/resume-parser",
        "asha/sql-dashboards",
        "Resume Parser"
-      ]
+      ],
+      "prerequisites": [],
+      "prerequisiteFor": [
+       "Machine Learning",
+       "PyTorch",
+       "scikit-learn"
+      ],
+      "blockedBy": [],
+      "unblocks": [],
+      "whyItMatters": "A required skill for Machine Learning Engineer. Writing, structuring and debugging Python programs; Machine Learning, PyTorch, scikit-learn build on it."
      },
      {
       "skill": "Machine Learning",
+      "tier": "required",
+      "required": true,
       "weight": 1.0,
       "priority": "High",
       "expected": 50,
       "expectedLevel": "Proficient",
+      "evidenceRequirement": "independent",
       "proficiency": null,
       "level": "Not assessed",
       "confidence": 0.0,
+      "evidenceState": "inferred",
+      "hasEvidence": false,
       "state": "inferred",
+      "gapType": "insufficient_evidence",
       "insufficientEvidence": true,
-      "action": "Your related skills suggest Machine Learning, but nothing shows it yet. Add a project that uses it directly.",
-      "evidence": []
+      "action": "Your related skills suggest Machine Learning, but nothing shows it yet. Build something that uses it directly.",
+      "demonstration": "An end-to-end ML project with a train/validation split, a baseline and reported metrics.",
+      "evidence": [],
+      "prerequisites": [
+       "Python",
+       "Statistics"
+      ],
+      "prerequisiteFor": [
+       "MLflow"
+      ],
+      "blockedBy": [
+       "Statistics"
+      ],
+      "unblocks": [
+       "MLflow"
+      ],
+      "whyItMatters": "A required skill for Machine Learning Engineer. Framing problems, training, validating and comparing classical ML models; MLflow builds on it.",
+      "priorityRank": 1,
+      "priorityReason": "Required for this goal; needed before MLflow; no assessed evidence yet."
      },
      {
       "skill": "scikit-learn",
+      "tier": "required",
+      "required": true,
       "weight": 0.8,
       "priority": "High",
       "expected": 25,
       "expectedLevel": "Working",
+      "evidenceRequirement": "independent",
       "proficiency": 19.3,
       "level": "Foundational",
       "confidence": 0.6,
+      "evidenceState": "demonstrated",
+      "hasEvidence": true,
       "state": "underdeveloped",
+      "gapType": "insufficient_proficiency",
       "insufficientEvidence": false,
-      "action": "Deepen it: use scikit-learn in a more substantial project and push it to a public repository.",
+      "action": "You've started using scikit-learn. Build a more substantial project to show the next level.",
+      "demonstration": "A repository using scikit-learn pipelines with evaluation.",
       "evidence": [
        "asha/resume-parser",
        "Resume Parser"
-      ]
+      ],
+      "prerequisites": [
+       "Python"
+      ],
+      "prerequisiteFor": [],
+      "blockedBy": [],
+      "unblocks": [],
+      "whyItMatters": "A required skill for Machine Learning Engineer. Classical ML pipelines with scikit-learn.",
+      "priorityRank": 3,
+      "priorityReason": "Required for this goal; currently Foundational, expected Working."
      },
      {
       "skill": "PyTorch",
+      "tier": "required",
+      "required": true,
       "weight": 0.8,
       "priority": "High",
       "expected": 25,
       "expectedLevel": "Working",
+      "evidenceRequirement": "independent",
       "proficiency": 11.0,
       "level": "Foundational",
       "confidence": 0.35,
+      "evidenceState": "demonstrated",
+      "hasEvidence": true,
       "state": "underdeveloped",
+      "gapType": "insufficient_proficiency",
       "insufficientEvidence": false,
-      "action": "Deepen it: use PyTorch in a more substantial project and push it to a public repository.",
+      "action": "You've started using PyTorch. Build a more substantial project to show the next level.",
+      "demonstration": "A repository with a PyTorch model, training loop and evaluation.",
       "evidence": [
        "asha/resume-parser"
-      ]
+      ],
+      "prerequisites": [
+       "Python"
+      ],
+      "prerequisiteFor": [],
+      "blockedBy": [],
+      "unblocks": [],
+      "whyItMatters": "A required skill for Machine Learning Engineer. Building and training models with PyTorch.",
+      "priorityRank": 2,
+      "priorityReason": "Required for this goal; currently Foundational, expected Working."
      },
      {
       "skill": "SQL",
+      "tier": "supporting",
+      "required": false,
       "weight": 0.6,
       "priority": "Medium",
       "expected": 25,
       "expectedLevel": "Working",
+      "evidenceRequirement": "described",
       "proficiency": 21.8,
       "level": "Foundational",
       "confidence": 0.35,
+      "evidenceState": "demonstrated",
+      "hasEvidence": true,
       "state": "underdeveloped",
+      "gapType": "insufficient_proficiency",
       "insufficientEvidence": false,
-      "action": "Deepen it: use SQL in a more substantial project and push it to a public repository.",
+      "action": "You've started using SQL. Build a more substantial project to show the next level.",
+      "demonstration": "A project or analysis with non-trivial SQL queries over real data.",
       "evidence": [
        "asha/sql-dashboards"
-      ]
+      ],
+      "prerequisites": [],
+      "prerequisiteFor": [],
+      "blockedBy": [],
+      "unblocks": [],
+      "whyItMatters": "A supporting skill for Machine Learning Engineer. Querying, joining and aggregating relational data.",
+      "priorityRank": 6,
+      "priorityReason": "Supporting skill (optional for the goal); currently Foundational, expected Working."
      },
      {
       "skill": "Docker",
+      "tier": "supporting",
+      "required": false,
       "weight": 0.6,
       "priority": "Medium",
       "expected": 25,
       "expectedLevel": "Working",
+      "evidenceRequirement": "described",
       "proficiency": null,
       "level": "Not assessed",
       "confidence": 0.0,
+      "evidenceState": "missing",
+      "hasEvidence": false,
       "state": "missing",
+      "gapType": "missing_competency",
       "insufficientEvidence": false,
-      "action": "Learn Docker, then build a small public project with it.",
-      "evidence": []
+      "action": "Learn Docker, then build something that shows it.",
+      "demonstration": "A repository with a Dockerfile that builds and runs the project.",
+      "evidence": [],
+      "prerequisites": [],
+      "prerequisiteFor": [],
+      "blockedBy": [],
+      "unblocks": [],
+      "whyItMatters": "A supporting skill for Machine Learning Engineer. Packaging software into reproducible containers.",
+      "priorityRank": 5,
+      "priorityReason": "Supporting skill (optional for the goal); no assessed evidence yet."
      },
      {
       "skill": "MLflow",
+      "tier": "supporting",
+      "required": false,
       "weight": 0.5,
       "priority": "Low",
-      "expected": 10,
+      "expected": 1,
       "expectedLevel": "Foundational",
+      "evidenceRequirement": "described",
       "proficiency": null,
       "level": "Not assessed",
       "confidence": 0.0,
+      "evidenceState": "missing",
+      "hasEvidence": false,
       "state": "missing",
+      "gapType": "missing_competency",
       "insufficientEvidence": false,
-      "action": "Learn MLflow, then build a small public project with it.",
-      "evidence": []
+      "action": "Learn MLflow, then build something that shows it.",
+      "demonstration": "A project that logs runs and models to MLflow.",
+      "evidence": [],
+      "prerequisites": [
+       "Machine Learning"
+      ],
+      "prerequisiteFor": [],
+      "blockedBy": [
+       "Machine Learning"
+      ],
+      "unblocks": [],
+      "whyItMatters": "A supporting skill for Machine Learning Engineer. Tracking experiments and managing model versions with MLflow.",
+      "priorityRank": 7,
+      "priorityReason": "Supporting skill (optional for the goal); no assessed evidence yet."
      },
      {
       "skill": "Statistics",
+      "tier": "supporting",
+      "required": false,
       "weight": 0.6,
       "priority": "Medium",
       "expected": 25,
       "expectedLevel": "Working",
+      "evidenceRequirement": "described",
       "proficiency": null,
       "level": "Not assessed",
       "confidence": 0.0,
+      "evidenceState": "missing",
+      "hasEvidence": false,
       "state": "missing",
+      "gapType": "missing_competency",
       "insufficientEvidence": false,
-      "action": "Learn Statistics, then build a small public project with it.",
-      "evidence": []
+      "action": "Learn Statistics, then build something that shows it.",
+      "demonstration": "An analysis that states hypotheses, applies a suitable test and interprets uncertainty.",
+      "evidence": [],
+      "prerequisites": [],
+      "prerequisiteFor": [
+       "Machine Learning"
+      ],
+      "blockedBy": [],
+      "unblocks": [
+       "Machine Learning"
+      ],
+      "whyItMatters": "A supporting skill for Machine Learning Engineer. Descriptive and inferential statistics: distributions, estimation, hypothesis tests; Machine Learning builds on it.",
+      "priorityRank": 4,
+      "priorityReason": "Supporting skill (optional for the goal); needed before Machine Learning; no assessed evidence yet."
      },
      {
       "skill": "AWS",
+      "tier": "supporting",
+      "required": false,
       "weight": 0.4,
       "priority": "Low",
-      "expected": 10,
+      "expected": 1,
       "expectedLevel": "Foundational",
+      "evidenceRequirement": "described",
       "proficiency": null,
       "level": "Not assessed",
       "confidence": 0.0,
+      "evidenceState": "missing",
+      "hasEvidence": false,
       "state": "missing",
+      "gapType": "missing_competency",
       "insufficientEvidence": false,
-      "action": "Learn AWS, then build a small public project with it.",
-      "evidence": []
+      "action": "Learn AWS, then build something that shows it.",
+      "demonstration": "A project deployed on AWS with its infrastructure described.",
+      "evidence": [],
+      "prerequisites": [],
+      "prerequisiteFor": [],
+      "blockedBy": [],
+      "unblocks": [],
+      "whyItMatters": "A supporting skill for Machine Learning Engineer. Deploying and operating workloads on AWS.",
+      "priorityRank": 8,
+      "priorityReason": "Supporting skill (optional for the goal); no assessed evidence yet."
      },
      {
       "skill": "Git",
+      "tier": "supporting",
+      "required": false,
       "weight": 0.4,
       "priority": "Low",
-      "expected": 10,
+      "expected": 1,
       "expectedLevel": "Foundational",
+      "evidenceRequirement": "described",
       "proficiency": null,
       "level": "Not assessed",
       "confidence": 0.0,
+      "evidenceState": "missing",
+      "hasEvidence": false,
       "state": "missing",
+      "gapType": "missing_competency",
       "insufficientEvidence": false,
-      "action": "Learn Git, then build a small public project with it.",
-      "evidence": []
+      "action": "Learn Git, then build something that shows it.",
+      "demonstration": "Public repositories with a meaningful commit history.",
+      "evidence": [],
+      "prerequisites": [],
+      "prerequisiteFor": [],
+      "blockedBy": [],
+      "unblocks": [],
+      "whyItMatters": "A supporting skill for Machine Learning Engineer. Version control: branching, history and collaboration.",
+      "priorityRank": 9,
+      "priorityReason": "Supporting skill (optional for the goal); no assessed evidence yet."
      }
     ],
     "open": [
      {
       "skill": "Machine Learning",
+      "tier": "required",
+      "required": true,
       "weight": 1.0,
       "priority": "High",
       "expected": 50,
       "expectedLevel": "Proficient",
+      "evidenceRequirement": "independent",
       "proficiency": null,
       "level": "Not assessed",
       "confidence": 0.0,
+      "evidenceState": "inferred",
+      "hasEvidence": false,
       "state": "inferred",
+      "gapType": "insufficient_evidence",
       "insufficientEvidence": true,
-      "action": "Your related skills suggest Machine Learning, but nothing shows it yet. Add a project that uses it directly.",
-      "evidence": []
+      "action": "Your related skills suggest Machine Learning, but nothing shows it yet. Build something that uses it directly.",
+      "demonstration": "An end-to-end ML project with a train/validation split, a baseline and reported metrics.",
+      "evidence": [],
+      "prerequisites": [
+       "Python",
+       "Statistics"
+      ],
+      "prerequisiteFor": [
+       "MLflow"
+      ],
+      "blockedBy": [
+       "Statistics"
+      ],
+      "unblocks": [
+       "MLflow"
+      ],
+      "whyItMatters": "A required skill for Machine Learning Engineer. Framing problems, training, validating and comparing classical ML models; MLflow builds on it.",
+      "priorityRank": 1,
+      "priorityReason": "Required for this goal; needed before MLflow; no assessed evidence yet."
      },
      {
       "skill": "PyTorch",
+      "tier": "required",
+      "required": true,
       "weight": 0.8,
       "priority": "High",
       "expected": 25,
       "expectedLevel": "Working",
+      "evidenceRequirement": "independent",
       "proficiency": 11.0,
       "level": "Foundational",
       "confidence": 0.35,
+      "evidenceState": "demonstrated",
+      "hasEvidence": true,
       "state": "underdeveloped",
+      "gapType": "insufficient_proficiency",
       "insufficientEvidence": false,
-      "action": "Deepen it: use PyTorch in a more substantial project and push it to a public repository.",
+      "action": "You've started using PyTorch. Build a more substantial project to show the next level.",
+      "demonstration": "A repository with a PyTorch model, training loop and evaluation.",
       "evidence": [
        "asha/resume-parser"
-      ]
+      ],
+      "prerequisites": [
+       "Python"
+      ],
+      "prerequisiteFor": [],
+      "blockedBy": [],
+      "unblocks": [],
+      "whyItMatters": "A required skill for Machine Learning Engineer. Building and training models with PyTorch.",
+      "priorityRank": 2,
+      "priorityReason": "Required for this goal; currently Foundational, expected Working."
      },
      {
       "skill": "scikit-learn",
+      "tier": "required",
+      "required": true,
       "weight": 0.8,
       "priority": "High",
       "expected": 25,
       "expectedLevel": "Working",
+      "evidenceRequirement": "independent",
       "proficiency": 19.3,
       "level": "Foundational",
       "confidence": 0.6,
+      "evidenceState": "demonstrated",
+      "hasEvidence": true,
       "state": "underdeveloped",
+      "gapType": "insufficient_proficiency",
       "insufficientEvidence": false,
-      "action": "Deepen it: use scikit-learn in a more substantial project and push it to a public repository.",
+      "action": "You've started using scikit-learn. Build a more substantial project to show the next level.",
+      "demonstration": "A repository using scikit-learn pipelines with evaluation.",
       "evidence": [
        "asha/resume-parser",
        "Resume Parser"
-      ]
-     },
-     {
-      "skill": "Docker",
-      "weight": 0.6,
-      "priority": "Medium",
-      "expected": 25,
-      "expectedLevel": "Working",
-      "proficiency": null,
-      "level": "Not assessed",
-      "confidence": 0.0,
-      "state": "missing",
-      "insufficientEvidence": false,
-      "action": "Learn Docker, then build a small public project with it.",
-      "evidence": []
+      ],
+      "prerequisites": [
+       "Python"
+      ],
+      "prerequisiteFor": [],
+      "blockedBy": [],
+      "unblocks": [],
+      "whyItMatters": "A required skill for Machine Learning Engineer. Classical ML pipelines with scikit-learn.",
+      "priorityRank": 3,
+      "priorityReason": "Required for this goal; currently Foundational, expected Working."
      },
      {
       "skill": "Statistics",
+      "tier": "supporting",
+      "required": false,
       "weight": 0.6,
       "priority": "Medium",
       "expected": 25,
       "expectedLevel": "Working",
+      "evidenceRequirement": "described",
       "proficiency": null,
       "level": "Not assessed",
       "confidence": 0.0,
+      "evidenceState": "missing",
+      "hasEvidence": false,
       "state": "missing",
+      "gapType": "missing_competency",
       "insufficientEvidence": false,
-      "action": "Learn Statistics, then build a small public project with it.",
-      "evidence": []
+      "action": "Learn Statistics, then build something that shows it.",
+      "demonstration": "An analysis that states hypotheses, applies a suitable test and interprets uncertainty.",
+      "evidence": [],
+      "prerequisites": [],
+      "prerequisiteFor": [
+       "Machine Learning"
+      ],
+      "blockedBy": [],
+      "unblocks": [
+       "Machine Learning"
+      ],
+      "whyItMatters": "A supporting skill for Machine Learning Engineer. Descriptive and inferential statistics: distributions, estimation, hypothesis tests; Machine Learning builds on it.",
+      "priorityRank": 4,
+      "priorityReason": "Supporting skill (optional for the goal); needed before Machine Learning; no assessed evidence yet."
+     },
+     {
+      "skill": "Docker",
+      "tier": "supporting",
+      "required": false,
+      "weight": 0.6,
+      "priority": "Medium",
+      "expected": 25,
+      "expectedLevel": "Working",
+      "evidenceRequirement": "described",
+      "proficiency": null,
+      "level": "Not assessed",
+      "confidence": 0.0,
+      "evidenceState": "missing",
+      "hasEvidence": false,
+      "state": "missing",
+      "gapType": "missing_competency",
+      "insufficientEvidence": false,
+      "action": "Learn Docker, then build something that shows it.",
+      "demonstration": "A repository with a Dockerfile that builds and runs the project.",
+      "evidence": [],
+      "prerequisites": [],
+      "prerequisiteFor": [],
+      "blockedBy": [],
+      "unblocks": [],
+      "whyItMatters": "A supporting skill for Machine Learning Engineer. Packaging software into reproducible containers.",
+      "priorityRank": 5,
+      "priorityReason": "Supporting skill (optional for the goal); no assessed evidence yet."
      },
      {
       "skill": "SQL",
+      "tier": "supporting",
+      "required": false,
       "weight": 0.6,
       "priority": "Medium",
       "expected": 25,
       "expectedLevel": "Working",
+      "evidenceRequirement": "described",
       "proficiency": 21.8,
       "level": "Foundational",
       "confidence": 0.35,
+      "evidenceState": "demonstrated",
+      "hasEvidence": true,
       "state": "underdeveloped",
+      "gapType": "insufficient_proficiency",
       "insufficientEvidence": false,
-      "action": "Deepen it: use SQL in a more substantial project and push it to a public repository.",
+      "action": "You've started using SQL. Build a more substantial project to show the next level.",
+      "demonstration": "A project or analysis with non-trivial SQL queries over real data.",
       "evidence": [
        "asha/sql-dashboards"
-      ]
+      ],
+      "prerequisites": [],
+      "prerequisiteFor": [],
+      "blockedBy": [],
+      "unblocks": [],
+      "whyItMatters": "A supporting skill for Machine Learning Engineer. Querying, joining and aggregating relational data.",
+      "priorityRank": 6,
+      "priorityReason": "Supporting skill (optional for the goal); currently Foundational, expected Working."
      },
      {
       "skill": "MLflow",
+      "tier": "supporting",
+      "required": false,
       "weight": 0.5,
       "priority": "Low",
-      "expected": 10,
+      "expected": 1,
       "expectedLevel": "Foundational",
+      "evidenceRequirement": "described",
       "proficiency": null,
       "level": "Not assessed",
       "confidence": 0.0,
+      "evidenceState": "missing",
+      "hasEvidence": false,
       "state": "missing",
+      "gapType": "missing_competency",
       "insufficientEvidence": false,
-      "action": "Learn MLflow, then build a small public project with it.",
-      "evidence": []
+      "action": "Learn MLflow, then build something that shows it.",
+      "demonstration": "A project that logs runs and models to MLflow.",
+      "evidence": [],
+      "prerequisites": [
+       "Machine Learning"
+      ],
+      "prerequisiteFor": [],
+      "blockedBy": [
+       "Machine Learning"
+      ],
+      "unblocks": [],
+      "whyItMatters": "A supporting skill for Machine Learning Engineer. Tracking experiments and managing model versions with MLflow.",
+      "priorityRank": 7,
+      "priorityReason": "Supporting skill (optional for the goal); no assessed evidence yet."
      },
      {
       "skill": "AWS",
+      "tier": "supporting",
+      "required": false,
       "weight": 0.4,
       "priority": "Low",
-      "expected": 10,
+      "expected": 1,
       "expectedLevel": "Foundational",
+      "evidenceRequirement": "described",
       "proficiency": null,
       "level": "Not assessed",
       "confidence": 0.0,
+      "evidenceState": "missing",
+      "hasEvidence": false,
       "state": "missing",
+      "gapType": "missing_competency",
       "insufficientEvidence": false,
-      "action": "Learn AWS, then build a small public project with it.",
-      "evidence": []
+      "action": "Learn AWS, then build something that shows it.",
+      "demonstration": "A project deployed on AWS with its infrastructure described.",
+      "evidence": [],
+      "prerequisites": [],
+      "prerequisiteFor": [],
+      "blockedBy": [],
+      "unblocks": [],
+      "whyItMatters": "A supporting skill for Machine Learning Engineer. Deploying and operating workloads on AWS.",
+      "priorityRank": 8,
+      "priorityReason": "Supporting skill (optional for the goal); no assessed evidence yet."
      },
      {
       "skill": "Git",
+      "tier": "supporting",
+      "required": false,
       "weight": 0.4,
       "priority": "Low",
-      "expected": 10,
+      "expected": 1,
       "expectedLevel": "Foundational",
+      "evidenceRequirement": "described",
       "proficiency": null,
       "level": "Not assessed",
       "confidence": 0.0,
+      "evidenceState": "missing",
+      "hasEvidence": false,
       "state": "missing",
+      "gapType": "missing_competency",
       "insufficientEvidence": false,
-      "action": "Learn Git, then build a small public project with it.",
-      "evidence": []
+      "action": "Learn Git, then build something that shows it.",
+      "demonstration": "Public repositories with a meaningful commit history.",
+      "evidence": [],
+      "prerequisites": [],
+      "prerequisiteFor": [],
+      "blockedBy": [],
+      "unblocks": [],
+      "whyItMatters": "A supporting skill for Machine Learning Engineer. Version control: branching, history and collaboration.",
+      "priorityRank": 9,
+      "priorityReason": "Supporting skill (optional for the goal); no assessed evidence yet."
      }
     ],
     "counts": {
@@ -519,13 +890,15 @@
   "recommendations": [
    {
     "skill": "Machine Learning",
+    "tier": "required",
     "targetLevel": "Proficient",
     "target": 50,
     "current": null,
     "currentLevel": "Not assessed",
     "state": "inferred",
+    "gapType": "insufficient_evidence",
     "priority": "High",
-    "why": "Only suggested by related skills so far; it's high-priority for ml_engineer (expected: Proficient).",
+    "why": "Only suggested by related skills so far; it's a required skill for Machine Learning Engineer (expected: Proficient).",
     "currentEvidence": [],
     "roles": [
      "ml_engineer"
@@ -541,19 +914,22 @@
      }
     ],
     "resource": null,
-    "demonstration": "Publish a repository that uses Machine Learning, naming it in the description or topics, so it can count here.",
+    "courseStatus": null,
+    "demonstration": "An end-to-end ML project with a train/validation split, a baseline and reported metrics. Name the skill in the repository description or topics so it can count here.",
     "status": "not_started",
-    "rankScore": 120.0
+    "rankScore": 220.0
    },
    {
     "skill": "PyTorch",
+    "tier": "required",
     "targetLevel": "Working",
     "target": 25,
     "current": 11.0,
     "currentLevel": "Foundational",
     "state": "underdeveloped",
+    "gapType": "insufficient_proficiency",
     "priority": "High",
-    "why": "Evidence puts you at Foundational; it's high-priority for ml_engineer (expected: Working).",
+    "why": "Your evidence puts you at Foundational; it's a required skill for Machine Learning Engineer (expected: Working).",
     "currentEvidence": [
      "asha/resume-parser"
     ],
@@ -576,19 +952,22 @@
      "linkCheckedOn": "2026-11-01",
      "linkStale": false
     },
-    "demonstration": "Publish a repository that uses PyTorch, naming it in the description or topics, so it can count here.",
+    "courseStatus": null,
+    "demonstration": "A repository with a PyTorch model, training loop and evaluation. Name the skill in the repository description or topics so it can count here.",
     "status": "in_progress",
-    "rankScore": 87.0
+    "rankScore": 187.0
    },
    {
     "skill": "scikit-learn",
+    "tier": "required",
     "targetLevel": "Working",
     "target": 25,
     "current": 19.3,
     "currentLevel": "Foundational",
     "state": "underdeveloped",
+    "gapType": "insufficient_proficiency",
     "priority": "High",
-    "why": "Evidence puts you at Foundational; it's high-priority for ml_engineer (expected: Working).",
+    "why": "Your evidence puts you at Foundational; it's a required skill for Machine Learning Engineer (expected: Working).",
     "currentEvidence": [
      "asha/resume-parser",
      "Resume Parser"
@@ -603,38 +982,44 @@
      }
     ],
     "resource": null,
-    "demonstration": "Publish a repository that uses scikit-learn, naming it in the description or topics, so it can count here.",
+    "courseStatus": null,
+    "demonstration": "A repository using scikit-learn pipelines with evaluation. Name the skill in the repository description or topics so it can count here.",
     "status": "in_progress",
-    "rankScore": 82.85
+    "rankScore": 182.85
    },
    {
     "skill": "Docker",
+    "tier": "supporting",
     "targetLevel": "Working",
     "target": 25,
     "current": null,
     "currentLevel": "Not assessed",
     "state": "missing",
+    "gapType": "missing_competency",
     "priority": "Medium",
-    "why": "No evidence found yet; it's medium-priority for ml_engineer (expected: Working).",
+    "why": "No evidence found yet; it's a supporting skill for Machine Learning Engineer (expected: Working).",
     "currentEvidence": [],
     "roles": [
      "ml_engineer"
     ],
     "prerequisites": [],
     "resource": null,
-    "demonstration": "Publish a repository that uses Docker, naming it in the description or topics, so it can count here.",
+    "courseStatus": null,
+    "demonstration": "A repository with a Dockerfile that builds and runs the project. Name the skill in the repository description or topics so it can count here.",
     "status": "not_started",
     "rankScore": 72.5
    },
    {
     "skill": "Statistics",
+    "tier": "supporting",
     "targetLevel": "Working",
     "target": 25,
     "current": null,
     "currentLevel": "Not assessed",
     "state": "missing",
+    "gapType": "missing_competency",
     "priority": "Medium",
-    "why": "No evidence found yet; it's medium-priority for ml_engineer (expected: Working).",
+    "why": "No evidence found yet; it's a supporting skill for Machine Learning Engineer (expected: Working).",
     "currentEvidence": [],
     "roles": [
      "ml_engineer"
@@ -650,19 +1035,22 @@
      "linkCheckedOn": "2026-11-01",
      "linkStale": false
     },
-    "demonstration": "Publish a repository that uses Statistics, naming it in the description or topics, so it can count here.",
+    "courseStatus": null,
+    "demonstration": "An analysis that states hypotheses, applies a suitable test and interprets uncertainty. Name the skill in the repository description or topics so it can count here.",
     "status": "not_started",
     "rankScore": 72.5
    },
    {
     "skill": "SQL",
+    "tier": "supporting",
     "targetLevel": "Working",
     "target": 25,
     "current": 21.8,
     "currentLevel": "Foundational",
     "state": "underdeveloped",
+    "gapType": "insufficient_proficiency",
     "priority": "Medium",
-    "why": "Evidence puts you at Foundational; it's medium-priority for ml_engineer (expected: Working).",
+    "why": "Your evidence puts you at Foundational; it's a supporting skill for Machine Learning Engineer (expected: Working).",
     "currentEvidence": [
      "asha/sql-dashboards"
     ],
@@ -671,19 +1059,22 @@
     ],
     "prerequisites": [],
     "resource": null,
-    "demonstration": "Publish a repository that uses SQL, naming it in the description or topics, so it can count here.",
+    "courseStatus": null,
+    "demonstration": "A project or analysis with non-trivial SQL queries over real data. Name the skill in the repository description or topics so it can count here.",
     "status": "in_progress",
     "rankScore": 61.6
    },
    {
     "skill": "MLflow",
+    "tier": "supporting",
     "targetLevel": "Foundational",
-    "target": 10,
+    "target": 1,
     "current": null,
     "currentLevel": "Not assessed",
     "state": "missing",
+    "gapType": "missing_competency",
     "priority": "Low",
-    "why": "No evidence found yet; it's low-priority for ml_engineer (expected: Foundational).",
+    "why": "No evidence found yet; it's a supporting skill for Machine Learning Engineer (expected: Foundational).",
     "currentEvidence": [],
     "roles": [
      "ml_engineer"
@@ -695,179 +1086,305 @@
      }
     ],
     "resource": null,
-    "demonstration": "Publish a repository that uses MLflow, naming it in the description or topics, so it can count here.",
+    "courseStatus": null,
+    "demonstration": "A project that logs runs and models to MLflow. Name the skill in the repository description or topics so it can count here.",
     "status": "not_started",
-    "rankScore": 50.0
+    "rankScore": 45.5
    },
    {
     "skill": "AWS",
+    "tier": "supporting",
     "targetLevel": "Foundational",
-    "target": 10,
+    "target": 1,
     "current": null,
     "currentLevel": "Not assessed",
     "state": "missing",
+    "gapType": "missing_competency",
     "priority": "Low",
-    "why": "No evidence found yet; it's low-priority for ml_engineer (expected: Foundational).",
+    "why": "No evidence found yet; it's a supporting skill for Machine Learning Engineer (expected: Foundational).",
     "currentEvidence": [],
     "roles": [
      "ml_engineer"
     ],
     "prerequisites": [],
     "resource": null,
-    "demonstration": "Publish a repository that uses AWS, naming it in the description or topics, so it can count here.",
+    "courseStatus": null,
+    "demonstration": "A project deployed on AWS with its infrastructure described. Name the skill in the repository description or topics so it can count here.",
     "status": "not_started",
-    "rankScore": 45.0
+    "rankScore": 40.5
    },
    {
     "skill": "Git",
+    "tier": "supporting",
     "targetLevel": "Foundational",
-    "target": 10,
+    "target": 1,
     "current": null,
     "currentLevel": "Not assessed",
     "state": "missing",
+    "gapType": "missing_competency",
     "priority": "Low",
-    "why": "No evidence found yet; it's low-priority for ml_engineer (expected: Foundational).",
+    "why": "No evidence found yet; it's a supporting skill for Machine Learning Engineer (expected: Foundational).",
     "currentEvidence": [],
     "roles": [
      "ml_engineer"
     ],
     "prerequisites": [],
     "resource": null,
-    "demonstration": "Publish a repository that uses Git, naming it in the description or topics, so it can count here.",
+    "courseStatus": null,
+    "demonstration": "Public repositories with a meaningful commit history. Name the skill in the repository description or topics so it can count here.",
     "status": "not_started",
-    "rankScore": 45.0
+    "rankScore": 40.5
    }
   ],
   "roadmap": {
    "role": "ml_engineer",
    "currentPosition": "B.Tech Computer Science at IIT Delhi",
    "progress": 0.149,
+   "alignment": "developing",
+   "requirementsMet": false,
+   "provisional": false,
    "completed": [
     "Python"
+   ],
+   "completedMilestones": [
+    {
+     "id": "ml_engineer:python",
+     "skill": "Python",
+     "tier": "required"
+    }
    ],
    "stages": [
     {
      "key": "foundation",
      "title": "Build the foundations",
+     "optional": false,
      "milestones": [
       {
        "id": "ml_engineer:statistics",
        "skill": "Statistics",
        "state": "missing",
+       "gapType": "missing_competency",
+       "tier": "supporting",
+       "optional": false,
        "done": false,
        "requires": [],
-       "deliverable": "A public project using Statistics in an end-to-end model you train, evaluate and deploy",
-       "criterion": "Statistics reaches Working from your evidence",
-       "estimateWeeks": 4
+       "blockedBy": [],
+       "objective": "Reach Working in Statistics",
+       "why": "A supporting skill for Machine Learning Engineer. Descriptive and inferential statistics: distributions, estimation, hypothesis tests; Machine Learning builds on it.",
+       "practicalTask": "An analysis that states hypotheses, applies a suitable test and interprets uncertainty, ideally as part of an end-to-end model you train, evaluate and deploy.",
+       "deliverable": "An analysis that states hypotheses, applies a suitable test and interprets uncertainty, ideally as part of an end-to-end model you train, evaluate and deploy.",
+       "evidenceRequired": "a project or work experience that uses it, or work we can see for ourselves",
+       "criterion": "Statistics reaches Working, shown by a project or work experience that uses it, or work we can see for ourselves",
+       "recommendedResource": {
+        "title": "Statistical Inference and Hypothesis Testing",
+        "url": "https://www.coursera.org/learn/statistical-inference"
+       },
+       "priorityReason": "Supporting skill (optional for the goal); needed before Machine Learning; no assessed evidence yet.",
+       "estimateWeeks": null
       },
       {
        "id": "ml_engineer:pytorch",
        "skill": "PyTorch",
        "state": "underdeveloped",
+       "gapType": "insufficient_proficiency",
+       "tier": "required",
+       "optional": false,
        "done": false,
        "requires": [
         "Python"
        ],
-       "deliverable": "A public project using PyTorch in an end-to-end model you train, evaluate and deploy",
-       "criterion": "PyTorch reaches Working from your evidence",
-       "estimateWeeks": 4
+       "blockedBy": [],
+       "objective": "Take PyTorch from Foundational to Working",
+       "why": "A required skill for Machine Learning Engineer. Building and training models with PyTorch.",
+       "practicalTask": "A repository with a PyTorch model, training loop and evaluation, ideally as part of an end-to-end model you train, evaluate and deploy.",
+       "deliverable": "A repository with a PyTorch model, training loop and evaluation, ideally as part of an end-to-end model you train, evaluate and deploy.",
+       "evidenceRequired": "work we can see for ourselves: a public repository, platform activity or an assessment",
+       "criterion": "PyTorch reaches Working, shown by work we can see for ourselves: a public repository, platform activity or an assessment",
+       "recommendedResource": {
+        "title": "Practical Deep Learning for Coders",
+        "url": "https://course.fast.ai/"
+       },
+       "priorityReason": "Required for this goal; currently Foundational, expected Working.",
+       "estimateWeeks": null
       },
       {
        "id": "ml_engineer:scikit-learn",
        "skill": "scikit-learn",
        "state": "underdeveloped",
+       "gapType": "insufficient_proficiency",
+       "tier": "required",
+       "optional": false,
        "done": false,
        "requires": [
         "Python"
        ],
-       "deliverable": "A public project using scikit-learn in an end-to-end model you train, evaluate and deploy",
-       "criterion": "scikit-learn reaches Working from your evidence",
-       "estimateWeeks": 4
-      },
-      {
-       "id": "ml_engineer:docker",
-       "skill": "Docker",
-       "state": "missing",
-       "done": false,
-       "requires": [],
-       "deliverable": "A public project using Docker in an end-to-end model you train, evaluate and deploy",
-       "criterion": "Docker reaches Working from your evidence",
-       "estimateWeeks": 4
-      },
-      {
-       "id": "ml_engineer:sql",
-       "skill": "SQL",
-       "state": "underdeveloped",
-       "done": false,
-       "requires": [],
-       "deliverable": "A public project using SQL in an end-to-end model you train, evaluate and deploy",
-       "criterion": "SQL reaches Working from your evidence",
-       "estimateWeeks": 4
-      },
-      {
-       "id": "ml_engineer:aws",
-       "skill": "AWS",
-       "state": "missing",
-       "done": false,
-       "requires": [],
-       "deliverable": "A public project using AWS in an end-to-end model you train, evaluate and deploy",
-       "criterion": "AWS reaches Foundational from your evidence",
-       "estimateWeeks": 2
-      },
-      {
-       "id": "ml_engineer:git",
-       "skill": "Git",
-       "state": "missing",
-       "done": false,
-       "requires": [],
-       "deliverable": "A public project using Git in an end-to-end model you train, evaluate and deploy",
-       "criterion": "Git reaches Foundational from your evidence",
-       "estimateWeeks": 2
+       "blockedBy": [],
+       "objective": "Take scikit-learn from Foundational to Working",
+       "why": "A required skill for Machine Learning Engineer. Classical ML pipelines with scikit-learn.",
+       "practicalTask": "A repository using scikit-learn pipelines with evaluation, ideally as part of an end-to-end model you train, evaluate and deploy.",
+       "deliverable": "A repository using scikit-learn pipelines with evaluation, ideally as part of an end-to-end model you train, evaluate and deploy.",
+       "evidenceRequired": "work we can see for ourselves: a public repository, platform activity or an assessment",
+       "criterion": "scikit-learn reaches Working, shown by work we can see for ourselves: a public repository, platform activity or an assessment",
+       "recommendedResource": null,
+       "priorityReason": "Required for this goal; currently Foundational, expected Working.",
+       "estimateWeeks": null
       }
      ],
-     "estimateWeeks": 24
+     "estimateWeeks": null
     },
     {
      "key": "build",
      "title": "Build on them",
+     "optional": false,
      "milestones": [
       {
        "id": "ml_engineer:machine-learning",
        "skill": "Machine Learning",
        "state": "inferred",
+       "gapType": "insufficient_evidence",
+       "tier": "required",
+       "optional": false,
        "done": false,
        "requires": [
         "Python",
         "Statistics"
        ],
-       "deliverable": "A public project using Machine Learning in an end-to-end model you train, evaluate and deploy",
-       "criterion": "Machine Learning reaches Proficient from your evidence",
-       "estimateWeeks": 8
+       "blockedBy": [
+        "Statistics"
+       ],
+       "objective": "Reach Proficient in Machine Learning",
+       "why": "A required skill for Machine Learning Engineer. Framing problems, training, validating and comparing classical ML models; MLflow builds on it.",
+       "practicalTask": "An end-to-end ML project with a train/validation split, a baseline and reported metrics, ideally as part of an end-to-end model you train, evaluate and deploy.",
+       "deliverable": "An end-to-end ML project with a train/validation split, a baseline and reported metrics, ideally as part of an end-to-end model you train, evaluate and deploy.",
+       "evidenceRequired": "work we can see for ourselves: a public repository, platform activity or an assessment",
+       "criterion": "Machine Learning reaches Proficient, shown by work we can see for ourselves: a public repository, platform activity or an assessment",
+       "recommendedResource": null,
+       "priorityReason": "Required for this goal; needed before MLflow; no assessed evidence yet.",
+       "estimateWeeks": null
       }
      ],
-     "estimateWeeks": 8
+     "estimateWeeks": null
     },
     {
      "key": "deepen",
-     "title": "Round out the role",
+     "title": "Round out the role (optional)",
+     "optional": true,
      "milestones": [
+      {
+       "id": "ml_engineer:docker",
+       "skill": "Docker",
+       "state": "missing",
+       "gapType": "missing_competency",
+       "tier": "supporting",
+       "optional": true,
+       "done": false,
+       "requires": [],
+       "blockedBy": [],
+       "objective": "Reach Working in Docker",
+       "why": "A supporting skill for Machine Learning Engineer. Packaging software into reproducible containers.",
+       "practicalTask": "A repository with a Dockerfile that builds and runs the project, ideally as part of an end-to-end model you train, evaluate and deploy.",
+       "deliverable": "A repository with a Dockerfile that builds and runs the project, ideally as part of an end-to-end model you train, evaluate and deploy.",
+       "evidenceRequired": "a project or work experience that uses it, or work we can see for ourselves",
+       "criterion": "Docker reaches Working, shown by a project or work experience that uses it, or work we can see for ourselves",
+       "recommendedResource": null,
+       "priorityReason": "Supporting skill (optional for the goal); no assessed evidence yet.",
+       "estimateWeeks": null
+      },
+      {
+       "id": "ml_engineer:sql",
+       "skill": "SQL",
+       "state": "underdeveloped",
+       "gapType": "insufficient_proficiency",
+       "tier": "supporting",
+       "optional": true,
+       "done": false,
+       "requires": [],
+       "blockedBy": [],
+       "objective": "Take SQL from Foundational to Working",
+       "why": "A supporting skill for Machine Learning Engineer. Querying, joining and aggregating relational data.",
+       "practicalTask": "A project or analysis with non-trivial SQL queries over real data, ideally as part of an end-to-end model you train, evaluate and deploy.",
+       "deliverable": "A project or analysis with non-trivial SQL queries over real data, ideally as part of an end-to-end model you train, evaluate and deploy.",
+       "evidenceRequired": "a project or work experience that uses it, or work we can see for ourselves",
+       "criterion": "SQL reaches Working, shown by a project or work experience that uses it, or work we can see for ourselves",
+       "recommendedResource": null,
+       "priorityReason": "Supporting skill (optional for the goal); currently Foundational, expected Working.",
+       "estimateWeeks": null
+      },
       {
        "id": "ml_engineer:mlflow",
        "skill": "MLflow",
        "state": "missing",
+       "gapType": "missing_competency",
+       "tier": "supporting",
+       "optional": true,
        "done": false,
        "requires": [
         "Machine Learning"
        ],
-       "deliverable": "A public project using MLflow in an end-to-end model you train, evaluate and deploy",
-       "criterion": "MLflow reaches Foundational from your evidence",
-       "estimateWeeks": 2
+       "blockedBy": [
+        "Machine Learning"
+       ],
+       "objective": "Reach Foundational in MLflow",
+       "why": "A supporting skill for Machine Learning Engineer. Tracking experiments and managing model versions with MLflow.",
+       "practicalTask": "A project that logs runs and models to MLflow, ideally as part of an end-to-end model you train, evaluate and deploy.",
+       "deliverable": "A project that logs runs and models to MLflow, ideally as part of an end-to-end model you train, evaluate and deploy.",
+       "evidenceRequired": "a project or work experience that uses it, or work we can see for ourselves",
+       "criterion": "MLflow reaches Foundational, shown by a project or work experience that uses it, or work we can see for ourselves",
+       "recommendedResource": null,
+       "priorityReason": "Supporting skill (optional for the goal); no assessed evidence yet.",
+       "estimateWeeks": null
+      },
+      {
+       "id": "ml_engineer:aws",
+       "skill": "AWS",
+       "state": "missing",
+       "gapType": "missing_competency",
+       "tier": "supporting",
+       "optional": true,
+       "done": false,
+       "requires": [],
+       "blockedBy": [],
+       "objective": "Reach Foundational in AWS",
+       "why": "A supporting skill for Machine Learning Engineer. Deploying and operating workloads on AWS.",
+       "practicalTask": "A project deployed on AWS with its infrastructure described, ideally as part of an end-to-end model you train, evaluate and deploy.",
+       "deliverable": "A project deployed on AWS with its infrastructure described, ideally as part of an end-to-end model you train, evaluate and deploy.",
+       "evidenceRequired": "a project or work experience that uses it, or work we can see for ourselves",
+       "criterion": "AWS reaches Foundational, shown by a project or work experience that uses it, or work we can see for ourselves",
+       "recommendedResource": null,
+       "priorityReason": "Supporting skill (optional for the goal); no assessed evidence yet.",
+       "estimateWeeks": null
+      },
+      {
+       "id": "ml_engineer:git",
+       "skill": "Git",
+       "state": "missing",
+       "gapType": "missing_competency",
+       "tier": "supporting",
+       "optional": true,
+       "done": false,
+       "requires": [],
+       "blockedBy": [],
+       "objective": "Reach Foundational in Git",
+       "why": "A supporting skill for Machine Learning Engineer. Version control: branching, history and collaboration.",
+       "practicalTask": "Public repositories with a meaningful commit history, ideally as part of an end-to-end model you train, evaluate and deploy.",
+       "deliverable": "Public repositories with a meaningful commit history, ideally as part of an end-to-end model you train, evaluate and deploy.",
+       "evidenceRequired": "a project or work experience that uses it, or work we can see for ourselves",
+       "criterion": "Git reaches Foundational, shown by a project or work experience that uses it, or work we can see for ourselves",
+       "recommendedResource": null,
+       "priorityReason": "Supporting skill (optional for the goal); no assessed evidence yet.",
+       "estimateWeeks": null
       }
      ],
-     "estimateWeeks": 2
+     "estimateWeeks": null
     }
    ],
-   "assumption": "Estimates assume about 6 hours a week, one skill at a time. They are planning figures, not measured."
+   "framework": {
+    "version": "2026.11-draft.1",
+    "status": "draft_unreviewed",
+    "basis": "Internal judgement of the AI Tathastu team, carried over from the engine v2 weighted skill lists (worker/intelligence/config.py) and restructured. Not an industry standard, employer requirement or job-market dataset.",
+    "reviewed": false
+   },
+   "assumption": "Ordered by what each skill builds on and how central it is to your goal. No time estimates: they'd depend on hours we don't know you have."
   },
   "graph": {
    "nodes": [
@@ -886,28 +1403,28 @@
        "source": "github",
        "label": "asha/resume-parser",
        "ref": "https://github.com/asha/resume-parser",
-       "at": "2026-10-21T11:38:04.072689+00:00"
+       "at": "2026-10-21T18:00:19.344413+00:00"
       },
       {
        "kind": "repository",
        "source": "github",
        "label": "asha/sql-dashboards",
        "ref": "https://github.com/asha/sql-dashboards",
-       "at": "2026-10-21T11:38:04.072689+00:00"
+       "at": "2026-10-21T18:00:19.344413+00:00"
       },
       {
        "kind": "project",
        "source": "resume",
        "label": "Resume Parser",
        "ref": "f16",
-       "at": "2026-10-21T11:38:04.072689+00:00"
+       "at": "2026-10-21T18:00:19.344413+00:00"
       },
       {
        "kind": "project",
        "source": "resume",
        "label": "Undated Side Project",
        "ref": "f18",
-       "at": "2026-10-21T11:38:04.072689+00:00"
+       "at": "2026-10-21T18:00:19.344413+00:00"
       }
      ],
      "inferredFrom": []
@@ -927,7 +1444,7 @@
        "source": "github",
        "label": "asha/sql-dashboards",
        "ref": "https://github.com/asha/sql-dashboards",
-       "at": "2026-10-21T11:38:04.072689+00:00"
+       "at": "2026-10-21T18:00:19.344413+00:00"
       }
      ],
      "inferredFrom": []
@@ -947,14 +1464,14 @@
        "source": "github",
        "label": "asha/resume-parser",
        "ref": "https://github.com/asha/resume-parser",
-       "at": "2026-10-21T11:38:04.072689+00:00"
+       "at": "2026-10-21T18:00:19.344413+00:00"
       },
       {
        "kind": "project",
        "source": "resume",
        "label": "Resume Parser",
        "ref": "f16",
-       "at": "2026-10-21T11:38:04.072689+00:00"
+       "at": "2026-10-21T18:00:19.344413+00:00"
       }
      ],
      "inferredFrom": []
@@ -974,7 +1491,7 @@
        "source": "github",
        "label": "asha/resume-parser",
        "ref": "https://github.com/asha/resume-parser",
-       "at": "2026-10-21T11:38:04.072689+00:00"
+       "at": "2026-10-21T18:00:19.344413+00:00"
       }
      ],
      "inferredFrom": []
@@ -994,7 +1511,7 @@
        "source": "resume",
        "label": "Listed in your skills",
        "ref": "f21",
-       "at": "2026-10-21T11:38:04.072689+00:00"
+       "at": "2026-10-21T18:00:19.344413+00:00"
       }
      ],
      "inferredFrom": []

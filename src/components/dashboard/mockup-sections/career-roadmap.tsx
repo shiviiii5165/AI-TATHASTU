@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, BarChart3, BookOpen, Briefcase, CalendarDays, Check, CheckCircle2, ChevronRight, CircleDashed, ExternalLink, FileText, Flag, Hourglass, Info, ListChecks, ListOrdered, Lock, Send, Sparkles, Target, TrendingUp, TriangleAlert, Zap } from "lucide-react";
+import { ArrowRight, BarChart3, BookOpen, Briefcase, Check, CheckCircle2, ChevronRight, CircleDashed, ExternalLink, FileText, Flag, Info, ListChecks, ListOrdered, Lock, Send, Sparkles, Target, TrendingUp, TriangleAlert, Zap } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useRef, useState, useTransition } from "react";
 
@@ -34,7 +34,6 @@ export const STATUS_STYLE: Record<MilestoneStatus, { label: string; icon: typeof
 
 const STAGE_STATUS_LABEL: Record<RoadmapStageView["status"], string> = { completed: "Done", active: "In progress", upcoming: "Up next", blocked: "Locked" };
 const BUCKET_COLOUR: Record<SkillBucket["key"], string> = { demonstrated: "#10b981", inProgress: "#3b82f6", notYet: "#e2e8f0" };
-const weeksText = (n: number) => `≈ ${n} ${n === 1 ? "week" : "weeks"} (estimate)`;
 /** "PyTorch: a public project using PyTorch…" → "A public project using PyTorch…" (the engine's deliverable, as written). */
 const deliverableOf = (title: string) => { const d = title.slice(title.indexOf(": ") + 2); return d.charAt(0).toUpperCase() + d.slice(1); };
 const unlockText = (skills: string[]) => `Complete ${skills.join(" and ")} first to unlock this step`;
@@ -127,29 +126,24 @@ export function CareerRoadmap({ intelligence, submissions }: { intelligence?: In
           </span>
           <div className="min-w-0 flex-1">
             <p className="flex items-center gap-1 text-xs font-semibold text-foreground">
-              Evidence coverage
-              <span title="How many of this goal's skills your work shows at the level the goal expects. The percentage counts the most important skills for more." className="text-muted-foreground">
+              Where you stand
+              <span title="Based on this goal's required skills: which ones your work shows at the expected level, starting with the foundations. Not a probability of getting hired." className="text-muted-foreground">
                 <Info aria-hidden className="size-3.5" />
-                <span className="sr-only">How it&apos;s worked out: skills your work shows at the expected level, with the most important skills counting for more.</span>
+                <span className="sr-only">How it&apos;s worked out: from this goal&apos;s required skills and the proof your work gives for each. Not a probability of getting hired.</span>
               </span>
             </p>
-            {view.coverage.percent === null ? (
+            {!view.coverage.assessed || !view.alignment || view.alignment.state === "not_enough_evidence" ? (
               <p className="mt-1.5 text-xs text-muted-foreground" data-testid="roadmap-coverage-unavailable">
-                <span className="font-semibold text-foreground">Not assessed yet.</span> We need more of your work to see where you stand.{" "}
+                <span className="font-semibold text-foreground">Not enough evidence yet.</span> We need more of your work to see where you stand.{" "}
                 <Link href="/connections" className="font-semibold text-primary hover:underline">Add evidence</Link>
               </p>
             ) : (
               <>
-                <div className="mt-1 flex items-baseline justify-between gap-2">
-                  <p className="text-sm font-bold text-foreground">
-                    {view.coverage.met} of {view.coverage.total} skills at expected level
-                  </p>
-                  <p className="text-base font-bold tabular-nums text-foreground">{view.coverage.percent}%</p>
-                </div>
-                <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-muted" role="img" aria-label={`${view.coverage.percent}% evidence coverage for ${view.goal.label}`}>
-                  <div data-testid="roadmap-progress-bar" className="h-full origin-left rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 motion-safe:animate-[skillBarGrow_1100ms_cubic-bezier(0.22,1,0.36,1)_both] motion-reduce:animate-none" style={{ width: `${view.coverage.percent}%` }} />
-                </div>
-                <p className="mt-1.5 text-[11px] text-muted-foreground">The most important skills for this goal count for more.</p>
+                <p className="mt-1 text-sm font-bold text-foreground" data-testid="roadmap-alignment" data-state={view.alignment.state}>{view.alignment.label}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">{view.alignment.explanation}</p>
+                <p className="mt-1.5 text-[11px] text-muted-foreground">
+                  {view.alignment.requiredMet} of {view.alignment.required} required skills shown at the expected level
+                </p>
               </>
             )}
           </div>
@@ -157,6 +151,13 @@ export function CareerRoadmap({ intelligence, submissions }: { intelligence?: In
 
         <NextMilestoneCard view={view} onOpen={() => view.nextStage && setStageKey(view.nextStage.key)} />
       </div>
+
+      {view.requirementsMet && (
+        <p className="mt-3 flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-2.5 text-[11px] text-emerald-900 dark:border-emerald-400/30 dark:bg-emerald-500/10 dark:text-emerald-200" data-testid="roadmap-requirements-met">
+          <CheckCircle2 aria-hidden className="mt-px size-3.5 shrink-0" />
+          <span>Your available evidence now covers the required skills for {view.goal.label}. Anything left below is optional. This isn&apos;t a certification or a job guarantee.</span>
+        </p>
+      )}
 
       {view.coverage.total > 0 && !view.coverage.assessed && (
         <p className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-2.5 text-[11px] text-amber-900 dark:border-amber-400/30 dark:bg-amber-500/10 dark:text-amber-200">
@@ -190,8 +191,9 @@ export function CareerRoadmap({ intelligence, submissions }: { intelligence?: In
         </div>
       </div>
 
-      <p className="mt-4 text-[11px] text-muted-foreground">
-        Based on your evidence as of {asOf}. Time estimates assume about 6 hours a week, one skill at a time; they&apos;re a guide, not a promise.
+      <p className="mt-4 text-[11px] text-muted-foreground" data-testid="roadmap-basis">
+        Based on your evidence as of {asOf}. {view.assumption}
+        {view.frameworkDraft && ` The skills for ${view.goal.label} are a draft written by our team, not an official industry standard.`}
       </p>
     </section>
   );
@@ -352,15 +354,10 @@ function NodeText({ node, view, selected }: { node: JNode; view: ReadyView; sele
       {node.kind === "start" && view.coverage.met > 0 && <span className="text-[11px] font-medium text-emerald-700 dark:text-emerald-300">{view.coverage.met} goal {view.coverage.met === 1 ? "skill" : "skills"} already at level</span>}
       {node.kind === "start" && !view.position && <Link href="/profile" className="text-[11px] font-semibold text-primary hover:underline">Add your current role</Link>}
       {s?.status === "blocked" && <span className="text-[11px] text-muted-foreground">{unlockText(s.blockedBy)}</span>}
-      {s && s.estimateWeeks !== null && (
-        <span className="inline-flex w-fit items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300" title={view.assumption}>
-          <CalendarDays aria-hidden className="size-3" />
-          {weeksText(s.estimateWeeks)}
-        </span>
-      )}
+      {s?.optional && <span className="text-[11px] text-muted-foreground">Optional</span>}
       {node.kind === "goal" && (
         <span className="inline-flex w-fit items-center rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-foreground">
-          {view.coverage.percent === null ? "Coverage not assessed yet" : `${view.coverage.percent}% evidence coverage`}
+          {view.alignment && view.coverage.assessed ? view.alignment.label : "Not assessed yet"}
         </span>
       )}
     </span>
@@ -429,18 +426,7 @@ function StagePanel({ view, stage, detailId, onDetail, onOpenStep, rowOf, recOf 
             {open.length === 0 ? `Every skill in this stage is at the level ${view.goal.label} expects.` : `${open.length} ${open.length === 1 ? "skill" : "skills"} to bring to the level ${view.goal.label} expects.`}
           </p>
         </div>
-        {stage.estimateWeeks !== null && (
-          <div className="text-right">
-            <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300">
-              <CalendarDays aria-hidden className="size-3" />
-              {weeksText(stage.estimateWeeks)}
-            </span>
-            <p className="mt-1 flex items-center justify-end gap-1 text-[10px] text-muted-foreground">
-              <Info aria-hidden className="size-3" />
-              About 6 hours a week, one skill at a time
-            </p>
-          </div>
-        )}
+        {stage.optional && <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">Optional</span>}
       </div>
 
       {stage.status === "blocked" && <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-700 dark:bg-slate-500/10 dark:text-slate-300">{unlockText(stage.blockedBy)}.</p>}
@@ -683,11 +669,9 @@ function MilestoneDetail({ step, goal, row, rec, assumption, onPick }: { step: R
       <div className="flex flex-wrap items-center gap-2">
         <h3 className="text-sm font-bold text-foreground">{step.skill}</h3>
         <span className={`rounded-full px-1.5 py-px text-[10px] font-semibold ring-1 ${st.className}`}>{st.label}</span>
-        <span className="ml-auto flex items-center gap-1 text-[10px] text-muted-foreground" title={assumption}>
-          <Hourglass aria-hidden className="size-3" />
-          About {step.estimateWeeks} weeks (estimate)
-        </span>
+        {step.optional && <span className="ml-auto text-[10px] text-muted-foreground" title={assumption}>Optional for this goal</span>}
       </div>
+      {step.objective && <p className="mt-1 text-[11px] font-medium text-foreground">{step.objective}</p>}
 
       <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
         <div className="space-y-2 text-[11px]">
@@ -737,6 +721,7 @@ function MilestoneDetail({ step, goal, row, rec, assumption, onPick }: { step: R
           <div>
             <p className="font-semibold text-foreground">Next step</p>
             <p className="mt-0.5 text-muted-foreground">{step.status === "completed" ? "Nothing to do: keep the evidence public and current." : (row?.action ?? step.deliverable)}</p>
+            {step.status !== "completed" && step.practicalTask && <p className="mt-0.5 text-muted-foreground"><span className="font-semibold text-foreground">Build: </span>{step.practicalTask}</p>}
             {step.status !== "completed" && <p className="mt-0.5 text-[10px] text-muted-foreground">Done when: {step.criterion}.</p>}
           </div>
           {step.status !== "completed" &&

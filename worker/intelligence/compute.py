@@ -2,7 +2,7 @@
 
 Reads the user's usable facts (confirmed/edited, plus API-sourced facts that
 weren't rejected) and rewrites:
-  skill_evidence           one row per (skill, fact)
+  skill_evidence           one row per (skill, fact): a projection of the engine's evidence ledger
   unified_projects         CV projects matched to GitHub repos
   eris_scores              one row per target role
   roadmaps, github_scores, collaboration_embeddings
@@ -72,9 +72,36 @@ def with_engine_assessment(summary: List[Dict[str, Any]], intelligence: Dict[str
     for row in rows:
         skill = assessed.get(row["name"])
         if skill:
-            row = {**row, "verificationStatus": skill["status"], "proficiency": skill["proficiency"], "level": skill["level"], "confidence": skill["confidence"]}
+            # evidenceStrength follows the engine too, so no second strength scale reaches a reader.
+            row = {**row, "verificationStatus": skill["status"], "evidenceState": skill["evidenceState"], "proficiency": skill["proficiency"],
+                   "level": skill["level"], "confidence": skill["confidence"], "evidenceStrength": skill["confidence"]}
         out.append(row)
     return out
+
+
+def load_learning_records(cur: Any, user_id: str) -> List[Dict[str, Any]]:
+    """Courses and certifications (migration 0026). Empty where the table doesn't exist yet, so an older database still computes."""
+    present = fetch_one(cur, "SELECT to_regclass('public.learning_records') IS NOT NULL AS present")
+    if not present or not present["present"]:
+        return []
+    return fetch_all(
+        cur,
+        """SELECT id::text AS id, kind, title, provider, url, status, verification, source, skills, started_at, completed_at, created_at
+             FROM learning_records WHERE user_id = %s AND deleted_at IS NULL""",
+        (user_id,),
+    )
+
+
+def ledger_projection(ledger: List[Dict[str, Any]], resolve: Any) -> List[tuple]:
+    """(skill_id, fact_id, source, strength) rows for skill_evidence, one per (skill, fact), from the engine's ledger."""
+    rows, seen = [], set()
+    for e in ledger:
+        sid = resolve(e["skill"])
+        key = (sid, e["factId"])
+        if sid and key not in seen:
+            seen.add(key)
+            rows.append((sid, e["factId"], e["source"], round(float(e["strength"]), 3)))
+    return rows
 
 
 class _StageTimer:
@@ -128,6 +155,7 @@ def process_compute_intelligence(conn: Any, job: Job) -> None:
             (user_id,),
         )
         resources = fetch_all(cur, "SELECT title, provider, url, description FROM learning_resources WHERE url IS NOT NULL")
+        learning = load_learning_records(cur, user_id)
         connections = fetch_all(cur, "SELECT source_id, status, last_sync_at FROM connections WHERE user_id = %s", (user_id,))
         # The user's current answer, re-read on every run (and every retry),
         # so a revoked consent stops external calls immediately.
@@ -159,8 +187,12 @@ def process_compute_intelligence(conn: Any, job: Job) -> None:
         user=user, roles=roles_of(state), facts=facts, repos=repos, resources=resources,
         canonical=index.canonical, lexicon_scan=lexicon_scan,
         categories={index.names[sid]: cat for sid, cat in categories.items() if sid in index.names}, now=now,
+        learning=learning,
     )
+    # The engine is the one evidence model; skill_evidence is written from its ledger as a projection for older readers.
+    ledger = intelligence.pop("_ledger")
     skill_summary = with_engine_assessment(skills.summarize(evidence, index.names, categories), intelligence)
+    ledger_rows = ledger_projection(ledger, index.resolve)
 
     roles = roles_of(state)
     project_techs = [u.technologies for u in unified]
@@ -321,11 +353,11 @@ def process_compute_intelligence(conn: Any, job: Job) -> None:
             log.info("compute_intelligence job=%s found a newer result; keeping it", job.id)
             return
         cur.execute("DELETE FROM skill_evidence WHERE user_id = %s", (user_id,))
-        if evidence:
+        if ledger_rows:
             psycopg2.extras.execute_values(
                 cur,
                 "INSERT INTO skill_evidence (user_id, skill_id, fact_id, source, evidence_strength) VALUES %s",
-                [(user_id, e.skill_id, e.fact_id, e.source, e.strength) for e in evidence],
+                [(user_id, *row) for row in ledger_rows],
             )
         cur.execute("DELETE FROM unified_projects WHERE user_id = %s", (user_id,))
         if unified:

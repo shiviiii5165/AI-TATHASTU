@@ -9,6 +9,7 @@ import { db } from "@/db";
 import { profileViews } from "@/db/schema";
 import { requireOnboardedUser } from "@/lib/dal";
 import type { EngineRoadmap, LearningRecommendation, ProfileViewDoc } from "@/lib/dashboard/types";
+import { ALIGNMENT_TEXT } from "@/lib/roadmap/view";
 
 export const metadata: Metadata = {
   title: "Learning & Roadmap | AI Tathastu",
@@ -92,7 +93,6 @@ function Notice({ title, body, href, action }: { title: string; body: string; hr
 }
 
 function Roadmap({ roadmap }: { roadmap: EngineRoadmap }) {
-  const percent = Math.round(roadmap.progress * 100);
   return (
     <section aria-labelledby="roadmap" className="rounded-2xl border border-border bg-card p-5 shadow-2xs sm:p-6">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -101,12 +101,11 @@ function Roadmap({ roadmap }: { roadmap: EngineRoadmap }) {
         </h2>
         <p className="text-xs text-muted-foreground">{roadmap.currentPosition ? `Now: ${roadmap.currentPosition}` : "Current position not on your profile"}</p>
       </div>
-      <div className="mt-3 flex items-center gap-3">
-        <div className="h-2 flex-1 rounded-full bg-muted" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100} aria-label="Skills at expected level">
-          <div className="h-full rounded-full bg-primary" style={{ width: `${percent}%` }} />
-        </div>
-        <span className="text-xs font-semibold text-foreground">{percent}%</span>
-      </div>
+      {roadmap.alignment && (
+        <p className="mt-3 text-sm font-semibold text-foreground" data-testid="learning-alignment">
+          {ALIGNMENT_TEXT[roadmap.alignment]}
+        </p>
+      )}
       {roadmap.completed.length > 0 && <p className="mt-2 text-xs text-muted-foreground">Already at the expected level: {roadmap.completed.join(", ")}</p>}
 
       {roadmap.stages.length > 0 ? (
@@ -114,7 +113,7 @@ function Roadmap({ roadmap }: { roadmap: EngineRoadmap }) {
           {roadmap.stages.map((stage) => (
             <li key={stage.key}>
               <h3 className="text-sm font-semibold text-foreground">{stage.title}</h3>
-              <p className="text-[11px] text-muted-foreground">About {stage.estimateWeeks} weeks</p>
+              {stage.optional && <p className="text-[11px] text-muted-foreground">Optional for this goal</p>}
               <ul className="mt-2 space-y-3">
                 {stage.milestones.map((m) => (
                   <li key={m.skill} className="flex gap-2 text-xs">

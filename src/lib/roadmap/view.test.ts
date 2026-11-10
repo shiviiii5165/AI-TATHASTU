@@ -25,16 +25,34 @@ describe("career roadmap view", () => {
     expect(other.goal.blurb).not.toMatch(/machine learning models into products/);
   });
 
-  it("takes coverage from the engine and never inflates it", () => {
+  it("takes counts and the alignment state from the engine, and offers no percentage at all", () => {
     const v = ready(engine);
-    expect(v.coverage.percent).toBe(Math.round(engine.roadmap!.progress * 100));
-    expect(v.coverage.met).toBe(engine.roadmap!.completed.length);
-    expect(v.coverage.total).toBe(engine.roles[0].skills.length);
+    expect(v.coverage).toEqual({ met: engine.roadmap!.completed.length, total: engine.roles[0].skills.length, assessed: true });
+    expect(v.coverage).not.toHaveProperty("percent");
+    expect(v.alignment?.state).toBe(engine.roles[0].alignment!.state);
+    expect(v.alignment?.label).toBe(engine.roles[0].alignment!.label);
+    expect(v.alignment?.explanation).toBeTruthy();
+    expect(JSON.stringify(v)).not.toMatch(/\d+%/);
   });
 
-  it("shows no percentage when the engine couldn't assess the goal (unavailable, not zero)", () => {
-    const unassessed = { ...engine, roles: engine.roles.map((r) => ({ ...r, assessed: false })) };
-    expect(ready(unassessed).coverage.percent).toBeNull();
+  it("says when the framework is a draft, and when only optional work is left", () => {
+    expect(ready(engine).frameworkDraft).toBe(true);
+    expect(ready(engine).requirementsMet).toBe(false);
+    const done = { ...engine, roadmap: { ...engine.roadmap!, requirementsMet: true } };
+    expect(ready(done).requirementsMet).toBe(true);
+    expect(ready(engine).stages.find((s) => s.key === "deepen")?.optional).toBe(true);
+  });
+
+  it("has no time estimates: engine v3 gives none and the view invents none", () => {
+    const v = ready(engine);
+    expect(v.stages.every((s) => s.estimateWeeks === null)).toBe(true);
+    expect(v.steps.every((s) => s.estimateWeeks === null)).toBe(true);
+    expect(v.assumption).toMatch(/No time estimates/);
+  });
+
+  it("older documents without an alignment state show none rather than a made-up one", () => {
+    const old = { ...engine, roles: engine.roles.map((r) => ({ ...r, alignment: undefined })) };
+    expect(ready(old).alignment).toBeNull();
   });
 
   it("classifies the goal's skills from the engine's states; a claim alone is never demonstrated", () => {

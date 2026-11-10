@@ -110,11 +110,15 @@ test("skills are clustered by category, linked only by recorded edges, and expla
   await context.close();
 });
 
-test("the roadmap shows the goal, coverage, next milestone, journey, skill progress and one next action", async ({ browser }) => {
+test("the roadmap shows the goal, alignment state, next milestone, journey, skill progress and one next action", async ({ browser }) => {
   const { context, page } = await setUp(browser, "Roadmap", 1280);
   const roadmap = page.getByTestId("career-roadmap");
   await expect(roadmap.getByTestId("roadmap-goal")).toHaveText("ML Engineer");
-  await expect(page.getByTestId("roadmap-progress-bar")).toHaveAttribute("style", /width:\s*60%/);
+  await expect(roadmap.getByTestId("roadmap-alignment")).toHaveText("Developing alignment");
+  await expect(page.getByTestId("roadmap-progress-bar")).toHaveCount(0);
+  // An older document still carries week estimates and an hours-a-week assumption: neither is shown.
+  await expect(roadmap).not.toContainText("weeks");
+  await expect(roadmap).not.toContainText("%");
   await expect(roadmap.getByTestId("roadmap-next-milestone")).toContainText("Build the foundations");
 
   // The journey: where you are (from the profile) → the engine's stages → the goal.
@@ -155,7 +159,7 @@ test("reduced motion shows the finished state without animation", async ({ brows
   const names = await page.getByTestId("journey-node").evaluateAll((els) => els.map((e) => getComputedStyle(e).animationName));
   expect(names.length).toBeGreaterThan(0);
   expect(names.every((n) => n === "none")).toBe(true);
-  expect(await page.getByTestId("roadmap-progress-bar").evaluate((e) => getComputedStyle(e).animationName)).toBe("none");
+
   // The skill network's glow stays visible but doesn't pulse.
   const glows = page.getByTestId("skill-network").locator(".skill-glow");
   await expect(glows.first()).toBeAttached();

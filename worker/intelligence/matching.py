@@ -21,20 +21,8 @@ from typing import Dict, List, Optional, Set, Tuple
 MIN_SCORE = 0.2
 MAX_PER_STUDENT = 20
 
-# Mirrors CAREER_ROLES in src/lib/onboarding/catalog.ts (id → label).
-ROLE_LABELS: Dict[str, str] = {
-    "generative_ai_engineer": "Generative AI Engineer", "ml_engineer": "ML Engineer", "ai_engineer": "AI Engineer",
-    "ai_researcher": "AI Researcher", "data_scientist": "Data Scientist", "deep_learning_engineer": "Deep Learning Engineer",
-    "mlops_engineer": "MLOps Engineer", "nlp_engineer": "NLP Engineer", "computer_vision_engineer": "Computer Vision Engineer",
-    "robotics_ai_engineer": "Robotics & AI Engineer", "rl_engineer": "RL Engineer",
-    "ai_product_founder": "AI Product Builder / Founder", "still_exploring": "Still Exploring",
-    "llm_application_engineer": "LLM Application Engineer", "llm_model_engineer": "LLM Model Engineer",
-    "llmops_engineer": "LLMOps Engineer", "ai_agent_engineer": "AI Agent Engineer",
-    "multimodal_ai_engineer": "Multimodal AI Engineer", "speech_ai_engineer": "Speech AI Engineer",
-    "graph_ai_engineer": "Graph AI Engineer", "ai_infrastructure_engineer": "AI Infrastructure Engineer",
-    "ai_evaluation_safety_engineer": "AI Evaluation & Safety Engineer",
-    "edge_federated_ai_engineer": "Edge & Federated AI Engineer",
-}
+# id → label from the canonical registry (intelligence/frameworks/career_roles.json), shared with the web app.
+from intelligence.frameworks import ROLE_LABELS  # noqa: E402
 
 STOP = {"and", "of", "the", "in", "for", "to", "a", "an", "with", "on", "engineer", "engineering", "senior", "staff",
         "lead", "principal", "junior", "intern", "learning"}

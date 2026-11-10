@@ -25,10 +25,20 @@ export type SkillStatus = "verified" | "claimed" | "inferred";
 
 export type SkillEvidenceRef = { kind: string; source: string; label: string; ref: string | null; at: string | null };
 
+/**
+ * How we know a skill (engine v3): demonstrated = a source we read ourselves; unverified = only the student's own
+ * descriptions of projects or work; claimed = only listed; inferred = only suggested by related skills.
+ */
+export type EvidenceState = "demonstrated" | "unverified" | "claimed" | "inferred" | "missing";
+
 export type EngineSkill = {
   name: string;
   category: string;
   status: SkillStatus;
+  /** Absent on documents from engine versions before 3. */
+  evidenceState?: EvidenceState;
+  credential?: "verified" | "claimed" | null;
+  coursesCompleted?: number;
   /** 0-100, or null for "Not assessed". */
   proficiency: number | null;
   level: string;
@@ -41,8 +51,22 @@ export type EngineSkill = {
 
 export type GapState = "met" | "underdeveloped" | "unverified" | "inferred" | "missing" | "not_assessed";
 
+export type GapType = "completed" | "missing_competency" | "insufficient_proficiency" | "claimed_unverified" | "insufficient_evidence" | "not_assessed";
+
 export type RoleSkillRow = {
   skill: string;
+  /** Engine v3+: required competencies decide the goal; supporting ones are optional. */
+  tier?: "required" | "supporting";
+  evidenceRequirement?: "independent" | "described";
+  evidenceState?: EvidenceState;
+  gapType?: GapType;
+  whyItMatters?: string;
+  demonstration?: string | null;
+  prerequisites?: string[];
+  prerequisiteFor?: string[];
+  blockedBy?: string[];
+  priorityRank?: number;
+  priorityReason?: string;
   weight: number;
   priority: "High" | "Medium" | "Low";
   expected: number;
@@ -56,8 +80,31 @@ export type RoleSkillRow = {
   evidence: string[];
 };
 
+export type AlignmentState = "not_enough_evidence" | "early" | "developing" | "strong" | "requirements_demonstrated";
+
+/** Rule-based role alignment (career_engine.ALIGNMENT_RULES). Never shown as a percentage. */
+export type RoleAlignment = {
+  state: AlignmentState;
+  label: string;
+  required: number;
+  requiredMet: number;
+  requiredAssessed: number;
+  requiredClaimedOnly: number;
+  requiredMissing: number;
+  supporting: number;
+  supportingMet: number;
+  criticalGaps: string[];
+  foundationsMet: boolean;
+};
+
+export type FrameworkMeta = { version: string; status: string; basis?: string; reviewed?: boolean; alignmentRules?: string };
+
 export type RoleAnalysis = {
   role: string;
+  label?: string;
+  framework?: FrameworkMeta & { responsibilities: string[]; completionCriteria: string };
+  alignment?: RoleAlignment;
+  /** Internal weighted share of competencies met. Not for display: the dashboard shows `alignment`. */
   coverage: number;
   assessed: boolean;
   skills: RoleSkillRow[];
@@ -79,12 +126,46 @@ export type LearningRecommendation = {
   resource: { title: string; provider: string | null; url: string; description: string | null; difficulty: string; duration: string | null; linkCheckedOn: string; linkStale: boolean } | null;
   demonstration: string;
   status: "not_started" | "in_progress";
+  tier?: "required" | "supporting";
+  gapType?: GapType;
+  courseStatus?: "recommended" | "started" | "completed" | null;
 };
 
 /** `id` is "<role>:<skill-slug>" from engine version 2; older documents lack it (see roadmap/progress.ts). */
-export type RoadmapMilestone = { id?: string; skill: string; state: GapState; done: boolean; requires: string[]; deliverable: string; criterion: string; estimateWeeks: number };
-export type RoadmapStage = { key: string; title: string; milestones: RoadmapMilestone[]; estimateWeeks: number };
-export type EngineRoadmap = { role: string; currentPosition: string | null; progress: number; completed: string[]; stages: RoadmapStage[]; assumption: string };
+export type RoadmapMilestone = {
+  id?: string;
+  skill: string;
+  state: GapState;
+  done: boolean;
+  requires: string[];
+  deliverable: string;
+  criterion: string;
+  /** null from engine v3: no time estimate is made without knowing the student's available hours. */
+  estimateWeeks: number | null;
+  gapType?: GapType;
+  tier?: "required" | "supporting";
+  optional?: boolean;
+  objective?: string;
+  why?: string;
+  practicalTask?: string;
+  evidenceRequired?: string;
+  recommendedResource?: { title: string; url: string } | null;
+  priorityReason?: string | null;
+};
+export type RoadmapStage = { key: string; title: string; optional?: boolean; milestones: RoadmapMilestone[]; estimateWeeks: number | null };
+export type EngineRoadmap = {
+  role: string;
+  currentPosition: string | null;
+  /** Internal coverage share; not displayed. */
+  progress: number;
+  completed: string[];
+  stages: RoadmapStage[];
+  assumption: string;
+  alignment?: AlignmentState;
+  requirementsMet?: boolean;
+  provisional?: boolean;
+  framework?: FrameworkMeta;
+};
 
 export type SkillGraphNode = {
   id: string;
@@ -113,6 +194,7 @@ export type SkillGraphData = { nodes: SkillGraphNode[]; edges: SkillGraphEdge[];
 
 export type IntelligenceDoc = {
   engineVersion: number;
+  framework?: FrameworkMeta;
   computedAt: string;
   hasEvidenceBase: boolean;
   skills: EngineSkill[];
@@ -133,7 +215,7 @@ export type ProfileViewDoc = {
   // Missing in views computed before personas existed: treat as student.
   persona?: Persona;
   goals: { primaryRole: string | null; roles: string[]; roleOther: string | null; priorities: string[] };
-  skills: { name: string; category: string; evidenceStrength: number; sources: string[]; verificationStatus: string; proficiency?: number | null; level?: string; confidence?: number }[];
+  skills: { name: string; category: string; evidenceStrength: number; sources: string[]; verificationStatus: string; evidenceState?: EvidenceState; proficiency?: number | null; level?: string; confidence?: number }[];
   projects: { canonicalTitle: string; technologies: string[]; status: string; matchConfidence: number }[];
   erisScore: { overall: number | null; byRole: Record<string, number>; gaps: SkillGap[] };
   readinessIndicators: { resumeLinked: boolean; connectorsCount: number; confirmedFacts: number; profileComplete?: number };

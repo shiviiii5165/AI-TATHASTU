@@ -100,7 +100,10 @@ test("sections run journey, skills, skill gaps and roadmap, then next steps from
   // The engine's next milestone is the roadmap's Next action, so the list continues after it without repeating it.
   await expect(page.getByTestId("roadmap-next-action")).toContainText("Statistics");
   // Each step names its skill and the engine's deliverable; why it's recommended is on hover.
-  await expect(steps.first()).toContainText("A public project using");
+  // The step shows the engine's own practical task for that competency (never a generic "learn X").
+  const deliverables = intel.roadmap!.stages.flatMap((s) => s.milestones.map((m) => m.deliverable.slice(0, 30)));
+  const firstStep = await steps.first().innerText();
+  expect(deliverables.some((d) => firstStep.includes(d))).toBe(true);
   await expect(steps.first().locator("[title^='ML Engineer expects']")).toHaveCount(1);
   for (const t of await steps.allInnerTexts()) expect(t).not.toMatch(/Statistics:|Machine Learning:|MLflow:|Connect with research peers/);
   await context.close();
@@ -236,14 +239,18 @@ test("skills: only the engine's evidence edges are drawn, and scores appear only
   await context.close();
 });
 
-test("roadmap: evidenced position, coverage, blocked milestone, catalogue course and evidence submission", async ({ browser }) => {
+test("roadmap: evidenced position, alignment state, blocked milestone, catalogue course and evidence submission", async ({ browser }) => {
   const { user, context, page } = await setUp(browser, "Engine roadmap");
   const roadmap = page.getByTestId("career-roadmap");
   const rm = intel.roadmap!;
   await expect(roadmap.getByTestId("journey-current")).toContainText(rm.currentPosition!);
-  await expect(page.getByTestId("roadmap-progress-bar")).toHaveAttribute("style", new RegExp(`width:\\s*${Math.round(rm.progress * 100)}%`));
   const role = intel.roles.find((r) => r.role === rm.role)!;
-  await expect(roadmap).toContainText(`${rm.completed.length} of ${role.skills.length} skills`);
+  // The engine's alignment state in words, never a percentage.
+  await expect(roadmap.getByTestId("roadmap-alignment")).toHaveText(role.alignment!.label);
+  await expect(roadmap.getByTestId("roadmap-alignment")).toHaveAttribute("data-state", role.alignment!.state);
+  await expect(roadmap).toContainText(`${role.alignment!.requiredMet} of ${role.alignment!.required} required skills shown at the expected level`);
+  await expect(page.getByTestId("roadmap-progress-bar")).toHaveCount(0);
+  expect(await roadmap.innerText()).not.toMatch(/\d+\s?%/);
 
   // Goal skill progress: the engine's own classification, counts and evidence.
   const progress = roadmap.getByTestId("roadmap-skill-progress");
@@ -273,7 +280,7 @@ test("roadmap: evidenced position, coverage, blocked milestone, catalogue course
   await expect(roadmap.locator("#roadmap-milestone-detail").getByRole("link", { name: new RegExp(rec.resource!.title.replace(/[&]/g, "\\$&")) })).toHaveAttribute("href", rec.resource!.url);
 
   // Other skills in the stage are compact chips; one the catalogue has no course for says so instead of inventing one.
-  await stage.locator("button[data-status]", { hasText: "Docker" }).click();
+  await stage.locator("button[data-status]", { hasText: "scikit-learn" }).click();
   await expect(roadmap.locator("#roadmap-milestone-detail")).toContainText("No catalogued course for this skill");
 
   // Evidence submission: saved, shown as in review, and never marks the milestone complete.
@@ -290,7 +297,7 @@ test("roadmap: evidenced position, coverage, blocked milestone, catalogue course
   await page.reload();
   await expect(roadmap.getByTestId("roadmap-focus-skill")).toHaveText("Statistics");
   await expect(roadmap.getByTestId("roadmap-stage-detail")).toContainText("In review");
-  await expect(page.getByTestId("roadmap-progress-bar")).toHaveAttribute("style", new RegExp(`width:\\s*${Math.round(rm.progress * 100)}%`));
+  await expect(roadmap.getByTestId("roadmap-alignment")).toHaveText(role.alignment!.label); // a submission changes nothing by itself
   // Still nothing completed: the runner hasn't moved.
   await expect(roadmap.getByTestId("journey-runner")).toHaveAttribute("data-at", "0");
   await context.close();
@@ -328,11 +335,13 @@ for (const width of [1440, 390]) {
     expect(report.segments[0]).toBe("active");
     expect(report.overflow).toBeLessThanOrEqual(0);
 
-    // None of the mockup's placeholder values or time-horizon labels; only the engine's estimates, labelled as such.
+    // None of the mockup's placeholder values or time-horizon labels, and no time estimates at all (engine v3 makes none).
     const text = await page.getByTestId("career-roadmap").innerText();
     for (const sample of ["4-8 weeks", "4–8 weeks", "2–3 months", "3–6 months", "Strengthen ML Foundations", "B.Tech Student (AI & ML)", "B.Tech / B.E.", "3 of 10 skills"]) expect(text).not.toContain(sample);
     expect(text).not.toMatch(/short term|mid term|long term/i);
-    for (const s of intel.roadmap!.stages) expect(text).toContain(`≈ ${s.estimateWeeks} weeks (estimate)`);
+    expect(text).not.toMatch(/\bweeks?\b/i);
+    expect(text).toContain("No time estimates");
+    expect(text).toContain("draft written by our team, not an official industry standard");
     await context.close();
   });
 }

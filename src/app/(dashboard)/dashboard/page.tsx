@@ -221,7 +221,7 @@ function WidgetBody({
   }
   switch (widget.def.id) {
     case "eris_readiness":
-      return <ErisWidget data={data as ErisData} byRole={view.erisScore.byRole} breakdown={rows.erisBreakdown((data as ErisData).role)} />;
+      return <ErisWidget data={data as ErisData} roles={view.intelligence?.roles ?? []} />;
     case "skill_gaps":
       return <SkillGapsWidget data={data as SkillGapsData} breakdown={rows.erisBreakdown((data as SkillGapsData).role)} />;
     case "github_activity":

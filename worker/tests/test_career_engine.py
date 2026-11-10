@@ -89,7 +89,8 @@ class ResumeOnly(unittest.TestCase):
         row = role_row(run(RESUME_ONLY), "ml_engineer", "PyTorch")
         self.assertEqual(row["state"], "unverified")
         self.assertTrue(row["insufficientEvidence"])
-        self.assertIn("Show it", row["action"])
+        self.assertIn("need proof of practical use", row["action"])
+        self.assertEqual(row["gapType"], "claimed_unverified")
 
     def test_a_certification_alone_earns_no_proficiency(self):
         out = run([fact("certifications", "name", "PyTorch Certified", record="c1"), fact("skills", "skill", "PyTorch")])
@@ -168,10 +169,11 @@ class Roles(unittest.TestCase):
         self.assertEqual(row["state"], "inferred")
         self.assertTrue(row["insufficientEvidence"])
 
-    def test_priority_and_expectation_follow_weight(self):
-        self.assertEqual((engine.priority_for(1.0), engine.expected_for(1.0)), ("High", 50))
-        self.assertEqual((engine.priority_for(0.6), engine.expected_for(0.6)), ("Medium", 25))
-        self.assertEqual((engine.priority_for(0.4), engine.expected_for(0.4)), ("Low", 10))
+    def test_priority_and_expectation_come_from_the_framework(self):
+        rows = {r["skill"]: r for r in run(RESUME_ONLY)["roles"][0]["skills"]}
+        self.assertEqual((rows["Python"]["priority"], rows["Python"]["expectedLevel"], rows["Python"]["tier"]), ("High", "Proficient", "required"))
+        self.assertEqual((rows["SQL"]["priority"], rows["SQL"]["expectedLevel"], rows["SQL"]["tier"]), ("Medium", "Working", "supporting"))
+        self.assertEqual((rows["Git"]["priority"], rows["Git"]["expectedLevel"]), ("Low", "Foundational"))
 
 
 class StrongProfile(unittest.TestCase):
@@ -328,8 +330,12 @@ class Roadmap(unittest.TestCase):
         self.assertIsNone(run(RESUME_ONLY)["roadmap"]["currentPosition"])
         self.assertEqual(run(RESUME_ONLY, user={"degree": "B.Sc", "university": "IIT"})["roadmap"]["currentPosition"], "B.Sc at IIT")
 
-    def test_estimates_state_their_assumption(self):
-        self.assertIn("hours a week", run(RESUME_ONLY)["roadmap"]["assumption"])
+    def test_no_invented_time_estimates(self):
+        road = run(RESUME_ONLY)["roadmap"]
+        self.assertIn("No time estimates", road["assumption"])
+        for stage in road["stages"]:
+            self.assertIsNone(stage["estimateWeeks"])
+            self.assertTrue(all(m["estimateWeeks"] is None for m in stage["milestones"]))
 
     def test_none_of_the_old_invented_content_survives(self):
         text = json.dumps(run(RESUME_ONLY, GITHUB_ONLY), default=str)
@@ -406,7 +412,9 @@ class Performance(unittest.TestCase):
         started = time.perf_counter()
         out = run(facts, repos, roles=tuple(ROLE_SKILLS))
         self.assertLess(time.perf_counter() - started, 1.0)
-        self.assertLess(len(json.dumps(out, default=str)), 400_000)
+        out.pop("_ledger")  # never stored in the view
+        # Every role at once is the worst case; engine v3 adds per-competency explanations (why, priority reason).
+        self.assertLess(len(json.dumps(out, default=str)), 500_000)
 
 
 if __name__ == "__main__":

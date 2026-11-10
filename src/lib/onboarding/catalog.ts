@@ -1,51 +1,31 @@
 // Client-safe catalogue data for the onboarding wizard.
 
+import registry from "../../../worker/intelligence/frameworks/career_roles.json";
+
 /**
- * The 20 career directions offered in onboarding ("What do you want to do?").
- * Ids are stable storage keys: existing ids are reused where the direction is the same
- * (e.g. ml_engineer, robotics_ai_engineer, ai_researcher), so saved choices and the worker's
- * role-keyed intelligence (worker/intelligence/config.py) keep working.
+ * Career directions offered in onboarding ("What do you want to do?"), from the canonical registry
+ * (worker/intelligence/frameworks/career_roles.json), which the worker's intelligence engine reads too, so the web
+ * app and the engine can't disagree on ids or labels. Ids are stable storage keys: a role is retired, never renamed.
  * `keywords` only widen search; they are never shown.
  */
-export const CAREER_ROLES = [
-  { id: "ml_engineer", label: "ML Engineer", blurb: "Builds, trains and ships machine learning models into products", keywords: "machine learning ml models training deployment scikit-learn" },
-  { id: "data_scientist", label: "Data Scientist", blurb: "Analyses data, runs experiments and builds predictive models", keywords: "analytics statistics sql pandas insights" },
-  { id: "deep_learning_engineer", label: "Deep Learning Engineer", blurb: "Designs and trains neural networks with PyTorch or TensorFlow", keywords: "neural networks pytorch tensorflow cuda" },
-  { id: "generative_ai_engineer", label: "Generative AI Engineer", blurb: "Works with generative models, RAG, generation pipelines and model integration", keywords: "genai rag diffusion embeddings generation" },
-  { id: "llm_application_engineer", label: "LLM Application Engineer", blurb: "Builds LLM-powered apps: APIs, tools and orchestration", keywords: "llm apps rag chatbots langchain api prompt tools" },
-  { id: "llm_model_engineer", label: "LLM Model Engineer", blurb: "Trains, fine-tunes, optimises and serves language models", keywords: "fine-tuning pretraining lora quantization inference" },
-  { id: "mlops_engineer", label: "MLOps Engineer", blurb: "Deploys, monitors and runs ML pipelines reliably", keywords: "deployment monitoring docker kubernetes ci/cd mlflow" },
-  { id: "llmops_engineer", label: "LLMOps Engineer", blurb: "Deploys LLMs and owns evaluation, observability and reliability", keywords: "llm deployment evaluation observability tracing" },
-  { id: "ai_agent_engineer", label: "AI Agent Engineer", blurb: "Builds agent workflows: tool use, planning and orchestration", keywords: "agents agentic tools planning multi-agent langgraph" },
-  { id: "nlp_engineer", label: "Natural Language Processing (NLP) Engineer", blurb: "Builds systems that understand and generate text", keywords: "nlp language text transformers hugging face" },
-  { id: "computer_vision_engineer", label: "Computer Vision Engineer", blurb: "Builds models for images and video", keywords: "cv vision images video opencv detection" },
-  { id: "multimodal_ai_engineer", label: "Multimodal AI Engineer", blurb: "Builds models that combine text, images, audio and video", keywords: "multimodal vision-language vlm clip" },
-  { id: "speech_ai_engineer", label: "Speech AI Engineer", blurb: "Builds speech recognition, synthesis and voice systems", keywords: "speech asr tts voice audio whisper" },
-  { id: "rl_engineer", label: "Reinforcement Learning Engineer", blurb: "Trains agents that learn from rewards and environments", keywords: "rl reinforcement rewards policy gym" },
-  { id: "robotics_ai_engineer", label: "Robotics Engineer", blurb: "Brings AI to robots: perception, control and ROS", keywords: "robotics ros control perception embedded" },
-  { id: "graph_ai_engineer", label: "Graph AI Engineer", blurb: "Builds graph neural networks and knowledge-graph systems", keywords: "graph gnn knowledge graph networkx" },
-  { id: "ai_infrastructure_engineer", label: "AI Infrastructure Engineer", blurb: "Runs GPU clusters, distributed training and model serving", keywords: "infrastructure gpu distributed serving cloud kubernetes" },
-  { id: "ai_evaluation_safety_engineer", label: "AI Evaluation & Safety Engineer", blurb: "Tests models for quality, bias, robustness and safety", keywords: "evaluation safety alignment red teaming benchmarks" },
-  { id: "edge_federated_ai_engineer", label: "Edge & Federated AI Engineer", blurb: "Runs AI on devices and trains models privately across them", keywords: "edge on-device tinyml federated privacy mobile" },
-  { id: "ai_researcher", label: "AI Research Engineer / Applied AI Scientist", blurb: "Turns research ideas into experiments, papers and prototypes", keywords: "research papers experiments scientist" },
-] as const;
+export type CareerRole = { id: string; label: string; blurb: string; keywords: string };
+
+const toRole = ({ id, label, blurb, keywords }: CareerRole): CareerRole => ({ id, label, blurb, keywords });
+
+/** The 20 current pathways, in registry order. */
+export const CAREER_ROLES: readonly CareerRole[] = registry.roles.filter((r) => r.status === "current").map(toRole);
 
 /**
  * Retired directions: no longer offered, but still valid so existing saved choices load, validate
  * and display unchanged (never silently rewritten).
  */
-export const RETIRED_CAREER_ROLES = [
-  { id: "ai_engineer", label: "AI Engineer", blurb: "Build AI features", keywords: "" },
-  { id: "ai_product_founder", label: "AI Product Builder", blurb: "Build AI products", keywords: "" },
-  { id: "still_exploring", label: "Still exploring", blurb: "Help me choose", keywords: "" },
-] as const;
+export const RETIRED_CAREER_ROLES: readonly CareerRole[] = registry.roles.filter((r) => r.status === "retired").map(toRole);
 
-export const ALL_CAREER_ROLES = [...CAREER_ROLES, ...RETIRED_CAREER_ROLES] as const;
+export const ALL_CAREER_ROLES: readonly CareerRole[] = [...CAREER_ROLES, ...RETIRED_CAREER_ROLES];
 
-export type CareerRoleId = (typeof ALL_CAREER_ROLES)[number]["id"];
+export type CareerRoleId = string;
 /** Every id that may be stored (offered + retired). */
 export const CAREER_ROLE_IDS = ALL_CAREER_ROLES.map((r) => r.id) as [CareerRoleId, ...CareerRoleId[]];
-
 /** Display label for any stored role id (offered or retired); unknown ids are returned as-is. */
 export const careerRoleLabel = (id: string | null | undefined) =>
   id ? (ALL_CAREER_ROLES.find((r) => r.id === id)?.label ?? id) : null;

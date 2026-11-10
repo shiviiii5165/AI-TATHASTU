@@ -1,0 +1,3355 @@
+{
+ "frameworkVersion": "2026.11-draft.1",
+ "status": "draft_unreviewed",
+ "provenance": {
+  "basis": "Internal judgement of the AI Tathastu team, carried over from the engine v2 weighted skill lists (worker/intelligence/config.py) and restructured. Not an industry standard, employer requirement or job-market dataset.",
+  "references": [],
+  "reviewedBy": null,
+  "reviewedAt": null
+ },
+ "levels": {
+  "Foundational": "Understands fundamental concepts and can perform basic tasks.",
+  "Working": "Can complete practical tasks with guidance.",
+  "Proficient": "Can independently implement, evaluate and troubleshoot practical work.",
+  "Advanced": "Can design and optimise complex systems and technically justify decisions."
+ },
+ "competencies": {
+  "AI Agents": {
+   "category": "ai",
+   "description": "LLM agents that plan, call tools and act over multiple steps.",
+   "demonstration": "An agent that completes multi-step tasks with tools, with failure cases recorded.",
+   "prerequisites": [
+    "Large Language Models",
+    "Prompt Engineering"
+   ],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "AI Safety": {
+   "category": "ai",
+   "description": "Identifying and mitigating harmful model behaviour: red-teaming, robustness, bias.",
+   "demonstration": "A documented safety evaluation or red-team exercise with findings.",
+   "prerequisites": [],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "AWS": {
+   "category": "cloud",
+   "description": "Deploying and operating workloads on AWS.",
+   "demonstration": "A project deployed on AWS with its infrastructure described.",
+   "prerequisites": [],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Apache Airflow": {
+   "category": "devops",
+   "description": "Orchestrating data and ML workflows.",
+   "demonstration": "An Airflow DAG that runs a multi-step pipeline.",
+   "prerequisites": [],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Audio Signal Processing": {
+   "category": "ai",
+   "description": "Representing and processing audio signals (spectrograms, filtering, features).",
+   "demonstration": "A project that processes audio into features for a downstream task.",
+   "prerequisites": [],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "C++": {
+   "category": "language",
+   "description": "Writing performant C++.",
+   "demonstration": "A repository with C++ code you wrote that builds and runs.",
+   "prerequisites": [],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "CI/CD": {
+   "category": "devops",
+   "description": "Automated build, test and deployment pipelines.",
+   "demonstration": "A repository with a CI pipeline that runs tests on each change.",
+   "prerequisites": [],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "CUDA": {
+   "category": "engineering",
+   "description": "Writing or optimising GPU kernels.",
+   "demonstration": "A CUDA kernel or GPU optimisation with measured speed-up.",
+   "prerequisites": [
+    "C++"
+   ],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Computer Vision": {
+   "category": "ai",
+   "description": "Image and video understanding tasks.",
+   "demonstration": "A vision model with evaluation on a held-out image set.",
+   "prerequisites": [
+    "Deep Learning",
+    "Python"
+   ],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Convolutional Neural Networks": {
+   "category": "ai",
+   "description": "Convolutional architectures for spatial data.",
+   "demonstration": "A CNN trained and evaluated on an image task.",
+   "prerequisites": [
+    "Deep Learning"
+   ],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Data Structures and Algorithms": {
+   "category": "engineering",
+   "description": "Choosing and implementing efficient data structures and algorithms.",
+   "demonstration": "Solved algorithmic problems on an assessed platform, or efficient algorithmic code.",
+   "prerequisites": [],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Deep Learning": {
+   "category": "ai",
+   "description": "Neural network design, training dynamics and regularisation.",
+   "demonstration": "A neural network trained from data with its training curves and evaluation.",
+   "prerequisites": [
+    "Machine Learning",
+    "Linear Algebra"
+   ],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Differential Privacy": {
+   "category": "math",
+   "description": "Formal privacy guarantees for data analysis and training.",
+   "demonstration": "A project applying a DP mechanism with its privacy budget stated.",
+   "prerequisites": [
+    "Probability"
+   ],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Distributed Training": {
+   "category": "engineering",
+   "description": "Training across multiple devices or machines.",
+   "demonstration": "A training run using data/model parallelism, with its configuration.",
+   "prerequisites": [
+    "Deep Learning",
+    "PyTorch"
+   ],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Docker": {
+   "category": "devops",
+   "description": "Packaging software into reproducible containers.",
+   "demonstration": "A repository with a Dockerfile that builds and runs the project.",
+   "prerequisites": [],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "FastAPI": {
+   "category": "framework",
+   "description": "Building typed Python web APIs.",
+   "demonstration": "A FastAPI service with documented endpoints.",
+   "prerequisites": [
+    "Python"
+   ],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Federated Learning": {
+   "category": "ai",
+   "description": "Training across decentralised clients without centralising data.",
+   "demonstration": "A federated training simulation or deployment with results.",
+   "prerequisites": [
+    "Deep Learning"
+   ],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Fine-tuning": {
+   "category": "ai",
+   "description": "Adapting a pretrained model to a task with supervised or parameter-efficient training.",
+   "demonstration": "A fine-tuned model with the training setup, data description and before/after evaluation.",
+   "prerequisites": [
+    "Large Language Models",
+    "PyTorch"
+   ],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Generative AI": {
+   "category": "ai",
+   "description": "Generative models and their application.",
+   "demonstration": "A project that generates content with a model and evaluates its output.",
+   "prerequisites": [],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Git": {
+   "category": "tooling",
+   "description": "Version control: branching, history and collaboration.",
+   "demonstration": "Public repositories with a meaningful commit history.",
+   "prerequisites": [],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Google Cloud": {
+   "category": "cloud",
+   "description": "Deploying and operating workloads on Google Cloud.",
+   "demonstration": "A project deployed on Google Cloud.",
+   "prerequisites": [],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Graph Neural Networks": {
+   "category": "ai",
+   "description": "Learning on graph-structured data.",
+   "demonstration": "A GNN trained on a graph task with evaluation.",
+   "prerequisites": [
+    "Deep Learning",
+    "Linear Algebra"
+   ],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Hugging Face Transformers": {
+   "category": "framework",
+   "description": "Using and adapting pretrained models with the Transformers library.",
+   "demonstration": "A project that loads, adapts and evaluates a Hugging Face model.",
+   "prerequisites": [
+    "Python",
+    "PyTorch"
+   ],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Image Segmentation": {
+   "category": "ai",
+   "description": "Pixel-level image labelling.",
+   "demonstration": "A segmentation model evaluated with IoU or similar.",
+   "prerequisites": [
+    "Convolutional Neural Networks"
+   ],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "JAX": {
+   "category": "framework",
+   "description": "Array programming and model training in JAX.",
+   "demonstration": "A repository with a JAX model or numerical method.",
+   "prerequisites": [
+    "Python",
+    "Linear Algebra"
+   ],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Knowledge Graphs": {
+   "category": "data",
+   "description": "Modelling and querying entities and relations.",
+   "demonstration": "A knowledge graph built and queried for a task.",
+   "prerequisites": [],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Kubernetes": {
+   "category": "devops",
+   "description": "Deploying and operating containers on Kubernetes.",
+   "demonstration": "Kubernetes manifests or charts that deploy a working service.",
+   "prerequisites": [
+    "Docker"
+   ],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "LLM Evaluation": {
+   "category": "ai",
+   "description": "Measuring LLM quality: test sets, metrics, human and model-graded evaluation.",
+   "demonstration": "An evaluation suite with defined test cases and reported results for an LLM system.",
+   "prerequisites": [
+    "Large Language Models",
+    "Statistics"
+   ],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "LangChain": {
+   "category": "framework",
+   "description": "Composing LLM pipelines and tools with LangChain.",
+   "demonstration": "A working LangChain application in a public repository.",
+   "prerequisites": [
+    "Python",
+    "Large Language Models"
+   ],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Large Language Models": {
+   "category": "ai",
+   "description": "How LLMs work, their limits, and calling or hosting them in software.",
+   "demonstration": "A project that uses an LLM (API or open model) for a defined task and reports how well it works.",
+   "prerequisites": [
+    "Deep Learning",
+    "Machine Learning"
+   ],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Linear Algebra": {
+   "category": "math",
+   "description": "Vectors, matrices, decompositions and their use in ML.",
+   "demonstration": "Work that implements or analyses a method using linear algebra directly (e.g. from-scratch PCA).",
+   "prerequisites": [],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Linux": {
+   "category": "devops",
+   "description": "Working in Linux environments: shell, processes, permissions.",
+   "demonstration": "Scripts or setup work that relies on Linux administration.",
+   "prerequisites": [],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "LlamaIndex": {
+   "category": "framework",
+   "description": "Data frameworks for LLM retrieval with LlamaIndex.",
+   "demonstration": "A LlamaIndex application over real data.",
+   "prerequisites": [],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "MLflow": {
+   "category": "devops",
+   "description": "Tracking experiments and managing model versions with MLflow.",
+   "demonstration": "A project that logs runs and models to MLflow.",
+   "prerequisites": [
+    "Machine Learning"
+   ],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Machine Learning": {
+   "category": "ai",
+   "description": "Framing problems, training, validating and comparing classical ML models.",
+   "demonstration": "An end-to-end ML project with a train/validation split, a baseline and reported metrics.",
+   "prerequisites": [
+    "Python",
+    "Statistics"
+   ],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Matplotlib": {
+   "category": "framework",
+   "description": "Plotting data clearly in Python.",
+   "demonstration": "An analysis with clear, labelled plots.",
+   "prerequisites": [],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Model Quantization": {
+   "category": "ai",
+   "description": "Reducing model precision for efficiency while tracking accuracy.",
+   "demonstration": "A quantised model with accuracy and latency compared to the original.",
+   "prerequisites": [
+    "Deep Learning"
+   ],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Natural Language Processing": {
+   "category": "ai",
+   "description": "Text processing, representation and NLP tasks.",
+   "demonstration": "An NLP system (classification, extraction, generation) with evaluation.",
+   "prerequisites": [
+    "Machine Learning",
+    "Python"
+   ],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Neo4j": {
+   "category": "data",
+   "description": "Graph databases and Cypher.",
+   "demonstration": "A project storing and querying data in Neo4j.",
+   "prerequisites": [],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "NetworkX": {
+   "category": "framework",
+   "description": "Graph analysis in Python.",
+   "demonstration": "An analysis using NetworkX on real graph data.",
+   "prerequisites": [],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Next.js": {
+   "category": "framework",
+   "description": "Building web applications with Next.js.",
+   "demonstration": "A deployed Next.js application.",
+   "prerequisites": [],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "NumPy": {
+   "category": "framework",
+   "description": "Numerical arrays and vectorised computation.",
+   "demonstration": "Code that uses NumPy for numerical work.",
+   "prerequisites": [],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "ONNX": {
+   "category": "framework",
+   "description": "Exporting and running models in the ONNX format.",
+   "demonstration": "A model exported to ONNX and run with ONNX Runtime.",
+   "prerequisites": [],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Object Detection": {
+   "category": "ai",
+   "description": "Locating and classifying objects in images.",
+   "demonstration": "A detector trained or adapted and evaluated with mAP or similar.",
+   "prerequisites": [
+    "Convolutional Neural Networks"
+   ],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "On-device ML": {
+   "category": "ai",
+   "description": "Running models within device constraints (memory, latency, power).",
+   "demonstration": "A model running on a phone, microcontroller or edge board, with measurements.",
+   "prerequisites": [],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "OpenCV": {
+   "category": "framework",
+   "description": "Image processing with OpenCV.",
+   "demonstration": "A project using OpenCV for image or video processing.",
+   "prerequisites": [],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Pandas": {
+   "category": "framework",
+   "description": "Cleaning, reshaping and analysing tabular data with pandas.",
+   "demonstration": "An analysis notebook or script using pandas on a real dataset.",
+   "prerequisites": [
+    "Python"
+   ],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Probability": {
+   "category": "math",
+   "description": "Random variables, distributions and probabilistic reasoning.",
+   "demonstration": "Work that models uncertainty explicitly (e.g. a probabilistic model or simulation).",
+   "prerequisites": [],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Prompt Engineering": {
+   "category": "ai",
+   "description": "Designing, testing and iterating prompts and structured outputs.",
+   "demonstration": "A project where prompts are versioned and compared on a set of test inputs.",
+   "prerequisites": [
+    "Large Language Models"
+   ],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "PyTorch": {
+   "category": "framework",
+   "description": "Building and training models with PyTorch.",
+   "demonstration": "A repository with a PyTorch model, training loop and evaluation.",
+   "prerequisites": [
+    "Python"
+   ],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Python": {
+   "category": "language",
+   "description": "Writing, structuring and debugging Python programs.",
+   "demonstration": "A repository with Python code you wrote that runs, with a README explaining how.",
+   "prerequisites": [],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "REST APIs": {
+   "category": "engineering",
+   "description": "Designing and consuming HTTP APIs.",
+   "demonstration": "A service or client that exposes or integrates a REST API.",
+   "prerequisites": [],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "ROS": {
+   "category": "framework",
+   "description": "Building robot software with the Robot Operating System.",
+   "demonstration": "ROS nodes controlling a robot or simulator.",
+   "prerequisites": [],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Recommender Systems": {
+   "category": "ai",
+   "description": "Ranking and recommending items to users.",
+   "demonstration": "A recommender evaluated with ranking metrics.",
+   "prerequisites": [],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Reinforcement Learning": {
+   "category": "ai",
+   "description": "Learning policies from rewards: value methods, policy gradients, exploration.",
+   "demonstration": "An agent trained in an environment, with learning curves.",
+   "prerequisites": [
+    "Probability",
+    "Python"
+   ],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Retrieval-Augmented Generation": {
+   "category": "ai",
+   "description": "Grounding LLM answers in retrieved documents: chunking, embedding, retrieval and answer synthesis.",
+   "demonstration": "A RAG system over a real document set, with retrieval quality checked on example questions.",
+   "prerequisites": [
+    "Large Language Models",
+    "Vector Databases"
+   ],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "SQL": {
+   "category": "data",
+   "description": "Querying, joining and aggregating relational data.",
+   "demonstration": "A project or analysis with non-trivial SQL queries over real data.",
+   "prerequisites": [],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Simulation": {
+   "category": "engineering",
+   "description": "Building or using simulated environments.",
+   "demonstration": "A project that runs experiments in a simulator.",
+   "prerequisites": [],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Speech Recognition": {
+   "category": "ai",
+   "description": "Converting speech to text.",
+   "demonstration": "An ASR system evaluated with word error rate.",
+   "prerequisites": [
+    "Deep Learning",
+    "Audio Signal Processing"
+   ],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Statistics": {
+   "category": "math",
+   "description": "Descriptive and inferential statistics: distributions, estimation, hypothesis tests.",
+   "demonstration": "An analysis that states hypotheses, applies a suitable test and interprets uncertainty.",
+   "prerequisites": [],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Tableau": {
+   "category": "tooling",
+   "description": "Building dashboards in Tableau.",
+   "demonstration": "A published Tableau dashboard.",
+   "prerequisites": [],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "TensorFlow": {
+   "category": "framework",
+   "description": "Building and training models with TensorFlow/Keras.",
+   "demonstration": "A repository with a TensorFlow model and evaluation.",
+   "prerequisites": [],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "TensorFlow Lite": {
+   "category": "framework",
+   "description": "Deploying TensorFlow models to mobile and embedded devices.",
+   "demonstration": "A TFLite model running on a device.",
+   "prerequisites": [
+    "TensorFlow"
+   ],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "TensorRT": {
+   "category": "framework",
+   "description": "Optimising inference with TensorRT.",
+   "demonstration": "A model optimised with TensorRT and benchmarked.",
+   "prerequisites": [],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Terraform": {
+   "category": "devops",
+   "description": "Infrastructure as code with Terraform.",
+   "demonstration": "Terraform code that provisions real infrastructure.",
+   "prerequisites": [
+    "AWS"
+   ],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Text-to-Speech": {
+   "category": "ai",
+   "description": "Synthesising speech from text.",
+   "demonstration": "A TTS pipeline with sample outputs and a quality check.",
+   "prerequisites": [
+    "Deep Learning",
+    "Audio Signal Processing"
+   ],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Time Series Analysis": {
+   "category": "ai",
+   "description": "Modelling and forecasting time-ordered data.",
+   "demonstration": "A forecasting project with a time-aware validation split.",
+   "prerequisites": [],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Transformers (architecture)": {
+   "category": "ai",
+   "description": "Attention and the transformer architecture.",
+   "demonstration": "An implementation or modification of a transformer component, with results.",
+   "prerequisites": [
+    "Deep Learning"
+   ],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Triton Inference Server": {
+   "category": "framework",
+   "description": "Serving models with NVIDIA Triton.",
+   "demonstration": "A model deployed on Triton with its configuration.",
+   "prerequisites": [],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "TypeScript": {
+   "category": "language",
+   "description": "Typed JavaScript for applications.",
+   "demonstration": "A repository with TypeScript code you wrote.",
+   "prerequisites": [],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Vector Databases": {
+   "category": "data",
+   "description": "Storing and querying embeddings for similarity search.",
+   "demonstration": "A project that indexes embeddings in a vector store and queries them.",
+   "prerequisites": [],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Vision-Language Models": {
+   "category": "ai",
+   "description": "Models that jointly process images and text.",
+   "demonstration": "A project using or adapting a VLM, with evaluation.",
+   "prerequisites": [
+    "Computer Vision",
+    "Large Language Models"
+   ],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "Weights & Biases": {
+   "category": "tooling",
+   "description": "Experiment tracking with Weights & Biases.",
+   "demonstration": "A project logging runs to Weights & Biases.",
+   "prerequisites": [],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "scikit-learn": {
+   "category": "framework",
+   "description": "Classical ML pipelines with scikit-learn.",
+   "demonstration": "A repository using scikit-learn pipelines with evaluation.",
+   "prerequisites": [
+    "Python"
+   ],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "spaCy": {
+   "category": "framework",
+   "description": "Industrial NLP pipelines with spaCy.",
+   "demonstration": "A spaCy pipeline used on real text.",
+   "prerequisites": [],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  },
+  "vLLM": {
+   "category": "framework",
+   "description": "High-throughput LLM serving with vLLM.",
+   "demonstration": "An LLM served with vLLM, with throughput or latency measured.",
+   "prerequisites": [],
+   "acceptedEvidence": {
+    "establishes": [
+     "repository",
+     "platform",
+     "assessment",
+     "project",
+     "experience"
+    ],
+    "supportingOnly": [
+     "certification",
+     "course",
+     "claim"
+    ]
+   }
+  }
+ },
+ "roles": {
+  "generative_ai_engineer": {
+   "role": "generative_ai_engineer",
+   "label": "Generative AI Engineer",
+   "status": "current",
+   "responsibilities": [
+    "Build generation pipelines over data",
+    "Integrate and adapt generative models",
+    "Ground outputs in retrieved knowledge",
+    "Evaluate generated output quality"
+   ],
+   "projectContext": "a generation pipeline over your own data",
+   "competencies": [
+    {
+     "competency": "Python",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Large Language Models",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Retrieval-Augmented Generation",
+     "tier": "required",
+     "weight": 0.9,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Prompt Engineering",
+     "tier": "supporting",
+     "weight": 0.7,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Fine-tuning",
+     "tier": "supporting",
+     "weight": 0.7,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Vector Databases",
+     "tier": "supporting",
+     "weight": 0.7,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "PyTorch",
+     "tier": "supporting",
+     "weight": 0.6,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "LangChain",
+     "tier": "supporting",
+     "weight": 0.5,
+     "expectedLevel": "Foundational",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "FastAPI",
+     "tier": "supporting",
+     "weight": 0.5,
+     "expectedLevel": "Foundational",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Docker",
+     "tier": "supporting",
+     "weight": 0.4,
+     "expectedLevel": "Foundational",
+     "evidenceRequirement": "described"
+    }
+   ],
+   "completionCriteria": "Every required competency is at its expected level, shown by independent evidence (repositories, platform activity or assessments)."
+  },
+  "ml_engineer": {
+   "role": "ml_engineer",
+   "label": "ML Engineer",
+   "status": "current",
+   "responsibilities": [
+    "Frame business problems as ML tasks",
+    "Train, evaluate and compare models",
+    "Package and deploy models into products",
+    "Monitor model quality after release"
+   ],
+   "projectContext": "an end-to-end model you train, evaluate and deploy",
+   "competencies": [
+    {
+     "competency": "Python",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Machine Learning",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "scikit-learn",
+     "tier": "required",
+     "weight": 0.8,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "PyTorch",
+     "tier": "required",
+     "weight": 0.8,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "SQL",
+     "tier": "supporting",
+     "weight": 0.6,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Docker",
+     "tier": "supporting",
+     "weight": 0.6,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "MLflow",
+     "tier": "supporting",
+     "weight": 0.5,
+     "expectedLevel": "Foundational",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Statistics",
+     "tier": "supporting",
+     "weight": 0.6,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "AWS",
+     "tier": "supporting",
+     "weight": 0.4,
+     "expectedLevel": "Foundational",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Git",
+     "tier": "supporting",
+     "weight": 0.4,
+     "expectedLevel": "Foundational",
+     "evidenceRequirement": "described"
+    }
+   ],
+   "completionCriteria": "Every required competency is at its expected level, shown by independent evidence (repositories, platform activity or assessments)."
+  },
+  "ai_engineer": {
+   "role": "ai_engineer",
+   "label": "AI Engineer",
+   "status": "retired",
+   "responsibilities": [],
+   "projectContext": null,
+   "competencies": [
+    {
+     "competency": "Python",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Machine Learning",
+     "tier": "required",
+     "weight": 0.8,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Large Language Models",
+     "tier": "required",
+     "weight": 0.8,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "REST APIs",
+     "tier": "supporting",
+     "weight": 0.7,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "FastAPI",
+     "tier": "supporting",
+     "weight": 0.6,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Docker",
+     "tier": "supporting",
+     "weight": 0.6,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "SQL",
+     "tier": "supporting",
+     "weight": 0.5,
+     "expectedLevel": "Foundational",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Git",
+     "tier": "supporting",
+     "weight": 0.5,
+     "expectedLevel": "Foundational",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "PyTorch",
+     "tier": "supporting",
+     "weight": 0.5,
+     "expectedLevel": "Foundational",
+     "evidenceRequirement": "described"
+    }
+   ],
+   "completionCriteria": "Every required competency is at its expected level, shown by independent evidence (repositories, platform activity or assessments)."
+  },
+  "ai_researcher": {
+   "role": "ai_researcher",
+   "label": "AI Research Engineer / Applied AI Scientist",
+   "status": "current",
+   "responsibilities": [
+    "Turn research ideas into experiments",
+    "Reproduce and extend published results",
+    "Analyse results with mathematical rigour",
+    "Write up and share findings"
+   ],
+   "projectContext": "a reproduced paper or a new experiment",
+   "competencies": [
+    {
+     "competency": "Python",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Deep Learning",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "PyTorch",
+     "tier": "required",
+     "weight": 0.9,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Linear Algebra",
+     "tier": "required",
+     "weight": 0.8,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Probability",
+     "tier": "required",
+     "weight": 0.8,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Statistics",
+     "tier": "supporting",
+     "weight": 0.7,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Transformers (architecture)",
+     "tier": "supporting",
+     "weight": 0.7,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "JAX",
+     "tier": "supporting",
+     "weight": 0.4,
+     "expectedLevel": "Foundational",
+     "evidenceRequirement": "described"
+    }
+   ],
+   "completionCriteria": "Every required competency is at its expected level, shown by independent evidence (repositories, platform activity or assessments)."
+  },
+  "data_scientist": {
+   "role": "data_scientist",
+   "label": "Data Scientist",
+   "status": "current",
+   "responsibilities": [
+    "Analyse data to answer questions",
+    "Design and interpret experiments",
+    "Build predictive models",
+    "Communicate findings to decision-makers"
+   ],
+   "projectContext": "an analysis of a real dataset with a written conclusion",
+   "competencies": [
+    {
+     "competency": "Python",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Statistics",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "SQL",
+     "tier": "required",
+     "weight": 0.9,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Pandas",
+     "tier": "required",
+     "weight": 0.9,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Machine Learning",
+     "tier": "required",
+     "weight": 0.8,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "scikit-learn",
+     "tier": "supporting",
+     "weight": 0.7,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Matplotlib",
+     "tier": "supporting",
+     "weight": 0.5,
+     "expectedLevel": "Foundational",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Tableau",
+     "tier": "supporting",
+     "weight": 0.4,
+     "expectedLevel": "Foundational",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Time Series Analysis",
+     "tier": "supporting",
+     "weight": 0.4,
+     "expectedLevel": "Foundational",
+     "evidenceRequirement": "described"
+    }
+   ],
+   "completionCriteria": "Every required competency is at its expected level, shown by independent evidence (repositories, platform activity or assessments)."
+  },
+  "deep_learning_engineer": {
+   "role": "deep_learning_engineer",
+   "label": "Deep Learning Engineer",
+   "status": "current",
+   "responsibilities": [
+    "Design neural network architectures",
+    "Train models at scale on GPUs",
+    "Diagnose and improve training",
+    "Evaluate models rigorously"
+   ],
+   "projectContext": "a neural network you train from scratch",
+   "competencies": [
+    {
+     "competency": "Python",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Deep Learning",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "PyTorch",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "CUDA",
+     "tier": "supporting",
+     "weight": 0.6,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Convolutional Neural Networks",
+     "tier": "supporting",
+     "weight": 0.6,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Transformers (architecture)",
+     "tier": "supporting",
+     "weight": 0.7,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "TensorFlow",
+     "tier": "supporting",
+     "weight": 0.4,
+     "expectedLevel": "Foundational",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Linear Algebra",
+     "tier": "supporting",
+     "weight": 0.5,
+     "expectedLevel": "Foundational",
+     "evidenceRequirement": "described"
+    }
+   ],
+   "completionCriteria": "Every required competency is at its expected level, shown by independent evidence (repositories, platform activity or assessments)."
+  },
+  "mlops_engineer": {
+   "role": "mlops_engineer",
+   "label": "MLOps Engineer",
+   "status": "current",
+   "responsibilities": [
+    "Build reproducible ML pipelines",
+    "Deploy and serve models reliably",
+    "Automate testing and release of models",
+    "Monitor models and infrastructure"
+   ],
+   "projectContext": "a deployed, monitored ML pipeline",
+   "competencies": [
+    {
+     "competency": "Python",
+     "tier": "required",
+     "weight": 0.9,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Docker",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Kubernetes",
+     "tier": "required",
+     "weight": 0.9,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "CI/CD",
+     "tier": "required",
+     "weight": 0.9,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "MLflow",
+     "tier": "supporting",
+     "weight": 0.7,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "AWS",
+     "tier": "supporting",
+     "weight": 0.7,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Linux",
+     "tier": "supporting",
+     "weight": 0.7,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Terraform",
+     "tier": "supporting",
+     "weight": 0.5,
+     "expectedLevel": "Foundational",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Apache Airflow",
+     "tier": "supporting",
+     "weight": 0.5,
+     "expectedLevel": "Foundational",
+     "evidenceRequirement": "described"
+    }
+   ],
+   "completionCriteria": "Every required competency is at its expected level, shown by independent evidence (repositories, platform activity or assessments)."
+  },
+  "nlp_engineer": {
+   "role": "nlp_engineer",
+   "label": "Natural Language Processing (NLP) Engineer",
+   "status": "current",
+   "responsibilities": [
+    "Build text understanding and generation systems",
+    "Adapt pretrained language models",
+    "Prepare and annotate text data",
+    "Evaluate NLP systems"
+   ],
+   "projectContext": "a text understanding or generation system",
+   "competencies": [
+    {
+     "competency": "Python",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Natural Language Processing",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Hugging Face Transformers",
+     "tier": "required",
+     "weight": 0.9,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "PyTorch",
+     "tier": "required",
+     "weight": 0.8,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Large Language Models",
+     "tier": "required",
+     "weight": 0.8,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "spaCy",
+     "tier": "supporting",
+     "weight": 0.5,
+     "expectedLevel": "Foundational",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Fine-tuning",
+     "tier": "supporting",
+     "weight": 0.6,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    }
+   ],
+   "completionCriteria": "Every required competency is at its expected level, shown by independent evidence (repositories, platform activity or assessments)."
+  },
+  "computer_vision_engineer": {
+   "role": "computer_vision_engineer",
+   "label": "Computer Vision Engineer",
+   "status": "current",
+   "responsibilities": [
+    "Build image and video models",
+    "Prepare and augment visual data",
+    "Train detection and segmentation models",
+    "Evaluate and optimise vision models"
+   ],
+   "projectContext": "an image or video model",
+   "competencies": [
+    {
+     "competency": "Python",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Computer Vision",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "OpenCV",
+     "tier": "required",
+     "weight": 0.9,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "PyTorch",
+     "tier": "required",
+     "weight": 0.8,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Convolutional Neural Networks",
+     "tier": "required",
+     "weight": 0.8,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Object Detection",
+     "tier": "supporting",
+     "weight": 0.7,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Image Segmentation",
+     "tier": "supporting",
+     "weight": 0.6,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    }
+   ],
+   "completionCriteria": "Every required competency is at its expected level, shown by independent evidence (repositories, platform activity or assessments)."
+  },
+  "robotics_ai_engineer": {
+   "role": "robotics_ai_engineer",
+   "label": "Robotics Engineer",
+   "status": "current",
+   "responsibilities": [
+    "Build robot software with ROS",
+    "Integrate perception into robots",
+    "Develop control and learning in simulation",
+    "Deploy to real or simulated hardware"
+   ],
+   "projectContext": "a robot or simulator controlled through ROS",
+   "competencies": [
+    {
+     "competency": "Python",
+     "tier": "required",
+     "weight": 0.9,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "C++",
+     "tier": "required",
+     "weight": 0.9,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "ROS",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Computer Vision",
+     "tier": "supporting",
+     "weight": 0.6,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Reinforcement Learning",
+     "tier": "supporting",
+     "weight": 0.6,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Simulation",
+     "tier": "supporting",
+     "weight": 0.6,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Linux",
+     "tier": "supporting",
+     "weight": 0.5,
+     "expectedLevel": "Foundational",
+     "evidenceRequirement": "described"
+    }
+   ],
+   "completionCriteria": "Every required competency is at its expected level, shown by independent evidence (repositories, platform activity or assessments)."
+  },
+  "rl_engineer": {
+   "role": "rl_engineer",
+   "label": "Reinforcement Learning Engineer",
+   "status": "current",
+   "responsibilities": [
+    "Formulate problems as sequential decisions",
+    "Train agents in simulated environments",
+    "Tune exploration and reward design",
+    "Evaluate learned policies"
+   ],
+   "projectContext": "an agent trained in a simulated environment",
+   "competencies": [
+    {
+     "competency": "Python",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Reinforcement Learning",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "PyTorch",
+     "tier": "required",
+     "weight": 0.8,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Probability",
+     "tier": "supporting",
+     "weight": 0.7,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Simulation",
+     "tier": "supporting",
+     "weight": 0.6,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Deep Learning",
+     "tier": "supporting",
+     "weight": 0.7,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    }
+   ],
+   "completionCriteria": "Every required competency is at its expected level, shown by independent evidence (repositories, platform activity or assessments)."
+  },
+  "ai_product_founder": {
+   "role": "ai_product_founder",
+   "label": "AI Product Builder",
+   "status": "retired",
+   "responsibilities": [],
+   "projectContext": null,
+   "competencies": [
+    {
+     "competency": "Python",
+     "tier": "supporting",
+     "weight": 0.6,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Large Language Models",
+     "tier": "required",
+     "weight": 0.8,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Generative AI",
+     "tier": "required",
+     "weight": 0.8,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Prompt Engineering",
+     "tier": "supporting",
+     "weight": 0.6,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Next.js",
+     "tier": "supporting",
+     "weight": 0.5,
+     "expectedLevel": "Foundational",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "REST APIs",
+     "tier": "supporting",
+     "weight": 0.5,
+     "expectedLevel": "Foundational",
+     "evidenceRequirement": "described"
+    }
+   ],
+   "completionCriteria": "Every required competency is at its expected level, shown by independent evidence (repositories, platform activity or assessments)."
+  },
+  "llm_application_engineer": {
+   "role": "llm_application_engineer",
+   "label": "LLM Application Engineer",
+   "status": "current",
+   "responsibilities": [
+    "Build LLM-powered applications and APIs",
+    "Design retrieval and tool-use flows",
+    "Version and test prompts",
+    "Evaluate and monitor application quality"
+   ],
+   "projectContext": "an LLM-powered app with retrieval and tools",
+   "competencies": [
+    {
+     "competency": "Python",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Large Language Models",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Retrieval-Augmented Generation",
+     "tier": "required",
+     "weight": 0.9,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Prompt Engineering",
+     "tier": "required",
+     "weight": 0.9,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "LangChain",
+     "tier": "required",
+     "weight": 0.8,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "REST APIs",
+     "tier": "required",
+     "weight": 0.8,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "FastAPI",
+     "tier": "supporting",
+     "weight": 0.7,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Vector Databases",
+     "tier": "supporting",
+     "weight": 0.7,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "LLM Evaluation",
+     "tier": "supporting",
+     "weight": 0.5,
+     "expectedLevel": "Foundational",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "TypeScript",
+     "tier": "supporting",
+     "weight": 0.4,
+     "expectedLevel": "Foundational",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Docker",
+     "tier": "supporting",
+     "weight": 0.4,
+     "expectedLevel": "Foundational",
+     "evidenceRequirement": "described"
+    }
+   ],
+   "completionCriteria": "Every required competency is at its expected level, shown by independent evidence (repositories, platform activity or assessments)."
+  },
+  "llm_model_engineer": {
+   "role": "llm_model_engineer",
+   "label": "LLM Model Engineer",
+   "status": "current",
+   "responsibilities": [
+    "Fine-tune and adapt language models",
+    "Run distributed training",
+    "Optimise models for inference",
+    "Evaluate model capability and regressions"
+   ],
+   "projectContext": "fine-tuning and serving an open language model",
+   "competencies": [
+    {
+     "competency": "Python",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Large Language Models",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Fine-tuning",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "PyTorch",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Transformers (architecture)",
+     "tier": "required",
+     "weight": 0.9,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Hugging Face Transformers",
+     "tier": "required",
+     "weight": 0.8,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Distributed Training",
+     "tier": "supporting",
+     "weight": 0.7,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "CUDA",
+     "tier": "supporting",
+     "weight": 0.6,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Model Quantization",
+     "tier": "supporting",
+     "weight": 0.6,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "LLM Evaluation",
+     "tier": "supporting",
+     "weight": 0.6,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Deep Learning",
+     "tier": "supporting",
+     "weight": 0.7,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    }
+   ],
+   "completionCriteria": "Every required competency is at its expected level, shown by independent evidence (repositories, platform activity or assessments)."
+  },
+  "llmops_engineer": {
+   "role": "llmops_engineer",
+   "label": "LLMOps Engineer",
+   "status": "current",
+   "responsibilities": [
+    "Deploy and scale LLM services",
+    "Run continuous LLM evaluation",
+    "Trace and observe LLM behaviour in production",
+    "Control cost and latency of inference"
+   ],
+   "projectContext": "a deployed LLM service with evaluation and tracing",
+   "competencies": [
+    {
+     "competency": "Python",
+     "tier": "required",
+     "weight": 0.9,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Large Language Models",
+     "tier": "required",
+     "weight": 0.9,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Docker",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Kubernetes",
+     "tier": "required",
+     "weight": 0.9,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "CI/CD",
+     "tier": "required",
+     "weight": 0.8,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "LLM Evaluation",
+     "tier": "required",
+     "weight": 0.8,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "vLLM",
+     "tier": "supporting",
+     "weight": 0.7,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Model Quantization",
+     "tier": "supporting",
+     "weight": 0.5,
+     "expectedLevel": "Foundational",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Triton Inference Server",
+     "tier": "supporting",
+     "weight": 0.5,
+     "expectedLevel": "Foundational",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Weights & Biases",
+     "tier": "supporting",
+     "weight": 0.5,
+     "expectedLevel": "Foundational",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "AWS",
+     "tier": "supporting",
+     "weight": 0.6,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Linux",
+     "tier": "supporting",
+     "weight": 0.6,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    }
+   ],
+   "completionCriteria": "Every required competency is at its expected level, shown by independent evidence (repositories, platform activity or assessments)."
+  },
+  "ai_agent_engineer": {
+   "role": "ai_agent_engineer",
+   "label": "AI Agent Engineer",
+   "status": "current",
+   "responsibilities": [
+    "Design agent workflows with planning and tools",
+    "Integrate external tools and APIs",
+    "Ground agents in retrieved context",
+    "Evaluate agent reliability and failure modes"
+   ],
+   "projectContext": "an agent that plans and uses tools",
+   "competencies": [
+    {
+     "competency": "Python",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Large Language Models",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "AI Agents",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Prompt Engineering",
+     "tier": "required",
+     "weight": 0.9,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "LangChain",
+     "tier": "required",
+     "weight": 0.8,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Retrieval-Augmented Generation",
+     "tier": "supporting",
+     "weight": 0.7,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "REST APIs",
+     "tier": "required",
+     "weight": 0.8,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "LLM Evaluation",
+     "tier": "supporting",
+     "weight": 0.6,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "FastAPI",
+     "tier": "supporting",
+     "weight": 0.6,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Vector Databases",
+     "tier": "supporting",
+     "weight": 0.5,
+     "expectedLevel": "Foundational",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "LlamaIndex",
+     "tier": "supporting",
+     "weight": 0.4,
+     "expectedLevel": "Foundational",
+     "evidenceRequirement": "described"
+    }
+   ],
+   "completionCriteria": "Every required competency is at its expected level, shown by independent evidence (repositories, platform activity or assessments)."
+  },
+  "multimodal_ai_engineer": {
+   "role": "multimodal_ai_engineer",
+   "label": "Multimodal AI Engineer",
+   "status": "current",
+   "responsibilities": [
+    "Build models combining images, text and audio",
+    "Adapt vision-language models",
+    "Align representations across modalities",
+    "Evaluate multimodal systems"
+   ],
+   "projectContext": "a model that combines images and text",
+   "competencies": [
+    {
+     "competency": "Python",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Deep Learning",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Vision-Language Models",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "PyTorch",
+     "tier": "required",
+     "weight": 0.9,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Computer Vision",
+     "tier": "required",
+     "weight": 0.9,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Transformers (architecture)",
+     "tier": "required",
+     "weight": 0.8,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Natural Language Processing",
+     "tier": "supporting",
+     "weight": 0.7,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Hugging Face Transformers",
+     "tier": "supporting",
+     "weight": 0.7,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Audio Signal Processing",
+     "tier": "supporting",
+     "weight": 0.4,
+     "expectedLevel": "Foundational",
+     "evidenceRequirement": "described"
+    }
+   ],
+   "completionCriteria": "Every required competency is at its expected level, shown by independent evidence (repositories, platform activity or assessments)."
+  },
+  "speech_ai_engineer": {
+   "role": "speech_ai_engineer",
+   "label": "Speech AI Engineer",
+   "status": "current",
+   "responsibilities": [
+    "Build speech recognition systems",
+    "Build speech synthesis systems",
+    "Process and featurise audio",
+    "Evaluate speech systems (e.g. WER)"
+   ],
+   "projectContext": "a speech pipeline (transcription or voice)",
+   "competencies": [
+    {
+     "competency": "Python",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Speech Recognition",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Deep Learning",
+     "tier": "required",
+     "weight": 0.9,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Audio Signal Processing",
+     "tier": "required",
+     "weight": 0.9,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "PyTorch",
+     "tier": "required",
+     "weight": 0.9,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Text-to-Speech",
+     "tier": "supporting",
+     "weight": 0.7,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Transformers (architecture)",
+     "tier": "supporting",
+     "weight": 0.7,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Hugging Face Transformers",
+     "tier": "supporting",
+     "weight": 0.6,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "NumPy",
+     "tier": "supporting",
+     "weight": 0.5,
+     "expectedLevel": "Foundational",
+     "evidenceRequirement": "described"
+    }
+   ],
+   "completionCriteria": "Every required competency is at its expected level, shown by independent evidence (repositories, platform activity or assessments)."
+  },
+  "graph_ai_engineer": {
+   "role": "graph_ai_engineer",
+   "label": "Graph AI Engineer",
+   "status": "current",
+   "responsibilities": [
+    "Model relational data as graphs",
+    "Train graph neural networks",
+    "Build and query knowledge graphs",
+    "Apply graph methods to recommendation and search"
+   ],
+   "projectContext": "a graph learning task on real relational data",
+   "competencies": [
+    {
+     "competency": "Python",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Graph Neural Networks",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Deep Learning",
+     "tier": "required",
+     "weight": 0.9,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "PyTorch",
+     "tier": "required",
+     "weight": 0.8,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Knowledge Graphs",
+     "tier": "required",
+     "weight": 0.8,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Linear Algebra",
+     "tier": "supporting",
+     "weight": 0.7,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Data Structures and Algorithms",
+     "tier": "supporting",
+     "weight": 0.7,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "NetworkX",
+     "tier": "supporting",
+     "weight": 0.6,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Recommender Systems",
+     "tier": "supporting",
+     "weight": 0.5,
+     "expectedLevel": "Foundational",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Neo4j",
+     "tier": "supporting",
+     "weight": 0.4,
+     "expectedLevel": "Foundational",
+     "evidenceRequirement": "described"
+    }
+   ],
+   "completionCriteria": "Every required competency is at its expected level, shown by independent evidence (repositories, platform activity or assessments)."
+  },
+  "ai_infrastructure_engineer": {
+   "role": "ai_infrastructure_engineer",
+   "label": "AI Infrastructure Engineer",
+   "status": "current",
+   "responsibilities": [
+    "Run GPU clusters for training and serving",
+    "Operate distributed training",
+    "Build model-serving infrastructure",
+    "Provision infrastructure as code"
+   ],
+   "projectContext": "GPU training or serving infrastructure",
+   "competencies": [
+    {
+     "competency": "Python",
+     "tier": "required",
+     "weight": 0.8,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Kubernetes",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Docker",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Linux",
+     "tier": "required",
+     "weight": 0.9,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "CUDA",
+     "tier": "required",
+     "weight": 0.8,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Distributed Training",
+     "tier": "required",
+     "weight": 0.8,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Terraform",
+     "tier": "supporting",
+     "weight": 0.7,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "AWS",
+     "tier": "supporting",
+     "weight": 0.7,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Triton Inference Server",
+     "tier": "supporting",
+     "weight": 0.6,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "TensorRT",
+     "tier": "supporting",
+     "weight": 0.5,
+     "expectedLevel": "Foundational",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Google Cloud",
+     "tier": "supporting",
+     "weight": 0.5,
+     "expectedLevel": "Foundational",
+     "evidenceRequirement": "described"
+    }
+   ],
+   "completionCriteria": "Every required competency is at its expected level, shown by independent evidence (repositories, platform activity or assessments)."
+  },
+  "ai_evaluation_safety_engineer": {
+   "role": "ai_evaluation_safety_engineer",
+   "label": "AI Evaluation & Safety Engineer",
+   "status": "current",
+   "responsibilities": [
+    "Design evaluation suites for models",
+    "Measure quality with sound statistics",
+    "Red-team models for harmful behaviour",
+    "Report risks and mitigations"
+   ],
+   "projectContext": "an evaluation suite for a model's quality and safety",
+   "competencies": [
+    {
+     "competency": "Python",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "LLM Evaluation",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "AI Safety",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Statistics",
+     "tier": "required",
+     "weight": 0.9,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Large Language Models",
+     "tier": "required",
+     "weight": 0.9,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Machine Learning",
+     "tier": "required",
+     "weight": 0.8,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Probability",
+     "tier": "supporting",
+     "weight": 0.7,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Prompt Engineering",
+     "tier": "supporting",
+     "weight": 0.6,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Pandas",
+     "tier": "supporting",
+     "weight": 0.5,
+     "expectedLevel": "Foundational",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Weights & Biases",
+     "tier": "supporting",
+     "weight": 0.4,
+     "expectedLevel": "Foundational",
+     "evidenceRequirement": "described"
+    }
+   ],
+   "completionCriteria": "Every required competency is at its expected level, shown by independent evidence (repositories, platform activity or assessments)."
+  },
+  "edge_federated_ai_engineer": {
+   "role": "edge_federated_ai_engineer",
+   "label": "Edge & Federated AI Engineer",
+   "status": "current",
+   "responsibilities": [
+    "Deploy models on resource-constrained devices",
+    "Compress and quantise models",
+    "Train models across devices privately",
+    "Measure on-device latency and accuracy"
+   ],
+   "projectContext": "a model running on a device or trained across devices",
+   "competencies": [
+    {
+     "competency": "Python",
+     "tier": "required",
+     "weight": 0.9,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "On-device ML",
+     "tier": "required",
+     "weight": 1.0,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Federated Learning",
+     "tier": "required",
+     "weight": 0.9,
+     "expectedLevel": "Proficient",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Model Quantization",
+     "tier": "required",
+     "weight": 0.8,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "Deep Learning",
+     "tier": "required",
+     "weight": 0.8,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "ONNX",
+     "tier": "required",
+     "weight": 0.8,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "independent"
+    },
+    {
+     "competency": "C++",
+     "tier": "supporting",
+     "weight": 0.7,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "TensorFlow Lite",
+     "tier": "supporting",
+     "weight": 0.7,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "Differential Privacy",
+     "tier": "supporting",
+     "weight": 0.6,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "PyTorch",
+     "tier": "supporting",
+     "weight": 0.6,
+     "expectedLevel": "Working",
+     "evidenceRequirement": "described"
+    },
+    {
+     "competency": "TensorRT",
+     "tier": "supporting",
+     "weight": 0.5,
+     "expectedLevel": "Foundational",
+     "evidenceRequirement": "described"
+    }
+   ],
+   "completionCriteria": "Every required competency is at its expected level, shown by independent evidence (repositories, platform activity or assessments)."
+  }
+ }
+}

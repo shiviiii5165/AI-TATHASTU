@@ -51,7 +51,7 @@ export const widgets: WidgetDefinition[] = [
     id: "eris_readiness",
     personas: ["student"],
     module: "eris",
-    label: "Interview readiness",
+    label: "Where you stand",
     requiredIntent: ["avasar_jobs"],
     requiredData: ["skills", "experience"],
     eligibility: (view) => view.erisScore.overall !== null,

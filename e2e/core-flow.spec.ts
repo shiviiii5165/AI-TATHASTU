@@ -151,11 +151,15 @@ test("Phase 1–3 journey: onboarding to a personalized dashboard", async ({ pag
       await expect(page.getByText("Built around ML Engineer · Internships & Jobs first")).toBeVisible();
     }).toPass({ timeout: 30_000 });
 
-    const eris = widget(page, "Interview readiness");
-    await expect(eris.getByRole("meter", { name: "Interview readiness" })).toHaveAttribute("aria-valuenow", "63");
+    // The engine's alignment state, never a readiness score or percentage.
+    const eris = widget(page, "Where you stand");
+    await expect(eris.getByTestId("alignment-state")).toHaveText("Developing alignment");
     await expect(eris).toContainText("for ML Engineer");
-    await expect(eris.getByRole("link", { name: /Kubernetes\s*20%/ })).toBeVisible();
-    await expect(eris.getByText("Not scored")).toBeVisible(); // problem_solving missing from the breakdown
+    await expect(eris).toContainText("1 of 4 required skills shown at the expected level");
+    await expect(eris.getByRole("link", { name: /Kubernetes\s*Foundational, needs Working/ })).toBeVisible();
+    await expect(eris.getByRole("link", { name: /Docker\s*No proof yet/ })).toBeVisible();
+    await expect(eris).not.toContainText("%");
+    await expect(eris.getByRole("meter")).toHaveCount(0);
 
     const github = widget(page, "Recent GitHub work");
     await expect(github).toContainText("2 repositories");
@@ -175,7 +179,7 @@ test("Phase 1–3 journey: onboarding to a personalized dashboard", async ({ pag
       .filter({ has: page.getByRole("button", { name: /^Hide / }) }) // widgets, not other cards on the page
       .getByRole("heading", { level: 2 })
       .allTextContents();
-    expect(order[0]).toBe("Interview readiness");
+    expect(order[0]).toBe("Where you stand");
     expect(order).not.toContain("Jobs that fit you");
     expect(order).not.toContain("Finish your profile");
   });
@@ -196,7 +200,7 @@ test("Phase 1–3 journey: onboarding to a personalized dashboard", async ({ pag
       .toBe(1);
 
     await page.reload();
-    await expect(widget(page, "Interview readiness")).toBeVisible();
+    await expect(widget(page, "Where you stand")).toBeVisible();
     await expect(widget(page, "Skills to develop")).toHaveCount(0);
   });
 });

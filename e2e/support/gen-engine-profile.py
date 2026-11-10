@@ -66,6 +66,7 @@ user = {"degree": "B.Tech Computer Science", "university": "IIT Delhi"}
 
 intel = engine.compute(user=user, roles=["ml_engineer"], facts=facts, repos=repos, resources=resources, canonical=_canonical,
                        lexicon_scan=_lexicon, categories=_CATEGORIES, now=NOW)
+intel.pop("_ledger", None)  # written to skill_evidence by the worker, never part of the dashboard document
 
 journey_facts = [{"group": g, "record": r, "field": f, "value": v if isinstance(v, str) else json.dumps(v)} for g, r, f, v in FACTS_SPEC if r]
 OUT.write_text(json.dumps({"intelligence": intel, "facts": journey_facts}, default=str, indent=1), encoding="utf-8")

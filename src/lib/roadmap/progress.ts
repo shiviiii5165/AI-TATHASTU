@@ -29,8 +29,15 @@ export type RoadmapStep = {
   requires: string[];
   /** Prerequisites from `requires` that the evidence doesn't show at level yet. */
   blockedBy: string[];
-  estimateWeeks: number;
+  /** Always null from engine v3 (no invented time estimates); a number only on older documents, and not shown. */
+  estimateWeeks: number | null;
   submissions: number;
+  /** Engine v3 milestone detail; absent on older documents. */
+  objective?: string;
+  practicalTask?: string;
+  evidenceRequired?: string;
+  why?: string;
+  optional: boolean;
 };
 
 export type RoadmapProgress = {
@@ -75,14 +82,20 @@ export function roadmapProgress(roadmap: EngineRoadmap, computedAt: string | Dat
         criterion: m.criterion,
         requires: m.requires,
         blockedBy: [],
-        estimateWeeks: m.estimateWeeks,
+        estimateWeeks: m.estimateWeeks ?? null,
         submissions: subs.length,
+        objective: m.objective,
+        practicalTask: m.practicalTask,
+        evidenceRequired: m.evidenceRequired,
+        why: m.why,
+        optional: Boolean(m.optional ?? stage.optional),
       });
     }
   }
 
   // The next milestone: the first open one whose prerequisites are all done.
   const done = (skill: string) => completed.has(skill) || steps.some((s) => s.skill === skill && s.status === "completed");
+  // Required milestones come before optional ones; the engine already orders them that way within stages.
   const next = steps.find((s) => s.status !== "completed" && s.requires.every(done)) ?? steps.find((s) => s.status !== "completed") ?? null;
   if (next && next.status === "upcoming") next.status = "active";
   for (const s of steps) {

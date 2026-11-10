@@ -16,7 +16,7 @@
     "overall": 0.63,
     "byRole": { "ml_engineer": 0.63 },
     "gaps": [
-      { "skill": "Kubernetes", "readiness": 0.2, "weight": 0.8, "state": "underdeveloped" },
+      { "skill": "Kubernetes", "readiness": 0.2, "weight": 0.8, "state": "underdeveloped", "level": "Foundational", "expectedLevel": "Working" },
       { "skill": "Docker", "readiness": null, "weight": 0.7, "state": "missing" }
     ]
   },
@@ -32,6 +32,7 @@
     "roles": [
       {
         "role": "ml_engineer", "coverage": 0.3, "assessed": true,
+        "alignment": { "state": "developing", "label": "Developing alignment", "required": 4, "requiredMet": 1, "requiredAssessed": 2, "requiredClaimedOnly": 1, "requiredMissing": 1, "supporting": 6, "supportingMet": 0, "criticalGaps": ["Machine Learning"], "foundationsMet": false },
         "skills": [],
         "open": [{ "skill": "Kubernetes", "weight": 0.8, "priority": "High", "expected": 25, "expectedLevel": "Working", "proficiency": 20, "level": "Foundational", "confidence": 0.35, "state": "underdeveloped", "insufficientEvidence": false, "action": "learn", "evidence": [] }, { "skill": "Docker", "weight": 0.7, "priority": "Medium", "expected": 25, "expectedLevel": "Working", "proficiency": null, "level": "Not assessed", "confidence": 0, "state": "missing", "insufficientEvidence": false, "action": "learn", "evidence": [] }],
         "counts": { "met": 1, "underdeveloped": 1, "unverified": 0, "inferred": 0, "missing": 1, "not_assessed": 0 }
@@ -61,12 +62,12 @@
   "readinessIndicators": { "resumeLinked": true, "connectorsCount": 1, "confirmedFacts": 9, "profileComplete": 0.8 },
   "widgets": [
     {
-      "id": "eris_readiness", "module": "eris", "label": "Interview readiness", "score": 0.91,
+      "id": "eris_readiness", "module": "eris", "label": "Where you stand", "score": 0.91,
       "components": { "I": 1, "G": 0.9, "R": 0.8, "F": 1 }, "state": "ready",
       "data": {
         "role": "ml_engineer", "score": 0.63,
         "gaps": [
-          { "skill": "Kubernetes", "readiness": 0.2, "weight": 0.8, "state": "underdeveloped" },
+          { "skill": "Kubernetes", "readiness": 0.2, "weight": 0.8, "state": "underdeveloped", "level": "Foundational", "expectedLevel": "Working" },
           { "skill": "Docker", "readiness": null, "weight": 0.7, "state": "missing" }
         ]
       }
@@ -77,7 +78,7 @@
       "data": {
         "role": "ml_engineer",
         "gaps": [
-          { "skill": "Kubernetes", "readiness": 0.2, "weight": 0.8, "state": "underdeveloped" },
+          { "skill": "Kubernetes", "readiness": 0.2, "weight": 0.8, "state": "underdeveloped", "level": "Foundational", "expectedLevel": "Working" },
           { "skill": "Docker", "readiness": null, "weight": 0.7, "state": "missing" }
         ]
       }

@@ -91,7 +91,9 @@ function RoleTable({ role }: { role: RoleAnalysis }) {
     <section className="rounded-2xl border border-border bg-card p-5 shadow-2xs sm:p-6">
       <h2 className="text-base font-bold text-foreground">{roleLabel(role.role)}</h2>
       <p className="mt-0.5 text-xs text-muted-foreground">
-        {role.assessed ? `${Math.round(role.coverage * 100)}% of what this role calls for has evidence behind it.` : "Not enough evidence to assess this role. That isn't the same as having gaps."}
+        {role.assessed && role.alignment
+          ? `${role.alignment.label}: ${role.alignment.requiredMet} of ${role.alignment.required} required skills shown at the expected level.`
+          : "Not enough evidence to assess this role. That isn't the same as having gaps."}
       </p>
       {/* Phones: one stacked row per skill (no sideways scrolling). Same data as the table. */}
       <ul className="mt-3 divide-y divide-border sm:hidden">

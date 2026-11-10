@@ -1,15 +1,16 @@
 import { eq } from "drizzle-orm";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, ExternalLink, FolderGit2, GitFork, Sparkles, Star } from "lucide-react";
+import { Suspense } from "react";
+import { ArrowLeft, ExternalLink, FolderGit2, GitFork, Star } from "lucide-react";
 
 import { db } from "@/db";
-import { codeRepositories, githubScores } from "@/db/schema";
+import { codeRepositories } from "@/db/schema";
 import { requireOnboardedUser } from "@/lib/dal";
 
 function GithubIcon({ className = "size-4" }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path
         fillRule="evenodd"
         clipRule="evenodd"
@@ -19,11 +20,11 @@ function GithubIcon({ className = "size-4" }: { className?: string }) {
   );
 }
 
-import { Suspense } from "react";
-
 export const metadata: Metadata = {
   title: "Projects & Repositories | AI Tathastu",
 };
+
+const MAX_TECH = 4;
 
 export default function ProjectsPage() {
   return (
@@ -35,188 +36,172 @@ export default function ProjectsPage() {
 
 function ProjectsSkeleton() {
   return (
-    <div className="space-y-6 max-w-7xl mx-auto animate-pulse">
-      <div className="h-10 w-64 bg-slate-200 rounded-xl" />
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+    <div className="mx-auto max-w-6xl space-y-5 animate-pulse" aria-busy="true" aria-label="Loading repositories">
+      <div className="h-8 w-72 rounded-lg bg-slate-200" />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="h-56 bg-slate-100 rounded-2xl" />
+          <div key={i} className="h-40 rounded-xl bg-slate-100" />
         ))}
       </div>
     </div>
   );
 }
 
+/** Languages ordered by bytes (largest first), as GitHub reports them. */
+function languagesBySize(languages: unknown): string[] {
+  const entries = Object.entries((languages as Record<string, number>) || {});
+  return entries.sort((a, b) => (b[1] || 0) - (a[1] || 0)).map(([name]) => name);
+}
+
+const dateFormat = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" });
+
 async function ProjectsContent() {
   const { user } = await requireOnboardedUser();
 
-  const [repos, scores] = await Promise.all([
-    db
-      .select()
-      .from(codeRepositories)
-      .where(eq(codeRepositories.userId, user.id))
-      .catch((err) => {
-        console.error("[ProjectsContent] codeRepositories query failed:", err);
-        return [];
-      }),
-    db
-      .select()
-      .from(githubScores)
-      .where(eq(githubScores.userId, user.id))
-      .catch((err) => {
-        console.error("[ProjectsContent] githubScores query failed:", err);
-        return [];
-      }),
-  ]);
+  const repos = await db
+    .select()
+    .from(codeRepositories)
+    .where(eq(codeRepositories.userId, user.id))
+    .catch((err) => {
+      console.error("[ProjectsContent] codeRepositories query failed:", err);
+      return [];
+    });
 
-  const scoresMap = new Map<string, { impactScore: number; rationale: string }>();
-  scores.forEach((s) => {
-    scoresMap.set(s.repoId, { impactScore: s.impactScore, rationale: s.rationale });
-    if (s.repoName) {
-      scoresMap.set(s.repoName.toLowerCase(), { impactScore: s.impactScore, rationale: s.rationale });
-    }
-  });
+  // Most recently updated first; repositories without a known date go last.
+  const sorted = [...repos].sort(
+    (a, b) => (b.lastCommitAt?.getTime() ?? 0) - (a.lastCommitAt?.getTime() ?? 0),
+  );
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto pb-16">
-      {/* Header breadcrumb & title */}
-      <div>
+    <div className="mx-auto max-w-6xl space-y-5 pb-12">
+      <header>
         <Link
           href="/dashboard"
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors mb-2"
+          className="mb-2 inline-flex items-center gap-1.5 rounded text-xs font-medium text-slate-500 transition-colors hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400"
         >
-          <ArrowLeft className="size-3.5" />
-          <span>Back to Dashboard</span>
+          <ArrowLeft className="size-3.5" aria-hidden="true" />
+          Back to Dashboard
         </Link>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="editorial-title text-3xl sm:text-4xl text-[#11182B] tracking-tight">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="editorial-title !text-2xl tracking-tight text-slate-900 sm:!text-[28px] sm:leading-tight">
               Projects & Engineering Repositories
             </h1>
-            <p className="mt-1 text-sm text-[#64748B]">
-              Verified technical artifacts synced with GitHub and scored by our AI Impact Engine.
-            </p>
+            {sorted.length > 0 && (
+              <p className="mt-1 text-sm text-slate-600">
+                {sorted.length} {sorted.length === 1 ? "repository" : "repositories"} synced from GitHub.
+              </p>
+            )}
           </div>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/settings/integrations"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs"
-            >
-              <GithubIcon className="size-3.5" />
-              <span>Sync GitHub</span>
-            </Link>
-          </div>
+          <Link
+            href="/settings/integrations"
+            className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[13px] font-medium text-slate-700 transition-colors hover:bg-slate-50 active:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400 sm:self-auto"
+          >
+            <GithubIcon className="size-3.5" />
+            Sync GitHub
+          </Link>
         </div>
-      </div>
+      </header>
 
-      {/* Projects Grid */}
-      {repos.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {repos.map((repo) => {
-            // Unscored repos show no score rather than an invented one.
-            const scoreData = scoresMap.get(String(repo.id)) || scoresMap.get(repo.repoName.toLowerCase()) || null;
-
-            const langs = Object.keys((repo.languages as Record<string, number>) || {});
+      {sorted.length > 0 ? (
+        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {sorted.map((repo) => {
+            const langs = languagesBySize(repo.languages);
             const topics = (repo.topics as string[]) || [];
-            const tags = [...langs.slice(0, 2), ...topics.slice(0, 2)];
+            const tech = [...langs, ...topics.filter((t) => !langs.some((l) => l.toLowerCase() === t.toLowerCase()))];
+            const shown = tech.slice(0, MAX_TECH);
+            const hidden = tech.length - shown.length;
+            const [owner, name] = repo.repoName.includes("/")
+              ? [repo.repoName.split("/")[0], repo.repoName.split("/").slice(1).join("/")]
+              : [null, repo.repoName];
 
             return (
-              <div
+              <li
                 key={repo.id}
-                className="flex flex-col justify-between rounded-2xl border border-[#E7EAF3] bg-white p-4 sm:p-5 shadow-2xs hover:shadow-md hover:border-slate-300 transition-all"
+                className="flex min-w-0 flex-col rounded-xl border border-slate-200 bg-white p-4 transition-colors hover:border-slate-300"
               >
-                <div>
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <div className="flex size-8 items-center justify-center rounded-lg bg-slate-900 text-white shrink-0">
-                        <GithubIcon className="size-4" />
-                      </div>
-                      <h2 className="font-sans text-sm font-bold text-[#11182B] truncate" title={repo.repoName}>
-                        {repo.repoName}
-                      </h2>
-                    </div>
-
-                    {scoreData && (
-                      <span className="shrink-0 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-xs font-bold text-emerald-700">
-                        Impact {scoreData.impactScore}
-                      </span>
-                    )}
-                  </div>
-
-                  {repo.description && (
-                    <p className="mt-3 text-xs text-[#617493] line-clamp-2 leading-relaxed">{repo.description}</p>
-                  )}
-
-                  {/* Impact rationale (from the worker's scorer; absent until scored) */}
-                  {scoreData && (
-                    <div className="mt-3.5 rounded-xl bg-slate-50 p-2.5 border border-slate-100 text-[11px] text-slate-600">
-                      <div className="flex items-center gap-1 font-semibold text-slate-900 mb-0.5">
-                        <Sparkles className="size-3 text-[#FF496D]" />
-                        <span>Impact Rationale</span>
-                      </div>
-                      <p className="line-clamp-2">{scoreData.rationale}</p>
-                    </div>
-                  )}
-
-                  {/* Tags */}
-                  {tags.length > 0 && (
-                    <div className="mt-3.5 flex flex-wrap gap-1.5">
-                      {tags.map((t, idx) => (
-                        <span
-                          key={idx}
-                          className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600"
-                        >
-                          {t}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                <div className="flex min-w-0 items-center gap-2">
+                  <GithubIcon className="size-4 shrink-0 text-slate-700" />
+                  <h2 className="min-w-0 truncate text-[15px] font-semibold text-slate-900" title={repo.repoName}>
+                    {owner && <span className="font-normal text-slate-500">{owner}/</span>}
+                    {name}
+                  </h2>
                 </div>
 
-                {/* Footer stats & external link */}
-                <div className="mt-5 pt-3.5 border-t border-[#F0F2F7] flex items-center justify-between text-xs text-slate-500">
-                  <div className="flex items-center gap-3">
-                    <span className="flex items-center gap-1">
-                      <Star className="size-3.5 text-amber-500 fill-amber-500" />
+                {repo.description ? (
+                  <p className="mt-2 line-clamp-2 min-h-[2.5rem] text-[13px] leading-5 text-slate-600">
+                    {repo.description}
+                  </p>
+                ) : (
+                  <p className="mt-2 text-[13px] leading-5 text-slate-500">No description provided.</p>
+                )}
+
+                {shown.length > 0 && (
+                  <div className="mt-3">
+                    <span className="sr-only">Technologies: </span>
+                    <ul className="flex flex-wrap gap-1.5" aria-label="Technologies">
+                      {shown.map((t) => (
+                        <li key={t} className="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-700">
+                          {t}
+                        </li>
+                      ))}
+                      {hidden > 0 && (
+                        <li className="px-1 py-0.5 text-xs text-slate-500" title={tech.slice(MAX_TECH).join(", ")}>
+                          +{hidden} more
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+                )}
+
+                <div className="min-h-4 flex-1" aria-hidden="true" />
+                <div className="flex items-center justify-between gap-3 border-t border-slate-100 pt-3 text-xs text-slate-500">
+                  <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+                    <span className="inline-flex items-center gap-1" title="Stars">
+                      <Star className="size-3.5" aria-hidden="true" />
+                      <span className="sr-only">Stars: </span>
                       {repo.stars || 0}
                     </span>
-                    <span className="flex items-center gap-1">
-                      <GitFork className="size-3.5 text-slate-400" />
+                    <span className="inline-flex items-center gap-1" title="Forks">
+                      <GitFork className="size-3.5" aria-hidden="true" />
+                      <span className="sr-only">Forks: </span>
                       {repo.forks || 0}
                     </span>
+                    {repo.lastCommitAt && (
+                      <span className="whitespace-nowrap">Updated {dateFormat.format(repo.lastCommitAt)}</span>
+                    )}
                   </div>
-
-                  <a
-                    href={repo.url || "#"}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 font-semibold text-[#2878F0] hover:underline"
-                  >
-                    <span>View Repo</span>
-                    <ExternalLink className="size-3" />
-                  </a>
+                  {repo.url && (
+                    <a
+                      href={repo.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex shrink-0 items-center gap-1 rounded font-medium text-blue-600 hover:text-blue-700 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+                    >
+                      View on GitHub
+                      <ExternalLink className="size-3" aria-hidden="true" />
+                      <span className="sr-only">(opens in a new tab)</span>
+                    </a>
+                  )}
                 </div>
-              </div>
+              </li>
             );
           })}
-        </div>
+        </ul>
       ) : (
-        <div className="rounded-2xl border border-dashed border-[#E7EAF3] bg-white p-12 text-center max-w-lg mx-auto">
-          <div className="size-12 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center mx-auto mb-3">
-            <FolderGit2 className="size-6" />
-          </div>
-          <h2 className="font-sans text-base font-bold text-slate-900">No repositories synced yet</h2>
-          <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-            Connect your GitHub account to automatically sync your repositories, score them with the AI Impact Engine, and verify your proof of work.
+        <div className="mx-auto max-w-md rounded-xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center">
+          <FolderGit2 className="mx-auto mb-3 size-6 text-slate-400" aria-hidden="true" />
+          <h2 className="text-[15px] font-semibold text-slate-900">No repositories synced yet</h2>
+          <p className="mx-auto mt-1 max-w-sm text-[13px] text-slate-600">
+            Connect your GitHub account to bring your public repositories into AI Tathastu.
           </p>
-          <div className="mt-5">
-            <Link
-              href="/settings/integrations"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 transition-colors"
-            >
-              <GithubIcon className="size-4" />
-              <span>Connect GitHub</span>
-            </Link>
-          </div>
+          <Link
+            href="/settings/integrations"
+            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-slate-900 px-3.5 py-2 text-[13px] font-medium text-white transition-colors hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-500"
+          >
+            <GithubIcon className="size-4" />
+            Connect GitHub
+          </Link>
         </div>
       )}
     </div>

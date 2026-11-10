@@ -795,6 +795,39 @@ export const roadmapMilestoneSubmissions = pgTable(
   ],
 );
 
+/**
+ * Courses and certifications (migration 0026). Course completion is learning, never proficiency; a certification
+ * adds supporting evidence only when verification = 'verified'. The worker reads it; see career_engine.build_skills.
+ * The case-insensitive unique index on (user_id, kind, lower(title)) lives in the SQL migration.
+ */
+export const learningRecords = pgTable(
+  "learning_records",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    kind: text("kind", { enum: ["course", "certification"] }).notNull(),
+    title: text("title").notNull(),
+    provider: text("provider"),
+    url: text("url"),
+    resourceId: uuid("resource_id"),
+    status: text("status", { enum: ["recommended", "started", "completed", "claimed"] }).notNull().default("recommended"),
+    verification: text("verification", { enum: ["unverified", "verified", "rejected"] }).notNull().default("unverified"),
+    source: text("source").notNull(),
+    sourceFactId: uuid("source_fact_id"),
+    credentialId: text("credential_id"),
+    skills: text("skills").array().notNull().default([]),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    verifiedAt: timestamp("verified_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => [index("learning_records_user_idx").on(t.userId)],
+);
+
 export type Roadmap = typeof roadmaps.$inferSelect;
 
 export const githubScores = pgTable(
