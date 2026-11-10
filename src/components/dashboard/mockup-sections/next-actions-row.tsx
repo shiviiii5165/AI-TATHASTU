@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, CheckCircle2 } from "lucide-react";
+import { ArrowRight, CheckCircle2, ExternalLink } from "lucide-react";
 import Link from "next/link";
 
 interface NextActionItem {
@@ -14,14 +14,16 @@ interface NextActionItem {
 
 interface NextActionsRowProps {
   actions?: NextActionItem[];
+  /** Why there are no steps, and what to do about it (from lib/roadmap/next-steps.ts). */
+  empty?: { message: string; href?: string; action?: string } | null;
   /** Kept for callers; Yora is reached from the hero, so this row no longer repeats it. */
   onOpenYora?: () => void;
 }
 
-const ACCENTS = ["#2878F0", "#8554FF", "#0E9D6D", "#FF496D", "#F59E0B"];
+const ACCENTS = ["#0ea5e9", "#8b5cf6", "#10b981", "#f97316", "#ec4899"];
 
-/** The engine's next steps for this user, in its order. Nothing is shown until the profile has been processed. */
-export function NextActionsRow({ actions: dynamicActions }: NextActionsRowProps) {
+/** Next steps from the roadmap for the user's chosen goal (lib/roadmap/next-steps.ts), in its order. */
+export function NextActionsRow({ actions: dynamicActions, empty }: NextActionsRowProps) {
   const actions = (dynamicActions ?? []).slice(0, 5);
 
   return (
@@ -36,9 +38,16 @@ export function NextActionsRow({ actions: dynamicActions }: NextActionsRowProps)
       </div>
 
       {actions.length === 0 ? (
-        <p className="my-6 text-center text-xs text-muted-foreground">Your next steps appear once your profile has been processed.</p>
+        <div className="my-5 text-center">
+          <p className="text-xs text-muted-foreground">{empty?.message ?? "Your next steps appear once your profile has been processed."}</p>
+          {empty?.href && empty.action && (
+            <Link href={empty.href} className="mt-2 inline-block text-xs font-semibold text-primary hover:underline">
+              {empty.action}
+            </Link>
+          )}
+        </div>
       ) : (
-        <ol className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-5">
+        <ol className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
           {actions.map((act, idx) => {
             const accent = ACCENTS[idx % ACCENTS.length];
             return (
@@ -52,10 +61,18 @@ export function NextActionsRow({ actions: dynamicActions }: NextActionsRowProps)
                   </p>
                   <p className="mt-1 line-clamp-3 text-[11px] leading-snug text-muted-foreground">{act.desc}</p>
                 </div>
-                <Link href={act.btnHref || "/dashboard"} className="mt-3 inline-flex items-center gap-1 text-[11px] font-bold hover:underline" style={{ color: accent }}>
-                  {(act.btnText || "Start").replace(/\s*→\s*$/, "")}
-                  <ArrowRight aria-hidden className="size-3" />
-                </Link>
+                {/^https?:\/\//.test(act.btnHref) ? (
+                  <a href={act.btnHref} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex min-w-0 items-center gap-1 text-[11px] font-bold hover:underline" style={{ color: accent }}>
+                    <span className="truncate">{act.btnText}</span>
+                    <ExternalLink aria-hidden className="size-3 shrink-0" />
+                    <span className="sr-only">(opens in a new tab)</span>
+                  </a>
+                ) : (
+                  <Link href={act.btnHref || "#career-roadmap"} className="mt-3 inline-flex items-center gap-1 text-[11px] font-bold hover:underline" style={{ color: accent }}>
+                    {(act.btnText || "Start").replace(/\s*→\s*$/, "")}
+                    <ArrowRight aria-hidden className="size-3" />
+                  </Link>
+                )}
               </li>
             );
           })}

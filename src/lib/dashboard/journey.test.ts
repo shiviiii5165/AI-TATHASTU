@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildJourney, journeyView } from "./journey";
+import { buildJourney, dateKeys, journeyView } from "./journey";
 
 const titles = (records: Parameters<typeof buildJourney>[0]) => buildJourney(records).map((m) => m.title);
 
@@ -60,34 +60,57 @@ describe("buildJourney", () => {
   });
 });
 
+
 describe("journeyView", () => {
   const journey = buildJourney([
     { group: "education", fields: { degree: "School", end_date: "2015" } },
-    { group: "education", fields: { degree: "B.Tech", end_date: "2019" } },
-    { group: "experience", fields: { role: "Intern", start_date: "2019", end_date: "2019" } },
-    { group: "experience", fields: { role: "Engineer", start_date: "2020", end_date: "Present" } },
-    { group: "achievements", fields: { title: "Undated award" } },
+    { group: "achievements", fields: { title: "Best Speaker", date: "2023" } },
+    { group: "education", fields: { degree: "B.Tech", institution: "LPU", end_date: "Present" } },
+    { group: "experience", fields: { role: "Frontend Developer", organization: "Real Gods eSports", start_date: "Oct. 2025", end_date: "Present" } },
+    { group: "experience", fields: { role: "Technical Advisor", organization: "Nayee Asha", start_date: "Jul 2026", end_date: "Present" } },
+    { group: "experience", fields: { role: "COO", organization: "Study LPU", start_date: "Apr 2026", end_date: "Present" } },
+    { group: "achievements", fields: { title: "Nodwin Cups" } },
+    { group: "achievements", fields: { title: "Vision Week" } },
+    { group: "education", fields: { degree: "Diploma" } },
   ]);
 
-  it("keeps chronological order, oldest first, ending on the current position", () => {
-    const v = journeyView(journey);
-    expect(v.timeline.map((m) => m.title)).toEqual(["School", "B.Tech", "Intern", "Engineer"]);
-    expect(v.timeline.at(-1)?.current).toBe(true);
+  it("orders finished records by date, then ongoing ones by when they started", () => {
+    expect(journeyView(journey).timeline.map((m) => m.title)).toEqual(["School", "Best Speaker", "B.Tech", "Frontend Developer", "COO", "Technical Advisor"]);
   });
 
-  it("keeps undated records apart instead of guessing where they belong", () => {
+  it("marks exactly one record as where you are now: the most recently started ongoing job", () => {
     const v = journeyView(journey);
-    expect(v.undated.map((m) => m.title)).toEqual(["Undated award"]);
-    expect(v.timeline.some((m) => m.title === "Undated award")).toBe(false);
+    expect(v.timeline.filter((m) => m.current)).toHaveLength(4);
+    expect(v.primaryIndex).not.toBeNull();
+    expect(v.timeline[v.primaryIndex!].title).toBe("Technical Advisor");
+  });
+
+  it("falls back to an ongoing degree when no job is ongoing, and to nothing when nothing is", () => {
+    const study = journeyView(buildJourney([{ group: "education", fields: { degree: "M.Sc", end_date: "Present" } }, { group: "experience", fields: { role: "Intern", start_date: "2020", end_date: "2021" } }]));
+    expect(study.timeline[study.primaryIndex!].title).toBe("M.Sc");
+    expect(journeyView(buildJourney([{ group: "experience", fields: { role: "Intern", start_date: "2020", end_date: "2021" } }])).primaryIndex).toBeNull();
+  });
+
+  it("puts dated achievements on the path and groups undated achievements apart from other undated records", () => {
+    const v = journeyView(journey);
+    expect(v.timeline.some((m) => m.title === "Best Speaker")).toBe(true);
+    expect(v.undatedAchievements.map((m) => m.title)).toEqual(["Nodwin Cups", "Vision Week"]);
+    expect(v.undatedOther.map((m) => m.title)).toEqual(["Diploma"]);
   });
 
   it("drops the earliest records first when trimming, and counts them", () => {
     const v = journeyView(journey, 2);
-    expect(v.timeline.map((m) => m.title)).toEqual(["Intern", "Engineer"]);
-    expect(v.earlier).toBe(2);
+    expect(v.timeline.map((m) => m.title)).toEqual(["COO", "Technical Advisor"]);
+    expect(v.earlier).toBe(4);
+  });
+
+  it("reads month names so same-year records keep their order", () => {
+    expect(dateKeys("Oct. 2025 to Present")).toEqual([2025 * 12 + 9]);
+    expect(dateKeys("2021")).toEqual([2021 * 12]);
+    expect(dateKeys(null)).toEqual([]);
   });
 
   it("is empty for an empty profile", () => {
-    expect(journeyView([])).toEqual({ timeline: [], undated: [], earlier: 0, hiddenUndated: 0 });
+    expect(journeyView([])).toEqual({ timeline: [], primaryIndex: null, undatedAchievements: [], undatedOther: [], earlier: 0, hiddenUndated: 0 });
   });
 });

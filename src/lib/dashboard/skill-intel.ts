@@ -5,16 +5,20 @@ import type { SkillEvidenceRef, SkillGraphData, SkillGraphEdge, SkillGraphNode }
 
 export type ClusterKey = "languages" | "ai" | "ml" | "data" | "ops" | "engineering" | "foundations" | "other" | "suggested";
 
-export const CLUSTERS: Record<ClusterKey, { label: string; hex: string; soft: string }> = {
-  languages: { label: "Languages", hex: "#8b5cf6", soft: "bg-violet-50/70 border-violet-200/70 dark:bg-violet-500/10 dark:border-violet-400/20" },
-  ai: { label: "LLMs & language AI", hex: "#ec4899", soft: "bg-pink-50/70 border-pink-200/70 dark:bg-pink-500/10 dark:border-pink-400/20" },
-  ml: { label: "ML & vision", hex: "#d946ef", soft: "bg-fuchsia-50/70 border-fuchsia-200/70 dark:bg-fuchsia-500/10 dark:border-fuchsia-400/20" },
-  data: { label: "Data & databases", hex: "#0ea5e9", soft: "bg-sky-50/70 border-sky-200/70 dark:bg-sky-500/10 dark:border-sky-400/20" },
-  ops: { label: "MLOps, cloud & tools", hex: "#14b8a6", soft: "bg-teal-50/70 border-teal-200/70 dark:bg-teal-500/10 dark:border-teal-400/20" },
-  engineering: { label: "Software engineering", hex: "#3b82f6", soft: "bg-blue-50/70 border-blue-200/70 dark:bg-blue-500/10 dark:border-blue-400/20" },
-  foundations: { label: "Foundations", hex: "#f59e0b", soft: "bg-amber-50/70 border-amber-200/70 dark:bg-amber-500/10 dark:border-amber-400/20" },
-  other: { label: "Other", hex: "#64748b", soft: "bg-slate-50/70 border-slate-200/70 dark:bg-slate-500/10 dark:border-slate-400/20" },
-  suggested: { label: "Suggested to explore", hex: "#94a3b8", soft: "bg-transparent border-dashed border-border" },
+/**
+ * Light, distinct colours per group: `hex` for strokes, labels and lines, `tint` for circle fills. Text on a
+ * tint stays dark (foreground), so contrast never depends on the colour.
+ */
+export const CLUSTERS: Record<ClusterKey, { label: string; hex: string; tint: string }> = {
+  languages: { label: "Languages", hex: "#0ea5e9", tint: "#e0f2fe" }, // sky
+  ai: { label: "LLMs & language AI", hex: "#ec4899", tint: "#fce7f3" }, // pink
+  ml: { label: "ML & vision", hex: "#8b5cf6", tint: "#ede9fe" }, // lavender
+  data: { label: "Data & databases", hex: "#06b6d4", tint: "#cffafe" }, // aqua
+  ops: { label: "MLOps, cloud & tools", hex: "#10b981", tint: "#d1fae5" }, // mint
+  engineering: { label: "Software engineering", hex: "#f97316", tint: "#ffedd5" }, // coral
+  foundations: { label: "Foundations", hex: "#84cc16", tint: "#ecfccb" }, // green
+  other: { label: "Other", hex: "#64748b", tint: "#f1f5f9" },
+  suggested: { label: "Suggested to explore", hex: "#94a3b8", tint: "#f8fafc" },
 };
 
 /** The engine's catalogue categories (worker/skills_catalog.py), grouped for display. */

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useOptimistic, useState, useTransition } from "react";
 
 import { refreshGithub, updateWidgetPref } from "@/app/(dashboard)/dashboard/actions";
+import { isPlaceholderPath } from "@/lib/dashboard/nav";
 import type { WidgetState } from "@/lib/dashboard/types";
 import type { WidgetId } from "@/lib/dashboard/widgets";
 import { cn } from "@/lib/utils";
@@ -104,7 +105,8 @@ export function WidgetWrapper(props: WidgetWrapperProps) {
 
       <div className="flex-1 px-5 pt-4 pb-5">{children}</div>
 
-      {primaryAction && state !== "empty" && (
+      {/* No footer link into a module that's only a placeholder page (e.g. "Start mock interview" → /eris). */}
+      {primaryAction && state !== "empty" && !isPlaceholderPath(primaryAction.href) && (
         <footer className="border-t px-5 py-3">
           <Link
             href={primaryAction.href}

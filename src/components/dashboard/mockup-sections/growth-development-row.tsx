@@ -98,18 +98,23 @@ function Empty({ title, body, href, action }: { title: string; body: string; hre
 
 const UPDATING = { title: "Being updated", body: "This is recalculated from your evidence the next time your profile is processed." };
 
-/** Skill proficiency, gaps and learning paths. The Career Roadmap has its own full-width section (career-roadmap.tsx). */
+/**
+ * Skill proficiency and learning paths. Skill Gaps sits with the Career Roadmap in the career-development
+ * section (dashboard-view.tsx), as <SkillGaps />.
+ */
 export function GrowthDevelopmentRow({ intelligence }: { intelligence?: IntelligenceDoc }) {
-  const [roleIndex, setRoleIndex] = useState(0);
-  const role = intelligence?.roles[roleIndex];
-
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
       <SkillProficiencyCard intelligence={intelligence} />
-      <SkillGapsCard intelligence={intelligence} role={role} roleIndex={roleIndex} onRole={setRoleIndex} />
       <LearningPathsCard intelligence={intelligence} />
     </div>
   );
+}
+
+/** Skill Gaps for the user's chosen goal(s), with its own goal picker. */
+export function SkillGaps({ intelligence }: { intelligence?: IntelligenceDoc }) {
+  const [roleIndex, setRoleIndex] = useState(0);
+  return <SkillGapsCard intelligence={intelligence} role={intelligence?.roles[roleIndex]} roleIndex={roleIndex} onRole={setRoleIndex} />;
 }
 
 // ─── Skill Proficiency ──────────────────────────────────────────────────────

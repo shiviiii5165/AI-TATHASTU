@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Activity } from "lucide-react";
 import dynamic from "next/dynamic";
 import { DashboardHero } from "@/components/dashboard/mockup-sections/dashboard-hero";
@@ -8,7 +8,7 @@ import { MetricCards } from "@/components/dashboard/mockup-sections/metric-cards
 import { CareerRoadmap } from "@/components/dashboard/mockup-sections/career-roadmap";
 import { JourneyTimeline } from "@/components/dashboard/mockup-sections/journey-timeline";
 import { EvidenceAchievementRow } from "@/components/dashboard/mockup-sections/evidence-achievement-row";
-import { GrowthDevelopmentRow } from "@/components/dashboard/mockup-sections/growth-development-row";
+import { GrowthDevelopmentRow, SkillGaps } from "@/components/dashboard/mockup-sections/growth-development-row";
 import { EcosystemOpportunitiesRow } from "@/components/dashboard/mockup-sections/ecosystem-opportunities-row";
 import { NextActionsRow } from "@/components/dashboard/mockup-sections/next-actions-row";
 
@@ -30,6 +30,7 @@ import type {
   RecentProjectItem,
 } from "@/lib/dashboard/stats";
 import type { IntelligenceDoc } from "@/lib/dashboard/types";
+import { nextStepsFromRoadmap } from "@/lib/roadmap/next-steps";
 import type { MilestoneSubmission } from "@/lib/roadmap/progress";
 
 interface DashboardViewProps {
@@ -43,6 +44,7 @@ interface DashboardViewProps {
   opportunitiesCount?: number;
   networkCount?: number;
   intelligence?: IntelligenceDoc;
+  /** No longer shown: next steps come from the roadmap (lib/roadmap/next-steps.ts). Still accepted from callers. */
   nextActions?: Array<{ num: number; title: string; desc: string; btnText: string; btnHref: string; category?: string }>;
   journeyMilestones?: JourneyMilestone[];
   recentProjects?: RecentProjectItem[];
@@ -70,7 +72,6 @@ export function DashboardView({
   opportunitiesCount = 0,
   networkCount = 0,
   intelligence,
-  nextActions,
   journeyMilestones,
   recentProjects,
   githubActivity,
@@ -83,6 +84,8 @@ export function DashboardView({
   children,
 }: DashboardViewProps) {
   const [yoraOpen, setYoraOpen] = useState(false);
+  // Next steps come from the roadmap for the chosen goal, not from the generic next-action list.
+  const next = useMemo(() => nextStepsFromRoadmap(intelligence, roadmapSubmissions), [intelligence, roadmapSubmissions]);
 
   return (
     <div className="space-y-6 sm:space-y-7 pb-12">
@@ -105,9 +108,6 @@ export function DashboardView({
         networkCount={networkCount}
       />
 
-      {/* Next steps first: the most actionable thing on the page. */}
-      <NextActionsRow actions={nextActions} />
-
       {/* E. Journey and skills. Yora is available from the hero. */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
         {/* Fits its content: not stretched to the row height (which left a tall empty card). */}
@@ -119,19 +119,29 @@ export function DashboardView({
         </div>
       </div>
 
-      {/* F. Evidence and Achievement Row: 4 Panels */}
+      {/* F. Career development: what's missing for the chosen goal, the plan to close it, then what to do next. */}
+      <section aria-label="Career development" className="space-y-4">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
+          <div className="xl:col-span-4 xl:self-start">
+            <SkillGaps intelligence={intelligence} />
+          </div>
+          <div className="min-w-0 xl:col-span-8">
+            <CareerRoadmap intelligence={intelligence} submissions={roadmapSubmissions} />
+          </div>
+        </div>
+        <NextActionsRow actions={next.steps} empty={next.empty} />
+      </section>
+
+      {/* G. Skill proficiency and learning paths. */}
+      <GrowthDevelopmentRow intelligence={intelligence} />
+
+      {/* H. Evidence and achievements. */}
       <EvidenceAchievementRow
         projects={recentProjects}
         githubActivity={githubActivity}
         publications={recentPublications}
         achievements={recentAchievements}
       />
-
-      {/* G. Growth and Development Row: 4 Panels */}
-      <GrowthDevelopmentRow intelligence={intelligence} />
-
-      {/* G2. Career Roadmap: where you are, your chosen goal, what's missing and what to do next. */}
-      <CareerRoadmap intelligence={intelligence} submissions={roadmapSubmissions} />
 
       {/* H. Ecosystem and Opportunities Row: 4 Panels */}
       <EcosystemOpportunitiesRow

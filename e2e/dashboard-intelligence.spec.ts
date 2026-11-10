@@ -78,7 +78,7 @@ test("journey runs earliest to latest, ending on the current position, with unda
   await expect(items.nth(2)).toContainText("ML Intern");
   await expect(items.nth(2)).toHaveAttribute("data-current", "true");
   await expect(items.nth(2)).toContainText("Where you are now");
-  await expect(journey).toContainText("No date on the record");
+  await expect(journey.getByTestId("undated-achievements")).toContainText("Kaggle Expert");
   await expect(journey).toContainText("Kaggle Expert");
 
   // The reveal is sequential in that order: each node starts later than the one before it.
@@ -93,7 +93,7 @@ test("skills are clustered by category, linked only by recorded edges, and expla
   const { context, page } = await setUp(browser, "Skills", 1280);
   const card = page.getByTestId("skills-overview");
   const network = card.getByTestId("skill-network");
-  await expect(network.locator("[data-cluster]").first()).toBeVisible();
+  await expect(network.locator("[data-node]").first()).toBeVisible();
   // One evidence edge in the stored graph (Python and PyTorch share a repository); documented relations stay hidden.
   await expect(network.locator('path[data-basis="evidence"]')).toHaveCount(1);
   await expect(network.locator('path[data-basis="ontology"]')).toHaveCount(0);

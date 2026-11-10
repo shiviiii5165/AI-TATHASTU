@@ -39,3 +39,10 @@ export const BUILT_MODULES = [
   "settings",
 ];
 export const PLACEHOLDER_SLUGS = MODULE_SLUGS.filter((s) => !BUILT_MODULES.includes(s));
+
+/** True for an in-app path that only leads to the "Not available yet" placeholder. Dashboard actions must not link there. */
+export function isPlaceholderPath(href: string): boolean {
+  if (!href.startsWith("/")) return false;
+  const slug = href.split(/[/?#]/)[1] ?? "";
+  return PLACEHOLDER_SLUGS.includes(slug);
+}
