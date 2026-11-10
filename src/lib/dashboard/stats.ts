@@ -7,7 +7,9 @@ import {
   profileFacts,
   skillEvidence,
   skills,
+  githubContributions,
 } from "@/db/schema";
+import { toContributionsData } from "@/lib/dashboard/github-contributions";
 import type { Viewer } from "@/lib/discovery";
 import { discoverableCount } from "@/lib/dashboard/network-count";
 import { buildJourney, type JourneyMilestone } from "@/lib/dashboard/journey";
@@ -34,8 +36,22 @@ export interface GitHubActivityData {
   stars: number;
   forks: number;
   hasRepos: boolean;
-  /** Repositories whose last push falls in each of the last 7 months, oldest first. */
-  pushesByMonth: Array<{ label: string; count: number }>;
+  /** GitHub's contribution calendar (migration 0027). null: never fetched (table empty or missing). */
+  contributions: GitHubContributionsData | null;
+}
+
+export interface GitHubContributionsData {
+  /** False until a fetch has succeeded: the calendar is unavailable, which is not zero. */
+  available: boolean;
+  total: number | null;
+  days: { date: string; count: number; level: number }[];
+  totals: { commits: number; pullRequests: number; issues: number; reviews: number; restricted: number } | null;
+  /** GitHub counted private contributions it would not name. */
+  hasRestricted: boolean;
+  syncedAt: string | null;
+  /** Why the most recent fetch failed, when it did; the snapshot shown is the last good one. */
+  lastError: string | null;
+  lastErrorAt: string | null;
 }
 
 export interface PublicationItem {
@@ -103,7 +119,7 @@ const text = (v: unknown) => (v === null || v === undefined ? "" : String(v));
 export async function getLiveDashboardData(viewer: Viewer): Promise<LiveDashboardStats> {
   const userId = viewer.id;
   // One wave: every read is independent.
-  const [reposRows, scoresRows, networkRes, factsRows, evidenceSkills, oppsRows] = await Promise.all([
+  const [reposRows, scoresRows, networkRes, factsRows, evidenceSkills, oppsRows, contributionRow] = await Promise.all([
     db
       .select()
       .from(codeRepositories)
@@ -144,6 +160,17 @@ export async function getLiveDashboardData(viewer: Viewer): Promise<LiveDashboar
       .from(opportunities)
       .orderBy(desc(opportunities.createdAt))
       .limit(OPPORTUNITY_LIMIT),
+    // Only this user's snapshot. Before migration 0027 runs the table is missing: no calendar, no failure.
+    db
+      .select()
+      .from(githubContributions)
+      .where(eq(githubContributions.userId, userId))
+      .limit(1)
+      .then((rows) => rows[0] ?? null)
+      .catch((err) => {
+        console.error("[getLiveDashboardData] github_contributions query failed:", err);
+        return null;
+      }),
   ]);
 
   // Skill names, for counting and opportunity matching: evidenced where the intelligence
@@ -183,26 +210,16 @@ export async function getLiveDashboardData(viewer: Viewer): Promise<LiveDashboar
   const allLanguages = new Set<string>();
   for (const r of reposRows) Object.keys(r.languages ?? {}).forEach((l) => allLanguages.add(l.toLowerCase()));
 
-  const now = new Date();
-  const pushesByMonth = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(now.getFullYear(), now.getMonth() - 6 + i, 1);
-    return { year: d.getFullYear(), month: d.getMonth(), label: d.toLocaleString("en", { month: "short" }), count: 0 };
-  });
-  for (const r of reposRows) {
-    if (!r.lastCommitAt) continue;
-    const bucket = pushesByMonth.find((b) => b.year === r.lastCommitAt!.getFullYear() && b.month === r.lastCommitAt!.getMonth());
-    if (bucket) bucket.count++;
-  }
-
+  const contributions = toContributionsData(contributionRow);
   const githubActivity: GitHubActivityData | null =
-    reposRows.length > 0
+    reposRows.length > 0 || contributions
       ? {
           repositories: reposRows.length,
           languages: allLanguages.size,
           stars: reposRows.reduce((s, r) => s + r.stars, 0),
           forks: reposRows.reduce((s, r) => s + r.forks, 0),
-          hasRepos: true,
-          pushesByMonth: pushesByMonth.map(({ label, count }) => ({ label, count })),
+          hasRepos: reposRows.length > 0,
+          contributions,
         }
       : null;
 

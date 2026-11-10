@@ -828,6 +828,44 @@ export const learningRecords = pgTable(
   (t) => [index("learning_records_user_idx").on(t.userId)],
 );
 
+/** One day of the GitHub contribution calendar; level is GitHub's own 0-4 quartile. */
+export type GithubContributionDay = { date: string; count: number; level: number };
+export type GithubContributionTotals = {
+  commits: number;
+  pullRequests: number;
+  issues: number;
+  reviews: number;
+  repositories: number;
+  restricted: number;
+};
+
+/**
+ * GitHub contribution calendar snapshot (migration 0027), written by worker/connectors/github.py
+ * from viewer.contributionsCollection. synced_at NULL means it never synced successfully (data
+ * unavailable, not zero). A failed fetch only sets last_error*, keeping the last good snapshot.
+ */
+export const githubContributions = pgTable("github_contributions", {
+  userId: uuid("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  rangeStart: timestamp("range_start", { withTimezone: true }),
+  rangeEnd: timestamp("range_end", { withTimezone: true }),
+  totalContributions: integer("total_contributions"),
+  days: jsonb("days").$type<GithubContributionDay[]>(),
+  categoryTotals: jsonb("category_totals").$type<GithubContributionTotals>(),
+  repositories: jsonb("repositories").$type<{ name: string; commits: number; private: boolean }[]>(),
+  hasRestrictedContributions: boolean("has_restricted_contributions"),
+  githubLogin: text("github_login"),
+  source: text("source").notNull().default("github_graphql"),
+  schemaVersion: integer("schema_version").notNull().default(1),
+  syncedAt: timestamp("synced_at", { withTimezone: true }),
+  lastAttemptAt: timestamp("last_attempt_at", { withTimezone: true }),
+  lastError: text("last_error"),
+  lastErrorAt: timestamp("last_error_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export type Roadmap = typeof roadmaps.$inferSelect;
 
 export const githubScores = pgTable(

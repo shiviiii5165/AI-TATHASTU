@@ -17,9 +17,12 @@ import {
   Trophy,
 } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useMemo, useRef } from "react";
+import { describeDay, layoutCalendar } from "@/lib/dashboard/github-contributions";
 import type {
   AchievementItem,
   GitHubActivityData,
+  GitHubContributionsData,
   PublicationItem,
   RecentProjectItem,
 } from "@/lib/dashboard/stats";
@@ -161,33 +164,135 @@ function RecentProjectsCard({ projects = [] }: { projects?: RecentProjectItem[] 
   );
 }
 
-function GitHubActivityCard({ activity }: { activity?: GitHubActivityData | null }) {
-  const hasActivity = Boolean(activity && activity.hasRepos);
+// GitHub's light-theme contribution colours, indexed by GitHub's own level (0 = none, 4 = most).
+const LEVEL_COLORS = ["bg-[#EBEDF0]", "bg-[#9BE9A8]", "bg-[#40C463]", "bg-[#30A14E]", "bg-[#216E39]"];
+const DAY_LABELS = ["", "Mon", "", "Wed", "", "Fri", ""];
+const shortDate = (iso: string) =>
+  new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+const plural = (n: number, one: string, many: string) => `${n.toLocaleString("en")} ${n === 1 ? one : many}`;
 
-  // Real data only: how many repositories were last pushed in each month.
-  const buckets = activity?.pushesByMonth ?? [];
-  const peak = Math.max(1, ...buckets.map((b) => b.count));
-  const levelOf = (n: number) => (n === 0 ? 0 : Math.min(4, Math.ceil((n / peak) * 4)));
+function ContributionCalendar({ data }: { data: GitHubContributionsData }) {
+  const { weeks, months } = useMemo(() => layoutCalendar(data.days), [data.days]);
+  const scroller = useRef<HTMLDivElement>(null);
+  // Open on the most recent weeks, as GitHub does; earlier weeks scroll into view.
+  useEffect(() => {
+    const el = scroller.current;
+    if (el) el.scrollLeft = el.scrollWidth;
+  }, [weeks.length]);
 
-  const getColor = (level: number) => {
-    switch (level) {
-      case 0:
-        return "bg-[#F1F5F9]";
-      case 1:
-        return "bg-[#D1FAE5]";
-      case 2:
-        return "bg-[#6EE7B7]";
-      case 3:
-        return "bg-[#10B981]";
-      case 4:
-        return "bg-[#047857]";
-      default:
-        return "bg-[#F1F5F9]";
-    }
-  };
+  const t = data.totals;
+  const breakdown = t
+    ? [
+        plural(t.commits, "commit", "commits"),
+        plural(t.pullRequests, "pull request", "pull requests"),
+        plural(t.issues, "issue", "issues"),
+        plural(t.reviews, "review", "reviews"),
+      ].join(" · ")
+    : null;
 
   return (
-    <div className="flex flex-col justify-between rounded-2xl border border-[#E7EAF3] bg-white p-3.5 sm:p-5 shadow-2xs">
+    <div className="py-3" data-testid="contribution-calendar">
+      <p className="text-xs text-[#4A5568]">
+        <span className="font-bold tabular-nums text-[#11182B]">{(data.total ?? 0).toLocaleString("en")}</span>{" "}
+        {data.total === 1 ? "contribution" : "contributions"} in the last year
+      </p>
+
+      <div
+        ref={scroller}
+        className="mt-2 overflow-x-auto pb-1 [scrollbar-width:thin]"
+        tabIndex={0}
+        aria-label="Contribution calendar, scroll for earlier weeks"
+      >
+        <div className="inline-flex gap-[3px]" role="img" aria-label={`${data.total ?? 0} contributions in the last year`}>
+          <div className="sticky left-0 z-10 flex flex-col gap-[2px] bg-white pr-1 pt-[14px]">
+            {DAY_LABELS.map((d, i) => (
+              <span key={i} className="h-[9px] text-[9px] leading-[9px] text-[#64748B]">
+                {d}
+              </span>
+            ))}
+          </div>
+          <div>
+            <div className="relative h-[12px]">
+              {months.map((m) => (
+                <span
+                  key={`${m.column}-${m.label}`}
+                  className="absolute top-0 text-[9px] leading-none text-[#64748B]"
+                  style={{ left: m.column * 11 }}
+                >
+                  {m.label}
+                </span>
+              ))}
+            </div>
+            <div className="mt-[2px] flex gap-[2px]">
+              {weeks.map((week, w) => (
+                <div key={w} className="flex flex-col gap-[2px]">
+                  {week.map((cell, d) =>
+                    cell ? (
+                      <div
+                        key={d}
+                        className={`size-[9px] rounded-[2px] ${LEVEL_COLORS[cell.level] ?? LEVEL_COLORS[0]}`}
+                        title={describeDay(cell)}
+                        data-level={cell.level}
+                      />
+                    ) : (
+                      <div key={d} className="size-[9px]" aria-hidden="true" />
+                    ),
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-1.5 flex items-center justify-between gap-2 text-[10px] text-[#64748B]">
+        <span className="truncate">{data.syncedAt ? `Synced ${shortDate(data.syncedAt)}` : ""}</span>
+        <span className="flex shrink-0 items-center gap-[3px]" aria-label="Legend: fewer to more contributions">
+          Less
+          {LEVEL_COLORS.map((c) => (
+            <span key={c} className={`size-[9px] rounded-[2px] ${c}`} aria-hidden="true" />
+          ))}
+          More
+        </span>
+      </div>
+
+      {breakdown && <p className="mt-2 text-[11px] leading-4 text-[#4A5568]">{breakdown}</p>}
+      {data.hasRestricted && t && t.restricted > 0 && (
+        <p className="mt-0.5 text-[11px] leading-4 text-[#64748B]">
+          Includes {plural(t.restricted, "private contribution", "private contributions")}; GitHub does not share
+          their repositories.
+        </p>
+      )}
+      {data.lastError && (
+        <p className="mt-1.5 text-[11px] leading-4 text-amber-700" role="status">
+          The last refresh failed ({data.lastError}). Showing data from the last successful sync.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function ContributionNotice({ data }: { data: GitHubContributionsData | null }) {
+  return (
+    <div className="py-4 text-center" data-testid="contribution-unavailable">
+      <p className="text-xs font-semibold text-[#11182B]">
+        {data ? "Contribution calendar unavailable" : "No contribution calendar yet"}
+      </p>
+      <p className="mx-auto mt-1 max-w-[230px] text-[11px] leading-4 text-[#617493]">
+        {data?.lastError
+          ? `The last attempt failed: ${data.lastError}. Sync GitHub to try again.`
+          : "It appears after your next GitHub sync."}
+      </p>
+    </div>
+  );
+}
+
+function GitHubActivityCard({ activity }: { activity?: GitHubActivityData | null }) {
+  const hasActivity = Boolean(activity && (activity.hasRepos || activity.contributions));
+  const contributions = activity?.contributions ?? null;
+
+  return (
+    <div data-testid="github-activity-card" className="flex min-w-0 flex-col justify-between rounded-2xl border border-[#E7EAF3] bg-white p-3.5 sm:p-5 shadow-2xs">
       <div className="flex items-center justify-between border-b border-[#F0F2F7] pb-3">
         <div className="flex min-w-0 items-center gap-2">
           <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#F3EFFF] text-[#8554FF]">
@@ -206,26 +311,16 @@ function GitHubActivityCard({ activity }: { activity?: GitHubActivityData | null
 
       {hasActivity ? (
         <>
-          <div className="my-auto py-2 overflow-x-auto no-scrollbar">
-            <div className="min-w-[220px]">
-              <p className="text-[10px] font-medium text-[#617493]">Repositories by month of last push</p>
-              <div className="mt-2 grid grid-cols-7 gap-1.5">
-                {buckets.map((b) => (
-                  <div key={b.label} className="flex flex-col items-center gap-1">
-                    <div
-                      className={`h-8 w-full rounded-xs ${getColor(levelOf(b.count))}`}
-                      title={`${b.count} ${b.count === 1 ? "repository" : "repositories"} last pushed in ${b.label}`}
-                    />
-                    <span className="text-[10px] font-medium text-[#8C9AA8]">{b.label}</span>
-                    <span className="text-[10px] tabular-nums text-[#4A5568]">{b.count}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+          <div className="my-auto min-w-0">
+            {contributions?.available ? (
+              <ContributionCalendar data={contributions} />
+            ) : (
+              <ContributionNotice data={contributions} />
+            )}
           </div>
 
           {/* Summary stats (all from synced repository data) */}
-          <div className="grid grid-cols-4 gap-1 border-t border-[#F8FAFC] pt-3 text-center">
+          <div className="flex flex-wrap justify-between gap-x-3 gap-y-2 border-t border-[#F0F2F7] pt-3 text-center">
             <div>
               <p className="font-sans text-xs font-bold tabular-nums text-[#11182B]">{activity?.stars ?? 0}</p>
               <p className="text-[10px] text-[#64748B]">Stars</p>
@@ -251,7 +346,7 @@ function GitHubActivityCard({ activity }: { activity?: GitHubActivityData | null
           </div>
           <p className="text-xs font-bold text-[#11182B]">No GitHub Activity Recorded</p>
           <p className="text-[11px] text-[#617493] mt-1 max-w-[200px]">
-            Connect your GitHub account to activate commit analytics and repository heatmaps.
+            Connect GitHub to see your contribution calendar and repository stats.
           </p>
           <Link
             href="/settings/integrations"

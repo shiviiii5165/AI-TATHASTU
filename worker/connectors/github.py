@@ -21,6 +21,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import psycopg2.extras
 
+from connectors import github_contributions as contributions
 from connectors.common import still_connected
 from crypto_box import open_credential
 from db import enqueue_compute_intelligence, fetch_one, jsonb
@@ -29,7 +30,9 @@ from jobs import Job, NeedsReview, assert_still_owner
 log = logging.getLogger("worker.github")
 
 API = "https://api.github.com"
-MAX_REPOS = 100  # most recently pushed, owned, non-fork
+# Most recently pushed non-fork repos the user owns, collaborates on, or can see
+# through an organisation. Visibility is still limited by the token's scope.
+MAX_REPOS = 100
 LANGUAGE_LOOKUPS = 50
 STALE_AFTER = timedelta(days=7)
 
@@ -60,6 +63,26 @@ class GithubClient:
                 raise GithubAuthError("token rejected") from exc
             if exc.code == 403 and exc.headers.get("x-ratelimit-remaining") == "0":
                 raise RuntimeError("GitHub rate limit reached; will retry") from exc
+            raise
+
+    def graphql(self, query: str, variables: Dict[str, Any]) -> Dict[str, Any]:
+        """POST to the GraphQL API. GraphQL errors come back in the body; HTTP errors raise."""
+        req = urllib.request.Request(
+            API + "/graphql",
+            data=json.dumps({"query": query, "variables": variables}).encode(),
+            method="POST",
+            headers={
+                "Authorization": f"Bearer {self.token}",
+                "Content-Type": "application/json",
+                "User-Agent": "ai-tathastu-worker",
+            },
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=20) as res:
+                return json.loads(res.read())
+        except urllib.error.HTTPError as exc:
+            if exc.code == 401:
+                raise GithubAuthError("token rejected") from exc
             raise
 
     def paginate(self, path: str, limit: int) -> List[Any]:
@@ -95,10 +118,13 @@ def sync_github(conn: Any, job: Job, client_factory=GithubClient) -> None:
     credential = open_credential(connection["token_enc"], job.user_id, "github")
     client = client_factory(credential["access_token"])
 
+    # Before the repositories, and committed on its own, so either can fail without the other.
+    _sync_contributions(conn, job, connection_id, client)
+
     try:
         profile, _ = client.get("/user")
         repos = [
-            r for r in client.paginate("/user/repos?per_page=100&affiliation=owner&sort=pushed", MAX_REPOS * 2)
+            r for r in client.paginate("/user/repos?per_page=100&affiliation=owner,collaborator,organization_member&sort=pushed", MAX_REPOS * 2)
             if not r.get("fork")
         ][:MAX_REPOS]
         languages: Dict[str, Dict[str, int]] = {}
@@ -131,6 +157,35 @@ def sync_github(conn: Any, job: Job, client_factory=GithubClient) -> None:
         enqueue_compute_intelligence(cur, job.user_id, "connector_sync:github")
     log.info("github sync for %s: %d repos, %d languages", job.user_id, len(repos),
              len({lang for langs in languages.values() for lang in langs}))
+
+
+def _sync_contributions(conn: Any, job: Job, connection_id: Any, client: Any) -> None:
+    """Fetches the contribution calendar and stores it, or records why it couldn't.
+
+    Never raises for a GitHub failure: the repository sync goes ahead, and the next sync tries
+    again. A failure leaves the last successful snapshot untouched (record_failure).
+    """
+    with conn, conn.cursor() as cur:
+        if not contributions.table_exists(cur):
+            log.info("github_contributions table missing (migration 0027 not applied); skipping calendar")
+            return
+
+    snapshot: Optional[Dict[str, Any]] = None
+    reason = ""
+    try:
+        snapshot = contributions.fetch(client)
+    except Exception as exc:  # noqa: BLE001 - every GitHub failure is recorded, none is fatal here
+        reason = contributions.describe_error(exc)
+        log.warning("github contributions for %s not refreshed: %s", job.user_id, reason)
+
+    with conn, conn.cursor() as cur:
+        assert_still_owner(cur, job)
+        if not still_connected(cur, connection_id, job.user_id):
+            return
+        if snapshot is not None:
+            contributions.write_snapshot(cur, job.user_id, snapshot)
+        else:
+            contributions.record_failure(cur, job.user_id, reason)
 
 
 def _write(cur: Any, user_id: str, profile: Dict[str, Any], repos: List[Dict[str, Any]], languages: Dict[str, Dict[str, int]]) -> None:
