@@ -62,6 +62,8 @@ export type Fact = {
   confirmation: ProfileFact["confirmation"];
   evidence: string | null;
   page: number | null;
+  /** Structured value the connector stored (e.g. LeetCode counts); absent on facts built elsewhere. */
+  extracted?: unknown;
 };
 
 export type Entry = { key: string; origins: FactOrigin[]; fields: Record<string, Fact> };
@@ -110,6 +112,7 @@ export async function loadProfile(userId: string, known?: { user: User; state: O
     confirmation: f.confirmation,
     evidence: f.sourceEvidence,
     page: f.location?.page ?? null,
+    extracted: f.extractedValue,
   }));
   const view = (viewRow?.view as ProfileViewDoc | undefined) ?? null;
 

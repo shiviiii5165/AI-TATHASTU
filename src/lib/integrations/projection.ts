@@ -5,6 +5,7 @@ import { createHash } from "node:crypto";
 import type { IntegrationClientId, IntegrationConsent, IntegrationScope } from "@/db/schema";
 import { effectiveScopes } from "@/lib/integrations/consent";
 import { careerRoleLabel } from "@/lib/onboarding/catalog";
+import { codingActivitiesFrom, isCodingActivityRecord } from "@/lib/profile/coding-activity";
 import { dateRange, type Fact, type ProfileData } from "@/lib/profile/unified";
 
 /**
@@ -149,9 +150,12 @@ export function toProfessionalProjectionV1(
       }))
     : null;
 
+  // LeetCode/HackerRank stats are stored in the "achievements" group but are coding activity, not
+  // honours (lib/profile/coding-activity.ts): they go to activity.coding, never into achievements.
+  const nonCodingFacts = p.facts.filter((f) => !isCodingActivityRecord(f.recordKey));
   const achievements = shared("achievements")
     ? [
-        ...groupEntries(p.facts, "achievements").map((e) => ({
+        ...groupEntries(nonCodingFacts, "achievements").map((e) => ({
           type: "achievement" as const,
           title: v(e.fields, "title"),
           issuer: null,
@@ -199,6 +203,17 @@ export function toProfessionalProjectionV1(
             })),
         },
         profileUpdatedAt: p.view?.computedAt ?? null,
+        // Additive (contract v1, optional): problem-solving stats from the platform's public profile
+        // API. Counts the platform did not return are null, never 0; contest results are separate.
+        coding: codingActivitiesFrom(
+          p.facts.map((f) => ({ fieldName: f.field, recordKey: f.recordKey, normalizedValue: f.value, extractedValue: f.extracted, sourceEvidence: f.evidence })),
+        ).map((c) => ({
+          source: c.source,
+          solved: { total: c.total, easy: c.easy, medium: c.medium, hard: c.hard },
+          contest: c.contest,
+          profileRef: c.profileRef,
+          verification: c.verification,
+        })),
       }
     : null;
 
@@ -213,6 +228,8 @@ export function toProfessionalProjectionV1(
           ? primary.open.slice(0, 12).map((r) => ({ skill: r.skill, priority: r.priority, state: r.state, expectedLevel: r.expectedLevel }))
           : [],
         assessed: Boolean(primary?.assessed),
+        // Additive (contract v1, optional): when the intelligence engine last assessed this user.
+        assessedAt: primary?.assessed ? (p.view?.computedAt ?? null) : null,
         collaborationIntents: [...(p.state?.priorities ?? [])],
       }
     : null;

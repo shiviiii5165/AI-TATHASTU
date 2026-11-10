@@ -56,6 +56,7 @@ describe("ProfessionalProjectionV1 additive fields", () => {
         { skill: "MLflow", priority: "Low", state: "unverified", expectedLevel: "Foundational" },
       ],
       assessed: true,
+      assessedAt: "2026-11-01T00:00:00Z",
       collaborationIntents: ["collaborate", "people_mentors"],
     });
     const without = toProfessionalProjectionV1(profile, "collaborate", consent({ skills: true }));
@@ -66,7 +67,46 @@ describe("ProfessionalProjectionV1 additive fields", () => {
   it("never sends needs when the engine couldn't assess the role", () => {
     const sparse = { ...profile, view: { ...profile.view!, intelligence: { skills: [], roles: [{ role: "ml_engineer", assessed: false, open: [] }] } } } as unknown as typeof profile;
     const p = toProfessionalProjectionV1(sparse, "collaborate", consent({ eris: true }));
-    expect(p.goals).toMatchObject({ needs: [], assessed: false });
+    expect(p.goals).toMatchObject({ needs: [], assessed: false, assessedAt: null });
+  });
+});
+
+describe("coding activity (LeetCode)", () => {
+  const fact = (field: string, value: string, extracted: unknown) => ({
+    id: `f-${field}`, group: "achievements", field, recordKey: "leetcode:stats", value, origin: "leetcode",
+    confirmation: "pending", evidence: "leetcode.com/u/asha", page: null, extracted,
+  });
+  const withLeetcode = {
+    ...profile,
+    facts: [
+      fact("title", "LeetCode: 120 problems solved (Easy 70 · Medium 45 · Hard 5)", { easy: 70, medium: 45, hard: 5, total: 120, contest_rating: 1610, contests: 8, top_percentage: 22.5 }),
+      { id: "a1", group: "achievements", field: "title", recordKey: "ach-1", value: "Hackathon winner", origin: "resume", confirmation: "confirmed", evidence: null, page: null },
+    ],
+  } as unknown as typeof profile;
+
+  it("sends solved counts and contest results separately under activity, not as an achievement", () => {
+    const p = toProfessionalProjectionV1(withLeetcode, "collaborate", consent({ activity: true, achievements: true }));
+    expect(p.activity!.coding).toEqual([
+      {
+        source: "leetcode",
+        solved: { total: 120, easy: 70, medium: 45, hard: 5 },
+        contest: { rating: 1610, attended: 8, topPercentage: 22.5 },
+        profileRef: "leetcode.com/u/asha",
+        verification: "public_profile_import",
+      },
+    ]);
+    expect(p.achievements!.map((a) => a.title)).toEqual(["Hackathon winner"]);
+  });
+
+  it("keeps counts the platform did not return as null, and sends nothing without the activity scope", () => {
+    const partial = { ...withLeetcode, facts: [fact("title", "LeetCode: Problems solved", { easy: 3, medium: null, hard: null, total: null })] } as unknown as typeof profile;
+    const p = toProfessionalProjectionV1(partial, "collaborate", consent({ activity: true }));
+    expect(p.activity!.coding[0]).toMatchObject({ solved: { total: null, easy: 3, medium: null, hard: null }, contest: null });
+    expect(toProfessionalProjectionV1(withLeetcode, "collaborate", consent({ achievements: true })).activity).toBeNull();
+  });
+
+  it("sends an empty list when LeetCode is not connected", () => {
+    expect(toProfessionalProjectionV1(profile, "collaborate", consent({ activity: true })).activity!.coding).toEqual([]);
   });
 });
 

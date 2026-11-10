@@ -243,7 +243,8 @@ Every section except `identity` and `privacy` is `null` when the user hasn't sha
       "description": "…", "sources": ["resume"] }
   ],
 
-  // scope: achievements (achievements, certifications, publications, coding-profile stats)
+  // scope: achievements (achievements, certifications, publications). Since 2026-11-11 LeetCode /
+  // HackerRank stats are no longer listed here; they are coding activity (see activity.coding).
   "achievements": [
     { "type": "certification", "title": "Deep Learning Specialization", "issuer": "Coursera",
       "date": "2025", "description": null, "url": null, "sources": ["resume"] }
@@ -257,7 +258,17 @@ Every section except `identity` and `privacy` is `null` when the user hasn't sha
       "recent": [{ "name": "asha/resume-parser", "url": "https://github.com/asha/resume-parser",
                    "stars": 14, "languages": ["Python"], "lastCommitAt": "2026-10-20T10:00:00.000Z" }]
     },
-    "profileUpdatedAt": "2026-10-22T09:12:00.000Z"
+    "profileUpdatedAt": "2026-10-22T09:12:00.000Z",
+    // Added 2026-11-11, optional (older payloads omit it: treat as unknown, not as zero).
+    // From the platform's public profile API. A count the platform did not return is null, never 0;
+    // contest results are separate from solved counts. [] = no coding platform connected.
+    "coding": [
+      { "source": "leetcode",
+        "solved": { "total": 120, "easy": 70, "medium": 45, "hard": 5 },
+        "contest": { "rating": 1610, "attended": 8, "topPercentage": 22.5 },   // or null
+        "profileRef": "leetcode.com/u/asha",
+        "verification": "public_profile_import" }   // proves the numbers came from the platform, not account ownership
+    ]
   },
 
   // scope: eris (added 2026-11, optional; older consumers may ignore it). What the user is working
@@ -266,6 +277,7 @@ Every section except `identity` and `privacy` is `null` when the user hasn't sha
     "targetRole": { "id": "ml_engineer", "label": "ML Engineer" },
     "needs": [{ "skill": "PyTorch", "priority": "High", "state": "missing", "expectedLevel": "Working" }],
     "assessed": true,              // false: too little evidence to assess; needs is then [] (not "no gaps")
+    "assessedAt": "2026-11-10T08:00:00.000Z",   // added 2026-11-11, optional; null when not assessed
     "collaborationIntents": ["collaborate", "people_mentors"]
   },
 

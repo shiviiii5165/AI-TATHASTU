@@ -25,6 +25,8 @@ export type CodingActivity = {
   medium: number | null;
   hard: number | null;
   badges: { name: string; stars: number }[];
+  /** LeetCode contest results, kept apart from solved counts; null when the platform returned none. */
+  contest: { rating: number; attended: number | null; topPercentage: number | null } | null;
   summary: string;
   /**
    * Fetched from the platform's public profile API for the username the user entered. That proves the
@@ -59,6 +61,10 @@ export function codingActivitiesFrom(rows: FactRow[]): CodingActivity[] {
       medium: count(stats.medium),
       hard: count(stats.hard),
       badges,
+      contest:
+        count(stats.contest_rating) !== null
+          ? { rating: stats.contest_rating as number, attended: count(stats.contests), topPercentage: count(stats.top_percentage) }
+          : null,
       summary: String(title?.normalizedValue ?? (typeof title?.extractedValue === "string" ? title.extractedValue : "") ?? ""),
       verification: "public_profile_import",
       profileRef: title?.sourceEvidence ?? null,
