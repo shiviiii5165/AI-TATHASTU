@@ -257,14 +257,7 @@ export function SkillsOverview({ skillGraph, maxNodes = MAX_NODES, fullView = fa
           <div aria-live="polite" className="relative">
             {selected ? (
               <SkillDetail node={selected} accent={colours.get(selected.id)} related={related} onSelect={(id) => setSelectedId(id)} onClose={close} fullView={fullView} labels={labels} />
-            ) : (
-              <p className="mt-3 rounded-xl bg-muted/40 px-3 py-2 text-[11px] text-muted-foreground">
-                Select a skill to see why it was identified and the evidence behind it.{" "}
-                {evidenceEdges.length > 0
-                  ? `Lines join skills used together in the same repository, project or job (${evidenceEdges.length}).`
-                  : "None of these skills share a repository, project or job yet, so no links are drawn."}
-              </p>
-            )}
+            ) : null}
           </div>
 
           <div className="relative mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border pt-2 text-[10px] text-muted-foreground">

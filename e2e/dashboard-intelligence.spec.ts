@@ -77,9 +77,9 @@ test("journey runs earliest to latest, ending on the current position, with unda
   await expect(items.nth(1)).toContainText("B.Tech Computer Science");
   await expect(items.nth(2)).toContainText("ML Intern");
   await expect(items.nth(2)).toHaveAttribute("data-current", "true");
-  await expect(items.nth(2)).toContainText("Where you are now");
-  await expect(journey.getByTestId("undated-achievements")).toContainText("Kaggle Expert");
-  await expect(journey).toContainText("Kaggle Expert");
+  await expect(items.nth(2)).not.toContainText("Where you are now");
+  // Undated achievements are not shown on the journey.
+  await expect(journey.getByTestId("undated-achievements")).toHaveCount(0);
 
   // The reveal is sequential in that order: each node starts later than the one before it.
   const delays = await journey.getByTestId("journey-node").evaluateAll((els) => els.map((e) => parseFloat(getComputedStyle(e).animationDelay)));

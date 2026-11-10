@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, BookOpen, Briefcase, Compass, FolderGit2, GraduationCap, MapPin, Trophy, type LucideIcon } from "lucide-react";
+import { ArrowRight, BookOpen, Briefcase, Compass, FolderGit2, GraduationCap, Trophy, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
 
@@ -75,9 +75,6 @@ export function JourneyTimeline({ milestones = [] }: { milestones?: JourneyMiles
             </ol>
           )}
 
-          {view.undatedAchievements.length > 0 && (
-            <UndatedGroup title="Undated achievements" items={view.undatedAchievements} testId="undated-achievements" />
-          )}
           {view.undatedOther.length > 0 && <UndatedGroup title="Other records without a date" items={view.undatedOther} testId="undated-other" />}
           {view.hiddenUndated > 0 && (
             <p className="mt-2 text-[11px] text-muted-foreground">
@@ -153,14 +150,7 @@ function Milestone({ item, index, next, primary }: { item: JourneyMilestone; ind
       >
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
           <span className={`rounded px-1.5 py-px text-[10px] font-semibold ${k.chip}`}>{k.label}</span>
-          {primary ? (
-            <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-50 px-1.5 py-px text-[10px] font-semibold text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:ring-emerald-400/30">
-              <MapPin aria-hidden className="size-2.5" />
-              Where you are now
-            </span>
-          ) : (
-            item.current && <span className="text-[10px] font-medium text-muted-foreground">Ongoing</span>
-          )}
+          {!primary && item.current && <span className="text-[10px] font-medium text-muted-foreground">Ongoing</span>}
           <span className="ml-auto shrink-0 text-[11px] tabular-nums text-muted-foreground">{item.when ?? (item.current ? "Ongoing" : "")}</span>
         </div>
         <p className={`mt-0.5 truncate font-semibold text-foreground ${primary ? "text-sm" : "text-xs"}`} title={item.title}>

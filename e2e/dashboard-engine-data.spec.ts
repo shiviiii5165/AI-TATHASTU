@@ -63,7 +63,7 @@ async function setUp(browser: Browser, name: string, { extra = [] as Fact[], wid
 test("journey with several ongoing records: one 'where you are now', dated achievements on the path, undated ones grouped", async ({ browser }) => {
   const { context, page } = await setUp(browser, "Engine concurrent", { extra: CONCURRENT });
   const journey = page.getByTestId("journey-timeline");
-  await expect(journey.getByText("Where you are now")).toHaveCount(1);
+  await expect(journey.getByText("Where you are now")).toHaveCount(0);
   const primary = journey.locator("[data-primary]");
   await expect(primary).toHaveCount(1);
   await expect(primary).toContainText("Technical Advisor & Lead Developer"); // the most recently started ongoing job
@@ -72,11 +72,9 @@ test("journey with several ongoing records: one 'where you are now', dated achie
   // Ongoing records ordered by when they started.
   const ongoing = await journey.locator("[data-current]").allInnerTexts();
   expect(ongoing.findIndex((t) => t.includes("Real Gods eSports"))).toBeLessThan(ongoing.findIndex((t) => t.includes("Nayee Asha")));
-  // A dated achievement is a timeline event; undated ones sit in their own compact group, never on the path.
+  // A dated achievement is a timeline event; undated ones are not shown on the journey.
   await expect(journey.getByRole("list", { name: /earliest to most recent/ })).toContainText("Best Speaker, Model UN");
-  const undated = journey.getByTestId("undated-achievements");
-  await expect(undated).toContainText("Nodwin Cups");
-  await expect(undated).toContainText("Vision Week");
+  await expect(journey.getByTestId("undated-achievements")).toHaveCount(0);
   await expect(journey.getByRole("list", { name: /earliest to most recent/ })).not.toContainText("Nodwin Cups");
   await context.close();
 });
