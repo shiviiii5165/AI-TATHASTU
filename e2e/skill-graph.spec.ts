@@ -39,7 +39,7 @@ async function expectGraphInsideCard(page: Page) {
 for (const width of [360, 768, 1280, 1920]) {
   test(`skill graph fits its card at ${width}px`, async ({ browser }) => {
     const { context, page } = await setUp(browser, `Width ${width}`, width);
-    await page.goto("/dashboard");
+    await page.goto("/skills"); // the full graph lives on /skills
     await expectGraphInsideCard(page);
     await expect(page.getByTestId("skill-graph-canvas").locator("text", { hasText: /^LangChain$/ })).toBeVisible();
     await context.close();
@@ -48,7 +48,7 @@ for (const width of [360, 768, 1280, 1920]) {
 
 test("evidence opens from the keyboard and closes with Escape; the list matches the graph", async ({ browser }) => {
   const { context, page } = await setUp(browser, "Keys", 1280);
-  await page.goto("/dashboard");
+  await page.goto("/skills");
   const card = page.getByTestId("skill-graph");
   const python = card.getByRole("button", { name: /^Python: Verified/ });
   await python.focus();

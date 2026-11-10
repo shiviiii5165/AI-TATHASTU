@@ -8,12 +8,13 @@ import type { EngineRoadmap, RoadmapMilestone } from "@/lib/dashboard/types";
  *   submitted            the user submitted evidence the engine hasn't processed yet (pending review)
  *   needs_more_evidence  the engine ran after the submission and the skill still isn't at level
  *   active               the next milestone to work on: prerequisites done, not yet completed
+ *   blocked              open, but a prerequisite skill it requires isn't evidenced at level yet
  *   upcoming             everything else
  *
  * A submission never completes a milestone and never moves the progress figure, which is the
  * engine's evidence coverage for the role and nothing else.
  */
-export type MilestoneStatus = "completed" | "submitted" | "needs_more_evidence" | "active" | "upcoming";
+export type MilestoneStatus = "completed" | "submitted" | "needs_more_evidence" | "active" | "blocked" | "upcoming";
 
 export type MilestoneSubmission = { milestoneId: string; evidenceUrl: string; createdAt: Date | string };
 
@@ -26,6 +27,8 @@ export type RoadmapStep = {
   deliverable: string;
   criterion: string;
   requires: string[];
+  /** Prerequisites from `requires` that the evidence doesn't show at level yet. */
+  blockedBy: string[];
   estimateWeeks: number;
   submissions: number;
 };
@@ -71,6 +74,7 @@ export function roadmapProgress(roadmap: EngineRoadmap, computedAt: string | Dat
         deliverable: m.deliverable,
         criterion: m.criterion,
         requires: m.requires,
+        blockedBy: [],
         estimateWeeks: m.estimateWeeks,
         submissions: subs.length,
       });
@@ -81,6 +85,11 @@ export function roadmapProgress(roadmap: EngineRoadmap, computedAt: string | Dat
   const done = (skill: string) => completed.has(skill) || steps.some((s) => s.skill === skill && s.status === "completed");
   const next = steps.find((s) => s.status !== "completed" && s.requires.every(done)) ?? steps.find((s) => s.status !== "completed") ?? null;
   if (next && next.status === "upcoming") next.status = "active";
+  for (const s of steps) {
+    if (s.status === "completed") continue;
+    s.blockedBy = s.requires.filter((r) => !done(r));
+    if (s.status === "upcoming" && s.blockedBy.length) s.status = "blocked";
+  }
 
   return { role: roadmap.role, progress: Math.max(0, Math.min(1, roadmap.progress)), completed: roadmap.completed, steps, nextId: next?.id ?? null };
 }

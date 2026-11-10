@@ -10,7 +10,7 @@ from typing import Any, List
 import ai_budget
 import provider_router
 from connectors.common import Facts, HttpError, finish_sync, http_json, load_connection, set_status
-from db import has_consent
+from db import EXTERNAL_AI_FULL_SCOPE_SINCE, has_consent
 from jobs import Job, NeedsReview
 from provider_router import KeyPool
 from resume import deterministic, llm
@@ -74,7 +74,8 @@ def sync_portfolio(conn: Any, job: Job) -> None:
         return
     row, cred = loaded
     with conn, conn.cursor() as cur:
-        consent = has_consent(cur, job.user_id, "external_ai")
+        # Portfolio analysis is disclosed from EXTERNAL_AI_FULL_SCOPE_SINCE; an earlier resume-only grant doesn't cover it.
+        consent = has_consent(cur, job.user_id, "external_ai", min_version=EXTERNAL_AI_FULL_SCOPE_SINCE)
     try:
         markdown = scrape(cred["url"])
     except HttpError as exc:

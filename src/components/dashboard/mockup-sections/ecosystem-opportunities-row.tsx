@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import {
   ArrowRight,
   Briefcase,
-  GraduationCap,
   Sparkles,
   Users,
 } from "lucide-react";
@@ -21,9 +20,9 @@ export function EcosystemOpportunitiesRow({
   internships = [],
 }: EcosystemOpportunitiesRowProps) {
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+    // Mentor recommendations were a permanent "coming soon" card with no data source; removed until matching exists.
+    <div id="opportunities" className="grid scroll-mt-20 grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
       <PeopleRecommendationsCard />
-      <MentorRecommendationsCard />
       <OpportunitiesCard opportunities={opportunities} />
       <NetworkInternshipsCard internships={internships} />
     </div>
@@ -66,7 +65,7 @@ function PeopleRecommendationsCard() {
           <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#E6F8FB] text-[#00AEC7]">
             <Users className="size-4" />
           </div>
-          <h2 className="font-sans text-sm font-bold text-[#11182B]">People You Should Know</h2>
+          <h2 className="font-sans text-sm font-bold text-[#11182B]">People you may know</h2>
         </div>
         <Link
           href="/people"
@@ -93,14 +92,14 @@ function PeopleRecommendationsCard() {
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5">
                       <p className="truncate text-xs font-bold text-[#11182B]">{p.name}</p>
-                      <span className="rounded-xs bg-[#E8FAF4] px-1 py-0.2 text-[9px] font-bold text-[#19C58A]">
+                      <span className="rounded-xs bg-[#E8FAF4] px-1 py-0.2 text-[10px] font-bold text-[#0E9D6D]">
                         {p.matchPercentage}%
                       </span>
                     </div>
                     <p className="truncate text-[10px] text-[#617493]">
                       {[p.role, p.institution].filter(Boolean).join(" · ")}
                     </p>
-                    <p className="truncate text-[9px] text-[#8C9AA8]">{p.reason}</p>
+                    <p className="truncate text-[10px] text-[#617493]">{p.reason}</p>
                   </div>
                 </div>
                 {/* No connection backend yet, so link to the profile list instead of a fake "Connected". */}
@@ -120,10 +119,10 @@ function PeopleRecommendationsCard() {
             <Users className="size-5" />
           </div>
           <p className="text-xs font-bold text-[#11182B]">
-            {loading ? "Discovering Peers…" : "No Collaborators Found"}
+            {loading ? "Looking for people…" : "No suggestions yet"}
           </p>
-          <p className="text-[11px] text-[#617493] mt-1 max-w-[200px]">
-            As your skills and projects sync, nearby researchers and peers will appear here.
+          <p className="text-[11px] text-[#617493] mt-1 max-w-[220px]">
+            People with overlapping skills and interests appear here when they choose to be discoverable.
           </p>
           <Link
             href="/people"
@@ -134,51 +133,6 @@ function PeopleRecommendationsCard() {
         </div>
       )}
 
-      <div className="border-t border-[#F8FAFC] pt-2 text-[11px] text-[#617493] flex justify-between items-center">
-        <span>Discoverable people</span>
-        <span className="font-medium text-[#00AEC7]">
-          {hasPeople ? `${people.length} active matches` : "Pending"}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function MentorRecommendationsCard() {
-  return (
-    <div className="flex flex-col justify-between rounded-2xl border border-[#E7EAF3] bg-white p-3.5 sm:p-5 shadow-2xs">
-      <div className="flex items-center justify-between border-b border-[#F0F2F7] pb-3">
-        <div className="flex min-w-0 items-center gap-2">
-          <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#F4F1FD] text-[#8554FF]">
-            <GraduationCap className="size-4" />
-          </div>
-          <h2 className="font-sans text-sm font-bold text-[#11182B]">Recommended Mentors</h2>
-        </div>
-        <Link
-          href="/mentor"
-          className="group inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-xs font-semibold text-[#8554FF] hover:text-[#703DE5]"
-        >
-          <span>View All</span>
-          <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
-        </Link>
-      </div>
-
-      {/* No mentor-matching data source exists for students yet; don't show
-          invented people. Faculty/alumni matches appear in the widgets below. */}
-      <div className="my-auto py-6 px-2 text-center flex flex-col items-center">
-        <div className="size-10 rounded-full bg-[#F3EFFF] text-[#8554FF] flex items-center justify-center mb-2.5">
-          <GraduationCap className="size-5" />
-        </div>
-        <p className="text-xs font-bold text-[#11182B]">Mentor recommendations coming soon</p>
-        <p className="text-[11px] text-[#617493] mt-1 max-w-[200px]">
-          Faculty and alumni who fit your goals will appear here once mentor matching launches.
-        </p>
-      </div>
-
-      <div className="border-t border-[#F8FAFC] pt-2 text-[11px] text-[#617493] flex justify-between items-center">
-        <span>1-on-1 guidance</span>
-        <span className="font-semibold text-[#8554FF]">Coming soon</span>
-      </div>
     </div>
   );
 }
@@ -193,15 +147,8 @@ function OpportunitiesCard({ opportunities = [] }: { opportunities?: Opportunity
           <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#FFF0F4] text-[#FF496D]">
             <Briefcase className="size-4" />
           </div>
-          <h2 className="font-sans text-sm font-bold text-[#11182B]">Relevant Opportunities</h2>
+          <h2 className="font-sans text-sm font-bold text-[#11182B]">Research opportunities</h2>
         </div>
-        <Link
-          href="/opportunities"
-          className="group inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-xs font-semibold text-[#8554FF] hover:text-[#703DE5]"
-        >
-          <span>View All</span>
-          <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
-        </Link>
       </div>
 
       {hasOpps ? (
@@ -221,7 +168,7 @@ function OpportunitiesCard({ opportunities = [] }: { opportunities?: Opportunity
                     </p>
                     <p className="mt-0.5 text-[10px] text-[#617493] truncate">{o.org}</p>
                   </div>
-                  <span className={`shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-bold ${matchColor}`}>
+                  <span className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-bold ${matchColor}`} title="Share of its required skills found on your profile">
                     {o.match}
                   </span>
                 </div>
@@ -234,9 +181,9 @@ function OpportunitiesCard({ opportunities = [] }: { opportunities?: Opportunity
           <div className="size-10 rounded-full bg-rose-50 text-[#FF496D] flex items-center justify-center mb-2.5">
             <Briefcase className="size-5" />
           </div>
-          <p className="text-xs font-bold text-[#11182B]">No Opportunities Found</p>
-          <p className="text-[11px] text-[#617493] mt-1 max-w-[200px]">
-            Confirm more skills on your profile to calculate opportunity matches.
+          <p className="text-xs font-bold text-[#11182B]">No open research opportunities</p>
+          <p className="text-[11px] text-[#617493] mt-1 max-w-[220px]">
+            Research roles and grants appear here when they&apos;re listed, matched against your confirmed skills.
           </p>
           <Link
             href="/skills"
@@ -247,12 +194,9 @@ function OpportunitiesCard({ opportunities = [] }: { opportunities?: Opportunity
         </div>
       )}
 
-      <div className="border-t border-[#F8FAFC] pt-2 text-[11px] text-[#617493] flex justify-between items-center">
-        <span>Active listings</span>
-        <span className="font-semibold text-[#FF496D]">
-          {hasOpps ? `${opportunities.length} Opportunities` : "0 Listings"}
-        </span>
-      </div>
+      {opportunities.length > 3 && (
+        <p className="border-t border-[#F8FAFC] pt-2 text-[11px] text-[#617493]">And {opportunities.length - 3} more listed</p>
+      )}
     </div>
   );
 }
@@ -267,15 +211,8 @@ function NetworkInternshipsCard({ internships = [] }: { internships?: Opportunit
           <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#EDF5FF] text-[#2878F0]">
             <Sparkles className="size-4" />
           </div>
-          <h2 className="font-sans text-sm font-bold text-[#11182B]">Internships for Your Network</h2>
+          <h2 className="font-sans text-sm font-bold text-[#11182B]">Internships</h2>
         </div>
-        <Link
-          href="/internships"
-          className="group inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-xs font-semibold text-[#8554FF] hover:text-[#703DE5]"
-        >
-          <span>View All</span>
-          <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
-        </Link>
       </div>
 
       {hasInternships ? (
@@ -292,7 +229,7 @@ function NetworkInternshipsCard({ internships = [] }: { internships?: Opportunit
                   </p>
                 </div>
                 {item.deadline && (
-                  <span className="shrink-0 text-[9px] font-medium text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-md">
+                  <span className="shrink-0 text-[10px] font-medium text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-md">
                     {item.deadline}
                   </span>
                 )}
@@ -305,25 +242,16 @@ function NetworkInternshipsCard({ internships = [] }: { internships?: Opportunit
           <div className="size-10 rounded-full bg-blue-50 text-[#2878F0] flex items-center justify-center mb-2.5">
             <Sparkles className="size-5" />
           </div>
-          <p className="text-xs font-bold text-[#11182B]">No Active Internships</p>
-          <p className="text-[11px] text-[#617493] mt-1 max-w-[200px]">
-            Add your academic background to find student internships and campus opportunities.
+          <p className="text-xs font-bold text-[#11182B]">No open internships</p>
+          <p className="text-[11px] text-[#617493] mt-1 max-w-[220px]">
+            Internships appear here when they&apos;re listed, with their deadlines.
           </p>
-          <Link
-            href="/internships"
-            className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#2878F0] text-white text-xs font-semibold hover:bg-[#2063CC] transition-colors"
-          >
-            <span>Explore Roles</span>
-          </Link>
         </div>
       )}
 
-      <div className="border-t border-[#F8FAFC] pt-2 text-[11px] text-[#617493] flex justify-between items-center">
-        <span>From your network</span>
-        <span className="font-medium text-[#2878F0]">
-          {hasInternships ? "Referrals open" : "0 Active"}
-        </span>
-      </div>
+      {internships.length > 3 && (
+        <p className="border-t border-[#F8FAFC] pt-2 text-[11px] text-[#617493]">And {internships.length - 3} more listed</p>
+      )}
     </div>
   );
 }

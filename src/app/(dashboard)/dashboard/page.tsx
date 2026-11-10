@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { HiddenWidgets, RefreshUntilReady } from "@/components/dashboard/dashboard-client";
+import { ConsentScopeNotice } from "@/components/dashboard/consent-scope-notice";
 import { DashboardView } from "@/components/dashboard/dashboard-view";
 import { WidgetErrorBoundary } from "@/components/dashboard/widget-error-boundary";
 import { WidgetEmpty, WidgetSkeleton } from "@/components/dashboard/widget-states";
@@ -22,6 +23,8 @@ import { getWidgetPrefs } from "@/lib/dashboard/prefs";
 import type { CompletenessData, ErisData, ProfileViewDoc, SkillGapsData } from "@/lib/dashboard/types";
 import { timeAgo } from "@/lib/format";
 import { matchesForMentor, type MatchCard } from "@/lib/matches";
+import { needsExternalAiScopeUpdate } from "@/lib/consent/catalog";
+import { getCurrentConsents } from "@/lib/consent/store";
 
 import { getLiveDashboardData } from "@/lib/dashboard/stats";
 import { listMilestoneSubmissions } from "@/lib/roadmap/submissions";
@@ -43,7 +46,7 @@ async function Dashboard() {
   const { user } = await requireOnboardedUser();
   const isMentor = user.role === "faculty" || user.role === "alumni";
   // One wave: everything the page and its widgets read, in parallel.
-  const [[row], prefs, liveStats, erisRows, [github], mentorMatches, roadmapSubmissions] = await Promise.all([
+  const [[row], prefs, liveStats, erisRows, [github], mentorMatches, roadmapSubmissions, consents] = await Promise.all([
     db.select().from(profileViews).where(eq(profileViews.userId, user.id)),
     getWidgetPrefs(user.id),
     getLiveDashboardData({ id: user.id, role: user.role }),
@@ -59,7 +62,10 @@ async function Dashboard() {
       console.error("[Dashboard] roadmap submissions query failed:", err);
       return [];
     }),
+    getCurrentConsents(user.id),
   ]);
+  // Once, for grants given before the AI permission's full scope was disclosed; gone as soon as they answer.
+  const notice = needsExternalAiScopeUpdate(consents.external_ai) ? <ConsentScopeNotice /> : undefined;
   const widgetData: WidgetData = {
     erisBreakdown: (role: string | null) => (role ? erisRows.find((e) => e.role === role)?.breakdown : undefined),
     github: { userId: user.id, connection: github ?? null, repositories: liveStats.repositories },
@@ -70,6 +76,7 @@ async function Dashboard() {
   if (!row || (row.view as ProfileViewDoc).version !== SUPPORTED_VIEW_VERSION) {
     return (
       <DashboardView
+        notice={notice}
         name={firstName}
         profilePercent={liveStats.profilePercent}
         skillsCount={liveStats.skillsCount}
@@ -123,6 +130,7 @@ async function Dashboard() {
 
   return (
     <DashboardView
+      notice={notice}
       name={firstName}
       line={line}
       updated={updated}

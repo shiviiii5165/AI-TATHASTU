@@ -16,6 +16,7 @@ import psycopg2
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from db import EXTERNAL_AI_FULL_SCOPE_SINCE  # noqa: E402
 from intelligence import compute  # noqa: E402
 from intelligence.collaboration import EMBEDDING_DIM  # noqa: E402
 from jobs import Job, LockLost  # noqa: E402
@@ -106,11 +107,26 @@ class ComputeOnPostgres(unittest.TestCase):
             compute.process_compute_intelligence(self.conn, lost)
         self.assertEqual(self.sql("SELECT count(*) FROM profile_views WHERE user_id = %s", (self.user,), fetch=True)[0][0], 0)
 
-    def grant_ai(self, granted=True):
+    def grant_ai(self, granted=True, version=EXTERNAL_AI_FULL_SCOPE_SINCE):
         self.sql(
-            "INSERT INTO consents (user_id, purpose, granted, policy_version) VALUES (%s, 'external_ai', %s, 'test')",
-            (self.user, granted),
+            "INSERT INTO consents (user_id, purpose, granted, policy_version) VALUES (%s, 'external_ai', %s, %s)",
+            (self.user, granted, version),
         )
+
+    def test_a_grant_from_before_the_full_scope_was_disclosed_does_not_cover_matching_or_repo_scoring(self):
+        self.grant_ai(version="2026-10-29")
+        with mock.patch("intelligence.collaboration.fetch_dense_api_embedding") as provider, mock.patch("intelligence.compute.score_repos", return_value=[]) as score:
+            compute.process_compute_intelligence(self.conn, self.job)
+        provider.assert_not_called()
+        self.assertEqual(score.call_args.kwargs["allow_external_ai"], False)
+
+    def test_one_full_scope_grant_is_reused_across_runs_without_asking_again(self):
+        self.grant_ai()
+        with mock.patch("intelligence.compute.score_repos", return_value=[]) as score, mock.patch("intelligence.collaboration.fetch_dense_api_embedding", return_value=None):
+            for _ in range(3):
+                compute.process_compute_intelligence(self.conn, self.job)
+        self.assertEqual([c.kwargs["allow_external_ai"] for c in score.call_args_list], [True, True, True])
+        self.assertEqual(self.sql("SELECT count(*) FROM consents WHERE user_id = %s", (self.user,), fetch=True)[0][0], 1)
 
     def test_an_unchanged_profile_reuses_its_embedding_and_a_change_or_revocation_does_not(self):
         self.grant_ai()

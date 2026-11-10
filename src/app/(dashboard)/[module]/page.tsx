@@ -53,18 +53,15 @@ async function ModulePlaceholder({ label }: { label: string }) {
           <span>Back to Dashboard</span>
         </Link>
         <h1 className="editorial-title text-3xl sm:text-4xl text-[#11182B] tracking-tight">{label}</h1>
-        <p className="mt-1 text-sm text-[#64748B]">
-          AI career intelligence workspace module
-        </p>
       </div>
 
       <div className="rounded-2xl border border-dashed border-[#E7EAF3] bg-white p-8 text-center max-w-xl shadow-2xs">
         <div className="size-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-3">
           <Construction aria-hidden className="size-6" />
         </div>
-        <h2 className="text-base font-bold text-[#11182B]">Module In Active Development</h2>
+        <h2 className="text-base font-bold text-[#11182B]">Not available yet</h2>
         <p className="mt-1 text-xs text-[#64748B] max-w-sm mx-auto leading-relaxed">
-          This intelligence module will automatically sync with your verified profile facts, GitHub repositories, and skill benchmarks.
+          We&apos;re still building this section. Your dashboard has everything that&apos;s available today.
         </p>
         <Link
           href="/dashboard"

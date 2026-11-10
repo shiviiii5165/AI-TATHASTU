@@ -1,13 +1,11 @@
 "use client";
 
-import { ArrowRight, BookOpen, Brain, Check, Code2, Cpu, Database, ExternalLink, GraduationCap, Layers, Network, Rocket, Shield, Sliders, Sparkles, Target, Workflow } from "lucide-react";
+import { ArrowRight, BookOpen, Brain, Code2, Cpu, Database, ExternalLink, GraduationCap, Layers, Network, Shield, Sliders, Sparkles, Workflow } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState, useTransition, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
-import { submitRoadmapEvidence } from "@/app/(dashboard)/dashboard/roadmap-actions";
 import { roleLabel } from "@/components/dashboard/widgets/labels";
 import type { EngineSkill, GapState, IntelligenceDoc, RoleAnalysis, RoleSkillRow } from "@/lib/dashboard/types";
-import { roadmapProgress, type MilestoneStatus, type MilestoneSubmission, type RoadmapStep } from "@/lib/roadmap/progress";
 
 const STATUS_LABEL = { verified: "Verified", claimed: "Claimed", inferred: "Inferred" } as const;
 const STATE_LABEL: Record<GapState, string> = {
@@ -100,16 +98,16 @@ function Empty({ title, body, href, action }: { title: string; body: string; hre
 
 const UPDATING = { title: "Being updated", body: "This is recalculated from your evidence the next time your profile is processed." };
 
-export function GrowthDevelopmentRow({ intelligence, roadmapSubmissions }: { intelligence?: IntelligenceDoc; roadmapSubmissions?: MilestoneSubmission[] }) {
+/** Skill proficiency, gaps and learning paths. The Career Roadmap has its own full-width section (career-roadmap.tsx). */
+export function GrowthDevelopmentRow({ intelligence }: { intelligence?: IntelligenceDoc }) {
   const [roleIndex, setRoleIndex] = useState(0);
   const role = intelligence?.roles[roleIndex];
 
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
       <SkillProficiencyCard intelligence={intelligence} />
       <SkillGapsCard intelligence={intelligence} role={role} roleIndex={roleIndex} onRole={setRoleIndex} />
       <LearningPathsCard intelligence={intelligence} />
-      <CareerRoadmapCard intelligence={intelligence} submissions={roadmapSubmissions} />
     </div>
   );
 }
@@ -326,223 +324,3 @@ function LearningPathsCard({ intelligence }: { intelligence?: IntelligenceDoc })
   );
 }
 
-// ─── Career Roadmap ─────────────────────────────────────────────────────────
-
-// Fixed geometry for the curve; node positions are its segment endpoints.
-const VIEW = { w: 300, h: 128 };
-const NODES = [
-  { x: 18, y: 106 },
-  { x: 108, y: 84 },
-  { x: 196, y: 54 },
-  { x: 280, y: 18 },
-];
-const PATH = `M ${NODES[0].x} ${NODES[0].y} Q 64 108 ${NODES[1].x} ${NODES[1].y} Q 150 70 ${NODES[2].x} ${NODES[2].y} Q 240 40 ${NODES[3].x} ${NODES[3].y}`;
-const STAGE_KEYS = ["foundation", "build", "deepen"] as const;
-const STAGE_LABEL = { foundation: "Short Term", build: "Mid Term", deepen: "Long Term" } as const;
-
-const STEP_BADGE: Record<MilestoneStatus, { label: string; className: string }> = {
-  completed: { label: "Completed", className: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300" },
-  submitted: { label: "Submitted for review", className: "bg-sky-50 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300" },
-  needs_more_evidence: { label: "Needs more evidence", className: "bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300" },
-  active: { label: "Active", className: "bg-violet-50 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300" },
-  upcoming: { label: "Upcoming", className: "bg-muted text-muted-foreground" },
-};
-
-function EvidenceForm({ step, onDone }: { step: RoadmapStep; onDone: () => void }) {
-  const [url, setUrl] = useState("");
-  const [message, setMessage] = useState<string | null>(null);
-  const [pending, start] = useTransition();
-  return (
-    <form
-      className="mt-2 flex flex-wrap gap-1.5"
-      onSubmit={(e) => {
-        e.preventDefault();
-        start(async () => {
-          const res = await submitRoadmapEvidence({ milestoneId: step.id, evidenceUrl: url });
-          if (res.ok) {
-            setUrl("");
-            onDone();
-          } else setMessage(res.error);
-        });
-      }}
-    >
-      <label className="sr-only" htmlFor={`evidence-${step.id}`}>
-        Link to your work for {step.skill}
-      </label>
-      <input
-        id={`evidence-${step.id}`}
-        type="url"
-        required
-        inputMode="url"
-        placeholder="https://github.com/you/project"
-        value={url}
-        onChange={(e) => {
-          setUrl(e.target.value);
-          setMessage(null);
-        }}
-        className="min-w-0 flex-1 rounded-md border border-input bg-background px-2 py-1 text-[11px] text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      />
-      <button type="submit" disabled={pending} className="shrink-0 rounded-md bg-primary px-2 py-1 text-[11px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60">
-        {pending ? "Sending…" : "Submit"}
-      </button>
-      {message && (
-        <p role="alert" className="basis-full text-[10px] text-destructive">
-          {message}
-        </p>
-      )}
-    </form>
-  );
-}
-
-function CareerRoadmapCard({ intelligence, submissions }: { intelligence?: IntelligenceDoc; submissions?: MilestoneSubmission[] }) {
-  const roadmap = intelligence?.roadmap;
-  const progress = useMemo(() => (roadmap && intelligence ? roadmapProgress(roadmap, intelligence.computedAt, submissions) : null), [roadmap, intelligence, submissions]);
-  const [stageKey, setStageKey] = useState<string | null>(null);
-  const [formOpen, setFormOpen] = useState(false);
-  const [sent, setSent] = useState(false);
-
-  const percent = progress ? Math.round(progress.progress * 100) : 0;
-  const stages = STAGE_KEYS.map((key) => ({ key, steps: progress?.steps.filter((s) => s.stageKey === key) ?? [] }));
-  const nextStep = progress?.steps.find((s) => s.id === progress.nextId) ?? null;
-  const activeStage = stageKey ?? nextStep?.stageKey ?? stages.find((s) => s.steps.length)?.key ?? null;
-  const focus = activeStage ? (stages.find((s) => s.key === activeStage)?.steps ?? []) : [];
-  const shown = focus.find((s) => s.id === progress?.nextId) ?? focus.find((s) => s.status !== "completed") ?? focus[0] ?? null;
-
-  return (
-    <Card
-      icon={<Target aria-hidden className="size-4" />}
-      iconClass="bg-purple-50 text-purple-600 dark:bg-purple-500/15 dark:text-purple-300"
-      title="Career Roadmap"
-      href="/learning"
-      linkLabel="View plan"
-      footer={progress ? `${percent}% of ${roleLabel(progress.role)} skills shown at level by your evidence` : undefined}
-    >
-      {!intelligence ? (
-        <Empty {...UPDATING} />
-      ) : !roadmap || !progress ? (
-        <Empty title="No roadmap yet" body="Choose a career goal that has a competency framework." href="/settings" action="Your settings" />
-      ) : (
-        <>
-          <p className="truncate text-xs font-semibold text-foreground">Towards {roleLabel(progress.role)}</p>
-          <div className="relative mb-6 mt-1" style={{ aspectRatio: `${VIEW.w} / ${VIEW.h}` }}>
-            <svg viewBox={`0 0 ${VIEW.w} ${VIEW.h}`} className="absolute inset-0 size-full overflow-visible" aria-hidden>
-              <defs>
-                <linearGradient id="roadmap-gradient" x1="0" y1="1" x2="1" y2="0">
-                  <stop offset="0%" stopColor="#8b5cf6" />
-                  <stop offset="60%" stopColor="#a855f7" />
-                  <stop offset="100%" stopColor="#ec4899" />
-                </linearGradient>
-                <filter id="roadmap-glow" x="-50%" y="-50%" width="200%" height="200%">
-                  <feGaussianBlur stdDeviation="2.5" />
-                </filter>
-              </defs>
-              <path d={PATH} fill="none" stroke="var(--border)" strokeWidth="3" strokeLinecap="round" />
-              {/* Drawn only as far as the engine's evidence coverage; the animation starts from zero and stops on it. */}
-              <path
-                data-testid="roadmap-progress-path"
-                d={PATH}
-                pathLength={100}
-                fill="none"
-                stroke="url(#roadmap-gradient)"
-                strokeWidth="3.5"
-                strokeLinecap="round"
-                strokeDasharray="100 100"
-                strokeDashoffset={100 - percent}
-                className="motion-safe:animate-[roadmapDraw_1200ms_cubic-bezier(0.22,1,0.36,1)_both] motion-reduce:animate-none"
-              />
-            </svg>
-
-            {/* Current position: always reached. */}
-            <RoadmapNode x={NODES[0].x} y={NODES[0].y} state="reached" label="Current" />
-            {stages.map((s, i) => (
-              <RoadmapNode
-                key={s.key}
-                x={NODES[i + 1].x}
-                y={NODES[i + 1].y}
-                state={s.steps.length === 0 ? "empty" : s.key === nextStep?.stageKey ? "active" : "upcoming"}
-                label={STAGE_LABEL[s.key]}
-                selected={activeStage === s.key}
-                onClick={s.steps.length ? () => (setStageKey(s.key), setFormOpen(false), setSent(false)) : undefined}
-                rocket={i === 2}
-              />
-            ))}
-
-            {/* Captions: the stage name and its first open skill from the user's own roadmap. */}
-            <Caption x={NODES[0].x} y={NODES[0].y} title="Current" body={roadmap.currentPosition ?? "Not on your profile"} />
-            {stages.map((s, i) => (
-              <Caption key={s.key} x={NODES[i + 1].x} y={NODES[i + 1].y} title={STAGE_LABEL[s.key]} body={s.steps.length ? s.steps.map((x) => x.skill).join(", ") : "Nothing open"} align={i === 2 ? "right" : "left"} />
-            ))}
-          </div>
-
-          {shown && (
-            <div className="mt-2 rounded-xl bg-muted/50 p-2.5" aria-live="polite">
-              <div className="flex items-center justify-between gap-2">
-                <p className="min-w-0 truncate text-[11px] font-semibold text-foreground" title={shown.deliverable}>
-                  {STAGE_LABEL[shown.stageKey as keyof typeof STAGE_LABEL]}: {shown.skill}
-                </p>
-                <span className={`shrink-0 rounded-full px-1.5 py-px text-[10px] font-semibold ${STEP_BADGE[shown.status].className}`}>{STEP_BADGE[shown.status].label}</span>
-              </div>
-              <p className="mt-0.5 line-clamp-1 text-[10px] text-muted-foreground" title={shown.criterion}>
-                {shown.deliverable}
-              </p>
-              {shown.status !== "completed" &&
-                (sent ? (
-                  <p className="mt-1.5 text-[10px] text-muted-foreground">Submitted. It counts once your evidence shows {shown.skill} at level.</p>
-                ) : formOpen ? (
-                  <EvidenceForm step={shown} onDone={() => (setSent(true), setFormOpen(false))} />
-                ) : (
-                  <button type="button" onClick={() => setFormOpen(true)} className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline">
-                    <Check aria-hidden className="size-3" />
-                    Submit evidence
-                  </button>
-                ))}
-            </div>
-          )}
-          {progress.steps.length === 0 && <p className="mt-2 text-xs font-semibold text-foreground">Every skill for this goal is at its expected level.</p>}
-        </>
-      )}
-    </Card>
-  );
-}
-
-function Caption({ x, y, title, body, align = "left" }: { x: number; y: number; title: string; body: string; align?: "left" | "right" }) {
-  const style = align === "right" ? { right: `${100 - (x / VIEW.w) * 100 - 3}%`, top: `${(y / VIEW.h) * 100 + 14}%` } : { left: `${Math.max(0, (x / VIEW.w) * 100 - 4)}%`, top: `${(y / VIEW.h) * 100 + 9}%` };
-  return (
-    <div style={style} className={`pointer-events-none absolute w-[32%] text-[10px] leading-tight ${align === "right" ? "text-right" : ""}`}>
-      <p className="truncate font-bold text-foreground">{title}</p>
-      <p className="truncate text-muted-foreground" title={body}>
-        {body}
-      </p>
-    </div>
-  );
-}
-
-function RoadmapNode({ x, y, state, label, selected, onClick, rocket }: { x: number; y: number; state: "reached" | "active" | "upcoming" | "empty"; label: string; selected?: boolean; onClick?: () => void; rocket?: boolean }) {
-  const style = { left: `${(x / VIEW.w) * 100}%`, top: `${(y / VIEW.h) * 100}%` };
-  const dot =
-    state === "reached"
-      ? "size-3 bg-violet-500 ring-4 ring-violet-500/20"
-      : state === "active"
-        ? "size-3.5 bg-fuchsia-500 ring-4 ring-fuchsia-500/25 motion-safe:animate-pulse"
-        : state === "empty"
-          ? "size-2.5 bg-emerald-500 ring-4 ring-emerald-500/15"
-          : "size-2.5 border-2 border-violet-400 bg-card";
-  const content = rocket ? (
-    <span className={`flex size-7 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-[0_0_14px] shadow-fuchsia-500/50 ${state === "upcoming" ? "opacity-80" : ""}`}>
-      <Rocket aria-hidden className="size-3.5" />
-    </span>
-  ) : (
-    <span className={`block rounded-full ${dot}`} />
-  );
-  const cls = `absolute -translate-x-1/2 -translate-y-1/2 rounded-full transition-transform duration-150 ${selected ? "scale-110" : ""}`;
-  const name = `${label}${state === "empty" ? ": nothing open" : state === "active" ? ": next" : ""}`;
-  return onClick ? (
-    <button type="button" onClick={onClick} style={style} aria-label={`${name}. Show milestones`} aria-pressed={selected} className={`${cls} p-1.5 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}>
-      {content}
-    </button>
-  ) : (
-    <span style={style} className={cls} title={name}>
-      {content}
-    </span>
-  );
-}

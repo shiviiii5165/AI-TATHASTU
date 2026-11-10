@@ -66,6 +66,25 @@ function toMilestone({ group, fields }: RecordFields): JourneyMilestone | null {
   return null;
 }
 
+export interface JourneyView {
+  /** Oldest first, ending on the latest (current items last): the order the timeline animates in. */
+  timeline: JourneyMilestone[];
+  /** Records with no date: shown apart, never placed at a guessed point in time. */
+  undated: JourneyMilestone[];
+  /** Earlier dated records left off to keep the card compact. */
+  earlier: number;
+  hiddenUndated: number;
+}
+
+/** What the dashboard timeline shows from a `buildJourney` result: the most recent `max` dated items, then undated ones. */
+export function journeyView(milestones: JourneyMilestone[], max = 6, maxUndated = 2): JourneyView {
+  const dated = milestones.filter((m) => m.when || m.current);
+  const undated = milestones.filter((m) => !m.when && !m.current);
+  const timeline = dated.slice(Math.max(0, dated.length - max));
+  const shownUndated = undated.slice(0, maxUndated);
+  return { timeline, undated: shownUndated, earlier: dated.length - timeline.length, hiddenUndated: undated.length - shownUndated.length };
+}
+
 /** Oldest first; ongoing items last; undated items after everything, in stable order. */
 export function buildJourney(records: Iterable<RecordFields>): JourneyMilestone[] {
   const rank = (m: JourneyMilestone) => (m.current ? 9998 : m.when ? (latestYear(m.when) ?? 9999) : 9999);

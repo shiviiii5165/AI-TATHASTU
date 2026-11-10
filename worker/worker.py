@@ -59,22 +59,17 @@ IDLE_POLL_MAX_S = 10.0
 RETRY_BASE_S = 30
 
 def process_generate_roadmap(conn: Any, job: Job) -> None:
-    """Legacy job type: compute_intelligence already regenerates the roadmap and
-    the web app no longer queues this, but rows queued before that change are
-    still drained safely here."""
-    from db import fetch_one, has_consent
-    from intelligence.roadmap import generate_career_roadmap, save_roadmap
+    """Legacy job type, retired. compute_intelligence regenerates and saves the roadmap (and the web app no
+    longer queues this type), but rows queued before that change may still be waiting or retrying. Their intent,
+    a fresh roadmap, is kept by handing them to compute_intelligence, which reads consent itself; this handler
+    makes no AI call and writes no roadmap of its own. (It used to import intelligence.roadmap.generate_career_roadmap,
+    which no longer exists, so every such job failed.)"""
+    from db import enqueue_compute_intelligence, fetch_one
     with conn, conn.cursor() as cur:
-        user = fetch_one(
-            cur,
-            "SELECT name, role::text AS role, degree, university, department, academic_title, company, job_title FROM users WHERE id = %s",
-            (job.user_id,),
-        )
-        ai_ok = has_consent(cur, job.user_id, "external_ai")
-    if user:
-        rm = generate_career_roadmap(user, has_consent=ai_ok)  # network call outside the transaction
-        with conn, conn.cursor() as cur:
-            save_roadmap(cur, job.user_id, rm)
+        user = fetch_one(cur, "SELECT 1 AS present FROM users WHERE id = %s AND deleted_at IS NULL", (job.user_id,))
+        if user:
+            enqueue_compute_intelligence(cur, job.user_id, "legacy:generate_roadmap")
+    log.info("generate_roadmap (legacy) for %s: %s", job.user_id, "handed to compute_intelligence" if user else "user gone; nothing to do")
 
 Handler = Callable[[Any, Job], None]
 HANDLERS: Dict[str, Handler] = {

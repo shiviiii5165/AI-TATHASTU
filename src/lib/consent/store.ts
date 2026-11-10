@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { db } from "@/db";
 import { connections, consents, files, jobs, type ConsentPurpose, type SourceId } from "@/db/schema";
-import { CONSENT_POLICY_VERSION, CONSENT_PURPOSES, type ConsentChoices } from "@/lib/consent/catalog";
+import { CONSENT_POLICY_VERSION, CONSENT_PURPOSES, needsExternalAiScopeUpdate, type ConsentChoices } from "@/lib/consent/catalog";
 import { allowPaidWork } from "@/lib/paid-work";
 import { RESUME_PIPELINE_VERSION } from "@/lib/uploads/resume";
 import { wakeWorker } from "@/lib/worker-ping";
@@ -37,7 +37,12 @@ export async function appendConsents(userId: string, choices: ConsentChoices) {
   const latest = await getCurrentConsents(userId);
   const changed = CONSENT_PURPOSES.filter((purpose) => {
     const prev = latest[purpose];
-    return !prev || prev.granted !== choices[purpose] || prev.policyVersion !== CONSENT_POLICY_VERSION;
+    if (!prev || prev.granted !== choices[purpose]) return true;
+    // Saving the form re-affirms unchanged answers under the current version, except an external_ai grant from
+    // before its full scope was disclosed: re-recording it would extend it to new purposes without the user
+    // accepting them. That takes an explicit answer (the dashboard's one-time notice, or toggling it here).
+    if (purpose === "external_ai" && needsExternalAiScopeUpdate(prev)) return false;
+    return prev.policyVersion !== CONSENT_POLICY_VERSION;
   });
   const newlyGranted = changed.filter((p) => choices[p] && latest[p]?.granted !== true);
   const refused = newlyGranted.length && !(await allowPaidWork(userId, "consent_grant")).ok ? newlyGranted : [];

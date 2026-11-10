@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildJourney } from "./journey";
+import { buildJourney, journeyView } from "./journey";
 
 const titles = (records: Parameters<typeof buildJourney>[0]) => buildJourney(records).map((m) => m.title);
 
@@ -57,5 +57,37 @@ describe("buildJourney", () => {
 
   it("sorts a date range by its latest year", () => {
     expect(titles([{ group: "experience", fields: { role: "B", start_date: "2018", end_date: "2024" } }, { group: "experience", fields: { role: "A", start_date: "2019", end_date: "2020" } }])).toEqual(["A", "B"]);
+  });
+});
+
+describe("journeyView", () => {
+  const journey = buildJourney([
+    { group: "education", fields: { degree: "School", end_date: "2015" } },
+    { group: "education", fields: { degree: "B.Tech", end_date: "2019" } },
+    { group: "experience", fields: { role: "Intern", start_date: "2019", end_date: "2019" } },
+    { group: "experience", fields: { role: "Engineer", start_date: "2020", end_date: "Present" } },
+    { group: "achievements", fields: { title: "Undated award" } },
+  ]);
+
+  it("keeps chronological order, oldest first, ending on the current position", () => {
+    const v = journeyView(journey);
+    expect(v.timeline.map((m) => m.title)).toEqual(["School", "B.Tech", "Intern", "Engineer"]);
+    expect(v.timeline.at(-1)?.current).toBe(true);
+  });
+
+  it("keeps undated records apart instead of guessing where they belong", () => {
+    const v = journeyView(journey);
+    expect(v.undated.map((m) => m.title)).toEqual(["Undated award"]);
+    expect(v.timeline.some((m) => m.title === "Undated award")).toBe(false);
+  });
+
+  it("drops the earliest records first when trimming, and counts them", () => {
+    const v = journeyView(journey, 2);
+    expect(v.timeline.map((m) => m.title)).toEqual(["Intern", "Engineer"]);
+    expect(v.earlier).toBe(2);
+  });
+
+  it("is empty for an empty profile", () => {
+    expect(journeyView([])).toEqual({ timeline: [], undated: [], earlier: 0, hiddenUndated: 0 });
   });
 });

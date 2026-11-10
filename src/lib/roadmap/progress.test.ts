@@ -28,7 +28,15 @@ describe("career roadmap progress", () => {
   it("marks the first open milestone with prerequisites met as active", () => {
     const p = roadmapProgress(roadmap, computedAt);
     expect(p.nextId).toBe("ml_engineer:statistics");
-    expect(p.steps.map((s) => s.status)).toEqual(["active", "upcoming", "upcoming"]);
+    expect(p.steps.map((s) => s.status)).toEqual(["active", "upcoming", "blocked"]);
+  });
+
+  it("marks a milestone blocked only by prerequisites the evidence doesn't show yet", () => {
+    const p = roadmapProgress(roadmap, computedAt);
+    expect(p.steps[2].blockedBy).toEqual(["Statistics"]);
+    expect(p.steps[1].blockedBy).toEqual([]);
+    const unblocked = roadmapProgress({ ...roadmap, completed: ["Python", "Statistics"] }, computedAt);
+    expect(unblocked.steps.find((s) => s.skill === "Machine Learning")?.status).toBe("upcoming");
   });
 
   it("never completes a milestone or moves progress on a user's submission alone", () => {

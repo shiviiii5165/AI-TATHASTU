@@ -38,7 +38,8 @@ async function setUp(browser: Browser, name: string, width: number, height = 900
   const context = await browser.newContext({ viewport: { width, height } });
   await signIn(context, user, { onboarded: true });
   const page = await context.newPage();
-  await page.goto("/dashboard");
+  // The full skill graph lives on /skills; the dashboard shows the compact clustered view (dashboard-intelligence.spec.ts).
+  await page.goto("/skills");
   await expect(page.getByTestId("skill-graph-canvas").locator("[data-node]")).toHaveCount(18);
   return { context, page };
 }

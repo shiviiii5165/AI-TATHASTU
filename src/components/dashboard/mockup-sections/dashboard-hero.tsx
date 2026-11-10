@@ -23,7 +23,7 @@ export function DashboardHero({ name, line, updated, onOpenYora }: DashboardHero
         <div className="max-w-xl">
           <h1 className="editorial-title text-2xl sm:text-3xl lg:text-[2.25rem] text-[#11182B] tracking-tight leading-[1.2] break-words">
             Let&apos;s make progress,{" "}
-            <span className="bg-gradient-to-r from-[#FF496D] to-[#FF713D] bg-clip-text text-transparent font-normal italic">
+            <span className="bg-gradient-to-r from-[#FF496D] to-[#FF713D] bg-clip-text text-transparent">
               {name}.
             </span>
           </h1>
@@ -33,17 +33,17 @@ export function DashboardHero({ name, line, updated, onOpenYora }: DashboardHero
 
           {line && (
             <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-purple-200/60 bg-purple-50/70 px-3 py-1 text-xs font-semibold text-[#8554FF]">
-              <span className="size-2 rounded-full bg-[#19C58A] animate-pulse" />
+              <span aria-hidden className="size-2 rounded-full bg-[#19C58A]" />
               <span className="truncate max-w-[calc(100vw-5rem)] sm:max-w-none">{line}</span>
             </div>
           )}
 
           <div className="mt-4 flex flex-wrap items-center gap-3 pt-1">
             <Link
-              href="/opportunities"
+              href="#career-roadmap"
               className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#FF496D] to-[#FF713D] px-4 py-2 text-xs font-bold text-white shadow-xs hover:opacity-95 active:scale-95 transition-all touch-manipulation"
             >
-              <span>Explore Opportunities</span>
+              <span>See your next step</span>
               <ArrowRight className="size-3.5" />
             </Link>
             {updated && (
@@ -79,14 +79,14 @@ export function DashboardHero({ name, line, updated, onOpenYora }: DashboardHero
                 <div className="flex size-5 sm:size-5.5 items-center justify-center rounded-full bg-gradient-to-tr from-[#8554FF] to-[#FF496D] text-white">
                   <Sparkles className="size-2.5 sm:size-3" />
                 </div>
-                <span className="font-sans text-xs font-bold text-[#11182B]">Yora Insight</span>
+                <span className="font-sans text-xs font-bold text-[#11182B]">Ask Yora</span>
               </div>
               <span className="rounded-full bg-[#8554FF]/10 px-2 py-0.5 text-[10px] font-bold text-[#8554FF] transition-colors group-hover:bg-[#8554FF] group-hover:text-white">
                 Chat
               </span>
             </div>
             <p className="mt-1.5 sm:mt-2 text-xs font-medium text-[#4A5568] leading-relaxed line-clamp-2 sm:line-clamp-none">
-              Your profile signals are strong! Click here to ask about roadmap milestones, skill gaps, or interview readiness.
+              Ask about your roadmap, skill gaps or interview preparation.
             </p>
           </button>
         </div>

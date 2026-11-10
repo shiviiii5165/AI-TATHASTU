@@ -43,7 +43,7 @@ export function MetricCards({
       id: "github",
       icon: Box,
       value: `${githubReposCount}`,
-      label: "From GitHub",
+      label: "GitHub repositories",
       sublabel: null,
       iconBg: "bg-[#F3EFFF] text-[#8554FF]",
       href: "/projects",
@@ -53,7 +53,7 @@ export function MetricCards({
       icon: Award,
       value: `${achievementsCount}`,
       label: "Achievements",
-      sublabel: "Publications, Patents, etc.",
+      sublabel: null,
       iconBg: "bg-[#FFF6E9] text-[#FFB547]",
       href: "/achievements",
     },
@@ -64,7 +64,8 @@ export function MetricCards({
       label: "Opportunities",
       sublabel: null,
       iconBg: "bg-[#FFF0F4] text-[#FF496D]",
-      href: "/opportunities",
+      // The opportunities module isn't built yet; the listings live in the dashboard's own card.
+      href: "#opportunities",
     },
     {
       id: "network",

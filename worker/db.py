@@ -26,14 +26,35 @@ def jsonb(value: Any) -> Optional[str]:
     return None if value is None else json.dumps(value)
 
 
-def has_consent(cur: Any, user_id: str, purpose: str) -> bool:
-    """Latest consents row wins; no row means not granted."""
+# The policy version from which the external_ai consent text discloses its full scope: resume reading plus
+# portfolio analysis, GitHub repository metadata analysis and AI-assisted people matching. Grants recorded
+# under an earlier version only disclosed resume reading. Mirrors EXTERNAL_AI_FULL_SCOPE_SINCE in
+# src/lib/consent/catalog.ts. Versions are ISO dates, so string order is date order.
+EXTERNAL_AI_FULL_SCOPE_SINCE = "2026-11-10"
+
+
+def has_consent(cur: Any, user_id: str, purpose: str, *, min_version: Optional[str] = None) -> bool:
+    """Latest consents row wins; no row means not granted.
+
+    One grant covers every later operation within the scope it disclosed: nothing here asks again per upload or
+    sync. `min_version` is for purposes added to a consent's scope later: a grant given before the text disclosed
+    them doesn't cover them until the user accepts the updated text once.
+    """
     row = fetch_one(
         cur,
-        "SELECT granted FROM consents WHERE user_id = %s AND purpose = %s ORDER BY created_at DESC LIMIT 1",
+        "SELECT granted, policy_version FROM consents WHERE user_id = %s AND purpose = %s ORDER BY created_at DESC LIMIT 1",
         (user_id, purpose),
     )
-    return bool(row and row["granted"])
+    if not (row and row["granted"]):
+        return False
+    return min_version is None or covers_version(row.get("policy_version"), min_version)
+
+
+def covers_version(recorded: Optional[str], required: str) -> bool:
+    """A grant's recorded policy version covers `required` when it is that version or later. Unknown means not."""
+    if not recorded or len(recorded) != 10 or recorded[4] != "-":
+        return False
+    return recorded >= required
 
 
 def enqueue_compute_matches(cur: Any, user_id: str, trigger: str) -> None:

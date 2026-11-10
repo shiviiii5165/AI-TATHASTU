@@ -13,7 +13,7 @@ import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 // Shell for the dashboard and every module page.
 export default function AppLayout({ children }: LayoutProps<"/">) {
   return (
-    <div className="min-h-dvh flex flex-col bg-background text-foreground">
+    <div className="app-type min-h-dvh flex flex-col bg-background text-foreground">
       <a
         href="#app-content"
         className="sr-only z-50 rounded-md bg-primary px-3 py-2 text-primary-foreground focus:not-sr-only focus:fixed focus:top-3 focus:left-3"

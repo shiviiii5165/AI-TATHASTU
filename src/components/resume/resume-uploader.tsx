@@ -139,6 +139,8 @@ function AiConsent({ initial, uploaded }: { initial: boolean; uploaded: boolean 
       setNote(result.error);
     } else if (next && uploaded) {
       setNote("Saved. We're reading your resume again with AI; the review will include the new fields.");
+    } else if (!next) {
+      setNote("Saved. Your resume won't be sent to outside AI services.");
     }
   }
 
@@ -179,21 +181,24 @@ function AiConsent({ initial, uploaded }: { initial: boolean; uploaded: boolean 
         </button>
       </div>
       <p id="ai-consent-body" className="pb-2.5 pl-8 text-sm leading-relaxed text-slate-600">
-        We extract profile details for you to review before saving.
+        {RESUME_AI_CONSENT.summary}
       </p>
 
-      <dl
-        id="ai-consent-details"
-        hidden={!expanded}
-        className="mb-3 ml-8 space-y-2.5 border-t border-slate-100 pt-3 text-sm text-slate-700"
-      >
-        {RESUME_AI_CONSENT.details.map((d) => (
-          <div key={d.term}>
-            <dt className="font-semibold text-[#0F172A]">{d.term}</dt>
-            <dd className="mt-0.5 max-w-[65ch] leading-relaxed">{d.text}</dd>
-          </div>
-        ))}
-      </dl>
+      <div id="ai-consent-details" hidden={!expanded} className="mb-3 ml-8 border-t border-slate-100 pt-3">
+        <dl className="space-y-2.5 text-sm text-slate-700">
+          {RESUME_AI_CONSENT.details.map((d) => (
+            <div key={d.term}>
+              <dt className="font-semibold text-[#0F172A]">{d.term}</dt>
+              <dd className="mt-0.5 max-w-[65ch] leading-relaxed">{d.text}</dd>
+            </div>
+          ))}
+        </dl>
+        <p className="mt-3 text-sm text-slate-600">
+          <Link href={RESUME_AI_CONSENT.manageHref} className="font-semibold text-[#FF2A85] hover:underline">
+            Manage this permission in Privacy settings
+          </Link>
+        </p>
+      </div>
 
       {note && (
         <p role="status" className="pb-2.5 pl-8 text-sm font-semibold text-[#FF2A85]">

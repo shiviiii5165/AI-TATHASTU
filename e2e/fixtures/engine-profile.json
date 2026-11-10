@@ -1,0 +1,1280 @@
+{
+ "intelligence": {
+  "engineVersion": 2,
+  "computedAt": "2026-11-10T11:38:04.072689+00:00",
+  "hasEvidenceBase": true,
+  "skills": [
+   {
+    "name": "Python",
+    "category": "language",
+    "status": "verified",
+    "proficiency": 51.6,
+    "level": "Proficient",
+    "confidence": 0.6,
+    "scoreParts": {
+     "repositories": 16.0,
+     "codeVolume": 12.9,
+     "recency": 6.0,
+     "described": 16.7
+    },
+    "evidenceCount": 4,
+    "evidence": [
+     {
+      "kind": "repository",
+      "source": "github",
+      "label": "asha/resume-parser",
+      "ref": "https://github.com/asha/resume-parser",
+      "at": "2026-10-21T11:38:04.072689+00:00"
+     },
+     {
+      "kind": "repository",
+      "source": "github",
+      "label": "asha/sql-dashboards",
+      "ref": "https://github.com/asha/sql-dashboards",
+      "at": "2026-10-21T11:38:04.072689+00:00"
+     },
+     {
+      "kind": "project",
+      "source": "resume",
+      "label": "Resume Parser",
+      "ref": "f16",
+      "at": "2026-10-21T11:38:04.072689+00:00"
+     },
+     {
+      "kind": "project",
+      "source": "resume",
+      "label": "Undated Side Project",
+      "ref": "f18",
+      "at": "2026-10-21T11:38:04.072689+00:00"
+     }
+    ],
+    "lastEvidenceAt": "2026-10-21T11:38:04.072689+00:00"
+   },
+   {
+    "name": "SQL",
+    "category": "language",
+    "status": "verified",
+    "proficiency": 21.8,
+    "level": "Foundational",
+    "confidence": 0.35,
+    "scoreParts": {
+     "repositories": 8.0,
+     "codeVolume": 10.8,
+     "recency": 3.0
+    },
+    "evidenceCount": 1,
+    "evidence": [
+     {
+      "kind": "repository",
+      "source": "github",
+      "label": "asha/sql-dashboards",
+      "ref": "https://github.com/asha/sql-dashboards",
+      "at": "2026-10-21T11:38:04.072689+00:00"
+     }
+    ],
+    "lastEvidenceAt": "2026-10-21T11:38:04.072689+00:00"
+   },
+   {
+    "name": "scikit-learn",
+    "category": "ml_framework",
+    "status": "verified",
+    "proficiency": 19.3,
+    "level": "Foundational",
+    "confidence": 0.6,
+    "scoreParts": {
+     "repositories": 8.0,
+     "recency": 3.0,
+     "described": 8.3
+    },
+    "evidenceCount": 2,
+    "evidence": [
+     {
+      "kind": "repository",
+      "source": "github",
+      "label": "asha/resume-parser",
+      "ref": "https://github.com/asha/resume-parser",
+      "at": "2026-10-21T11:38:04.072689+00:00"
+     },
+     {
+      "kind": "project",
+      "source": "resume",
+      "label": "Resume Parser",
+      "ref": "f16",
+      "at": "2026-10-21T11:38:04.072689+00:00"
+     }
+    ],
+    "lastEvidenceAt": "2026-10-21T11:38:04.072689+00:00"
+   },
+   {
+    "name": "PyTorch",
+    "category": "ml_framework",
+    "status": "verified",
+    "proficiency": 11.0,
+    "level": "Foundational",
+    "confidence": 0.35,
+    "scoreParts": {
+     "repositories": 8.0,
+     "recency": 3.0
+    },
+    "evidenceCount": 1,
+    "evidence": [
+     {
+      "kind": "repository",
+      "source": "github",
+      "label": "asha/resume-parser",
+      "ref": "https://github.com/asha/resume-parser",
+      "at": "2026-10-21T11:38:04.072689+00:00"
+     }
+    ],
+    "lastEvidenceAt": "2026-10-21T11:38:04.072689+00:00"
+   },
+   {
+    "name": "Kubernetes",
+    "category": "mlops",
+    "status": "claimed",
+    "proficiency": null,
+    "level": "Not assessed",
+    "confidence": 0.35,
+    "scoreParts": {},
+    "evidenceCount": 1,
+    "evidence": [
+     {
+      "kind": "claim",
+      "source": "resume",
+      "label": "Listed in your skills",
+      "ref": "f21",
+      "at": "2026-10-21T11:38:04.072689+00:00"
+     }
+    ],
+    "lastEvidenceAt": "2026-10-21T11:38:04.072689+00:00"
+   }
+  ],
+  "inferred": [
+   {
+    "name": "Data Science",
+    "category": "other",
+    "status": "inferred",
+    "proficiency": null,
+    "level": "Not assessed",
+    "confidence": 0.0,
+    "scoreParts": {},
+    "evidenceCount": 0,
+    "evidence": [],
+    "lastEvidenceAt": null,
+    "inferredFrom": [
+     "scikit-learn"
+    ]
+   },
+   {
+    "name": "Deep Learning",
+    "category": "other",
+    "status": "inferred",
+    "proficiency": null,
+    "level": "Not assessed",
+    "confidence": 0.0,
+    "scoreParts": {},
+    "evidenceCount": 0,
+    "evidence": [],
+    "lastEvidenceAt": null,
+    "inferredFrom": [
+     "PyTorch"
+    ]
+   },
+   {
+    "name": "Machine Learning",
+    "category": "other",
+    "status": "inferred",
+    "proficiency": null,
+    "level": "Not assessed",
+    "confidence": 0.0,
+    "scoreParts": {},
+    "evidenceCount": 0,
+    "evidence": [],
+    "lastEvidenceAt": null,
+    "inferredFrom": [
+     "PyTorch",
+     "scikit-learn"
+    ]
+   },
+   {
+    "name": "Neural Networks",
+    "category": "other",
+    "status": "inferred",
+    "proficiency": null,
+    "level": "Not assessed",
+    "confidence": 0.0,
+    "scoreParts": {},
+    "evidenceCount": 0,
+    "evidence": [],
+    "lastEvidenceAt": null,
+    "inferredFrom": [
+     "PyTorch"
+    ]
+   }
+  ],
+  "roles": [
+   {
+    "role": "ml_engineer",
+    "coverage": 0.149,
+    "assessed": true,
+    "skills": [
+     {
+      "skill": "Python",
+      "weight": 1.0,
+      "priority": "High",
+      "expected": 50,
+      "expectedLevel": "Proficient",
+      "proficiency": 51.6,
+      "level": "Proficient",
+      "confidence": 0.6,
+      "state": "met",
+      "insufficientEvidence": false,
+      "action": null,
+      "evidence": [
+       "asha/resume-parser",
+       "asha/sql-dashboards",
+       "Resume Parser"
+      ]
+     },
+     {
+      "skill": "Machine Learning",
+      "weight": 1.0,
+      "priority": "High",
+      "expected": 50,
+      "expectedLevel": "Proficient",
+      "proficiency": null,
+      "level": "Not assessed",
+      "confidence": 0.0,
+      "state": "inferred",
+      "insufficientEvidence": true,
+      "action": "Your related skills suggest Machine Learning, but nothing shows it yet. Add a project that uses it directly.",
+      "evidence": []
+     },
+     {
+      "skill": "scikit-learn",
+      "weight": 0.8,
+      "priority": "High",
+      "expected": 25,
+      "expectedLevel": "Working",
+      "proficiency": 19.3,
+      "level": "Foundational",
+      "confidence": 0.6,
+      "state": "underdeveloped",
+      "insufficientEvidence": false,
+      "action": "Deepen it: use scikit-learn in a more substantial project and push it to a public repository.",
+      "evidence": [
+       "asha/resume-parser",
+       "Resume Parser"
+      ]
+     },
+     {
+      "skill": "PyTorch",
+      "weight": 0.8,
+      "priority": "High",
+      "expected": 25,
+      "expectedLevel": "Working",
+      "proficiency": 11.0,
+      "level": "Foundational",
+      "confidence": 0.35,
+      "state": "underdeveloped",
+      "insufficientEvidence": false,
+      "action": "Deepen it: use PyTorch in a more substantial project and push it to a public repository.",
+      "evidence": [
+       "asha/resume-parser"
+      ]
+     },
+     {
+      "skill": "SQL",
+      "weight": 0.6,
+      "priority": "Medium",
+      "expected": 25,
+      "expectedLevel": "Working",
+      "proficiency": 21.8,
+      "level": "Foundational",
+      "confidence": 0.35,
+      "state": "underdeveloped",
+      "insufficientEvidence": false,
+      "action": "Deepen it: use SQL in a more substantial project and push it to a public repository.",
+      "evidence": [
+       "asha/sql-dashboards"
+      ]
+     },
+     {
+      "skill": "Docker",
+      "weight": 0.6,
+      "priority": "Medium",
+      "expected": 25,
+      "expectedLevel": "Working",
+      "proficiency": null,
+      "level": "Not assessed",
+      "confidence": 0.0,
+      "state": "missing",
+      "insufficientEvidence": false,
+      "action": "Learn Docker, then build a small public project with it.",
+      "evidence": []
+     },
+     {
+      "skill": "MLflow",
+      "weight": 0.5,
+      "priority": "Low",
+      "expected": 10,
+      "expectedLevel": "Foundational",
+      "proficiency": null,
+      "level": "Not assessed",
+      "confidence": 0.0,
+      "state": "missing",
+      "insufficientEvidence": false,
+      "action": "Learn MLflow, then build a small public project with it.",
+      "evidence": []
+     },
+     {
+      "skill": "Statistics",
+      "weight": 0.6,
+      "priority": "Medium",
+      "expected": 25,
+      "expectedLevel": "Working",
+      "proficiency": null,
+      "level": "Not assessed",
+      "confidence": 0.0,
+      "state": "missing",
+      "insufficientEvidence": false,
+      "action": "Learn Statistics, then build a small public project with it.",
+      "evidence": []
+     },
+     {
+      "skill": "AWS",
+      "weight": 0.4,
+      "priority": "Low",
+      "expected": 10,
+      "expectedLevel": "Foundational",
+      "proficiency": null,
+      "level": "Not assessed",
+      "confidence": 0.0,
+      "state": "missing",
+      "insufficientEvidence": false,
+      "action": "Learn AWS, then build a small public project with it.",
+      "evidence": []
+     },
+     {
+      "skill": "Git",
+      "weight": 0.4,
+      "priority": "Low",
+      "expected": 10,
+      "expectedLevel": "Foundational",
+      "proficiency": null,
+      "level": "Not assessed",
+      "confidence": 0.0,
+      "state": "missing",
+      "insufficientEvidence": false,
+      "action": "Learn Git, then build a small public project with it.",
+      "evidence": []
+     }
+    ],
+    "open": [
+     {
+      "skill": "Machine Learning",
+      "weight": 1.0,
+      "priority": "High",
+      "expected": 50,
+      "expectedLevel": "Proficient",
+      "proficiency": null,
+      "level": "Not assessed",
+      "confidence": 0.0,
+      "state": "inferred",
+      "insufficientEvidence": true,
+      "action": "Your related skills suggest Machine Learning, but nothing shows it yet. Add a project that uses it directly.",
+      "evidence": []
+     },
+     {
+      "skill": "PyTorch",
+      "weight": 0.8,
+      "priority": "High",
+      "expected": 25,
+      "expectedLevel": "Working",
+      "proficiency": 11.0,
+      "level": "Foundational",
+      "confidence": 0.35,
+      "state": "underdeveloped",
+      "insufficientEvidence": false,
+      "action": "Deepen it: use PyTorch in a more substantial project and push it to a public repository.",
+      "evidence": [
+       "asha/resume-parser"
+      ]
+     },
+     {
+      "skill": "scikit-learn",
+      "weight": 0.8,
+      "priority": "High",
+      "expected": 25,
+      "expectedLevel": "Working",
+      "proficiency": 19.3,
+      "level": "Foundational",
+      "confidence": 0.6,
+      "state": "underdeveloped",
+      "insufficientEvidence": false,
+      "action": "Deepen it: use scikit-learn in a more substantial project and push it to a public repository.",
+      "evidence": [
+       "asha/resume-parser",
+       "Resume Parser"
+      ]
+     },
+     {
+      "skill": "Docker",
+      "weight": 0.6,
+      "priority": "Medium",
+      "expected": 25,
+      "expectedLevel": "Working",
+      "proficiency": null,
+      "level": "Not assessed",
+      "confidence": 0.0,
+      "state": "missing",
+      "insufficientEvidence": false,
+      "action": "Learn Docker, then build a small public project with it.",
+      "evidence": []
+     },
+     {
+      "skill": "Statistics",
+      "weight": 0.6,
+      "priority": "Medium",
+      "expected": 25,
+      "expectedLevel": "Working",
+      "proficiency": null,
+      "level": "Not assessed",
+      "confidence": 0.0,
+      "state": "missing",
+      "insufficientEvidence": false,
+      "action": "Learn Statistics, then build a small public project with it.",
+      "evidence": []
+     },
+     {
+      "skill": "SQL",
+      "weight": 0.6,
+      "priority": "Medium",
+      "expected": 25,
+      "expectedLevel": "Working",
+      "proficiency": 21.8,
+      "level": "Foundational",
+      "confidence": 0.35,
+      "state": "underdeveloped",
+      "insufficientEvidence": false,
+      "action": "Deepen it: use SQL in a more substantial project and push it to a public repository.",
+      "evidence": [
+       "asha/sql-dashboards"
+      ]
+     },
+     {
+      "skill": "MLflow",
+      "weight": 0.5,
+      "priority": "Low",
+      "expected": 10,
+      "expectedLevel": "Foundational",
+      "proficiency": null,
+      "level": "Not assessed",
+      "confidence": 0.0,
+      "state": "missing",
+      "insufficientEvidence": false,
+      "action": "Learn MLflow, then build a small public project with it.",
+      "evidence": []
+     },
+     {
+      "skill": "AWS",
+      "weight": 0.4,
+      "priority": "Low",
+      "expected": 10,
+      "expectedLevel": "Foundational",
+      "proficiency": null,
+      "level": "Not assessed",
+      "confidence": 0.0,
+      "state": "missing",
+      "insufficientEvidence": false,
+      "action": "Learn AWS, then build a small public project with it.",
+      "evidence": []
+     },
+     {
+      "skill": "Git",
+      "weight": 0.4,
+      "priority": "Low",
+      "expected": 10,
+      "expectedLevel": "Foundational",
+      "proficiency": null,
+      "level": "Not assessed",
+      "confidence": 0.0,
+      "state": "missing",
+      "insufficientEvidence": false,
+      "action": "Learn Git, then build a small public project with it.",
+      "evidence": []
+     }
+    ],
+    "counts": {
+     "met": 1,
+     "underdeveloped": 3,
+     "unverified": 0,
+     "inferred": 1,
+     "missing": 5,
+     "not_assessed": 0
+    }
+   }
+  ],
+  "unsupportedRoles": [],
+  "recommendations": [
+   {
+    "skill": "Machine Learning",
+    "targetLevel": "Proficient",
+    "target": 50,
+    "current": null,
+    "currentLevel": "Not assessed",
+    "state": "inferred",
+    "priority": "High",
+    "why": "Only suggested by related skills so far; it's high-priority for ml_engineer (expected: Proficient).",
+    "currentEvidence": [],
+    "roles": [
+     "ml_engineer"
+    ],
+    "prerequisites": [
+     {
+      "skill": "Python",
+      "met": true
+     },
+     {
+      "skill": "Statistics",
+      "met": false
+     }
+    ],
+    "resource": null,
+    "demonstration": "Publish a repository that uses Machine Learning, naming it in the description or topics, so it can count here.",
+    "status": "not_started",
+    "rankScore": 120.0
+   },
+   {
+    "skill": "PyTorch",
+    "targetLevel": "Working",
+    "target": 25,
+    "current": 11.0,
+    "currentLevel": "Foundational",
+    "state": "underdeveloped",
+    "priority": "High",
+    "why": "Evidence puts you at Foundational; it's high-priority for ml_engineer (expected: Working).",
+    "currentEvidence": [
+     "asha/resume-parser"
+    ],
+    "roles": [
+     "ml_engineer"
+    ],
+    "prerequisites": [
+     {
+      "skill": "Python",
+      "met": true
+     }
+    ],
+    "resource": {
+     "title": "Practical Deep Learning for Coders",
+     "provider": "Fast.ai",
+     "url": "https://course.fast.ai/",
+     "description": null,
+     "difficulty": "Intermediate",
+     "duration": null,
+     "linkCheckedOn": "2026-11-01",
+     "linkStale": false
+    },
+    "demonstration": "Publish a repository that uses PyTorch, naming it in the description or topics, so it can count here.",
+    "status": "in_progress",
+    "rankScore": 87.0
+   },
+   {
+    "skill": "scikit-learn",
+    "targetLevel": "Working",
+    "target": 25,
+    "current": 19.3,
+    "currentLevel": "Foundational",
+    "state": "underdeveloped",
+    "priority": "High",
+    "why": "Evidence puts you at Foundational; it's high-priority for ml_engineer (expected: Working).",
+    "currentEvidence": [
+     "asha/resume-parser",
+     "Resume Parser"
+    ],
+    "roles": [
+     "ml_engineer"
+    ],
+    "prerequisites": [
+     {
+      "skill": "Python",
+      "met": true
+     }
+    ],
+    "resource": null,
+    "demonstration": "Publish a repository that uses scikit-learn, naming it in the description or topics, so it can count here.",
+    "status": "in_progress",
+    "rankScore": 82.85
+   },
+   {
+    "skill": "Docker",
+    "targetLevel": "Working",
+    "target": 25,
+    "current": null,
+    "currentLevel": "Not assessed",
+    "state": "missing",
+    "priority": "Medium",
+    "why": "No evidence found yet; it's medium-priority for ml_engineer (expected: Working).",
+    "currentEvidence": [],
+    "roles": [
+     "ml_engineer"
+    ],
+    "prerequisites": [],
+    "resource": null,
+    "demonstration": "Publish a repository that uses Docker, naming it in the description or topics, so it can count here.",
+    "status": "not_started",
+    "rankScore": 72.5
+   },
+   {
+    "skill": "Statistics",
+    "targetLevel": "Working",
+    "target": 25,
+    "current": null,
+    "currentLevel": "Not assessed",
+    "state": "missing",
+    "priority": "Medium",
+    "why": "No evidence found yet; it's medium-priority for ml_engineer (expected: Working).",
+    "currentEvidence": [],
+    "roles": [
+     "ml_engineer"
+    ],
+    "prerequisites": [],
+    "resource": {
+     "title": "Statistical Inference and Hypothesis Testing",
+     "provider": "Johns Hopkins University",
+     "url": "https://www.coursera.org/learn/statistical-inference",
+     "description": null,
+     "difficulty": "Intermediate",
+     "duration": null,
+     "linkCheckedOn": "2026-11-01",
+     "linkStale": false
+    },
+    "demonstration": "Publish a repository that uses Statistics, naming it in the description or topics, so it can count here.",
+    "status": "not_started",
+    "rankScore": 72.5
+   },
+   {
+    "skill": "SQL",
+    "targetLevel": "Working",
+    "target": 25,
+    "current": 21.8,
+    "currentLevel": "Foundational",
+    "state": "underdeveloped",
+    "priority": "Medium",
+    "why": "Evidence puts you at Foundational; it's medium-priority for ml_engineer (expected: Working).",
+    "currentEvidence": [
+     "asha/sql-dashboards"
+    ],
+    "roles": [
+     "ml_engineer"
+    ],
+    "prerequisites": [],
+    "resource": null,
+    "demonstration": "Publish a repository that uses SQL, naming it in the description or topics, so it can count here.",
+    "status": "in_progress",
+    "rankScore": 61.6
+   },
+   {
+    "skill": "MLflow",
+    "targetLevel": "Foundational",
+    "target": 10,
+    "current": null,
+    "currentLevel": "Not assessed",
+    "state": "missing",
+    "priority": "Low",
+    "why": "No evidence found yet; it's low-priority for ml_engineer (expected: Foundational).",
+    "currentEvidence": [],
+    "roles": [
+     "ml_engineer"
+    ],
+    "prerequisites": [
+     {
+      "skill": "Machine Learning",
+      "met": false
+     }
+    ],
+    "resource": null,
+    "demonstration": "Publish a repository that uses MLflow, naming it in the description or topics, so it can count here.",
+    "status": "not_started",
+    "rankScore": 50.0
+   },
+   {
+    "skill": "AWS",
+    "targetLevel": "Foundational",
+    "target": 10,
+    "current": null,
+    "currentLevel": "Not assessed",
+    "state": "missing",
+    "priority": "Low",
+    "why": "No evidence found yet; it's low-priority for ml_engineer (expected: Foundational).",
+    "currentEvidence": [],
+    "roles": [
+     "ml_engineer"
+    ],
+    "prerequisites": [],
+    "resource": null,
+    "demonstration": "Publish a repository that uses AWS, naming it in the description or topics, so it can count here.",
+    "status": "not_started",
+    "rankScore": 45.0
+   },
+   {
+    "skill": "Git",
+    "targetLevel": "Foundational",
+    "target": 10,
+    "current": null,
+    "currentLevel": "Not assessed",
+    "state": "missing",
+    "priority": "Low",
+    "why": "No evidence found yet; it's low-priority for ml_engineer (expected: Foundational).",
+    "currentEvidence": [],
+    "roles": [
+     "ml_engineer"
+    ],
+    "prerequisites": [],
+    "resource": null,
+    "demonstration": "Publish a repository that uses Git, naming it in the description or topics, so it can count here.",
+    "status": "not_started",
+    "rankScore": 45.0
+   }
+  ],
+  "roadmap": {
+   "role": "ml_engineer",
+   "currentPosition": "B.Tech Computer Science at IIT Delhi",
+   "progress": 0.149,
+   "completed": [
+    "Python"
+   ],
+   "stages": [
+    {
+     "key": "foundation",
+     "title": "Build the foundations",
+     "milestones": [
+      {
+       "id": "ml_engineer:statistics",
+       "skill": "Statistics",
+       "state": "missing",
+       "done": false,
+       "requires": [],
+       "deliverable": "A public project using Statistics in an end-to-end model you train, evaluate and deploy",
+       "criterion": "Statistics reaches Working from your evidence",
+       "estimateWeeks": 4
+      },
+      {
+       "id": "ml_engineer:pytorch",
+       "skill": "PyTorch",
+       "state": "underdeveloped",
+       "done": false,
+       "requires": [
+        "Python"
+       ],
+       "deliverable": "A public project using PyTorch in an end-to-end model you train, evaluate and deploy",
+       "criterion": "PyTorch reaches Working from your evidence",
+       "estimateWeeks": 4
+      },
+      {
+       "id": "ml_engineer:scikit-learn",
+       "skill": "scikit-learn",
+       "state": "underdeveloped",
+       "done": false,
+       "requires": [
+        "Python"
+       ],
+       "deliverable": "A public project using scikit-learn in an end-to-end model you train, evaluate and deploy",
+       "criterion": "scikit-learn reaches Working from your evidence",
+       "estimateWeeks": 4
+      },
+      {
+       "id": "ml_engineer:docker",
+       "skill": "Docker",
+       "state": "missing",
+       "done": false,
+       "requires": [],
+       "deliverable": "A public project using Docker in an end-to-end model you train, evaluate and deploy",
+       "criterion": "Docker reaches Working from your evidence",
+       "estimateWeeks": 4
+      },
+      {
+       "id": "ml_engineer:sql",
+       "skill": "SQL",
+       "state": "underdeveloped",
+       "done": false,
+       "requires": [],
+       "deliverable": "A public project using SQL in an end-to-end model you train, evaluate and deploy",
+       "criterion": "SQL reaches Working from your evidence",
+       "estimateWeeks": 4
+      },
+      {
+       "id": "ml_engineer:aws",
+       "skill": "AWS",
+       "state": "missing",
+       "done": false,
+       "requires": [],
+       "deliverable": "A public project using AWS in an end-to-end model you train, evaluate and deploy",
+       "criterion": "AWS reaches Foundational from your evidence",
+       "estimateWeeks": 2
+      },
+      {
+       "id": "ml_engineer:git",
+       "skill": "Git",
+       "state": "missing",
+       "done": false,
+       "requires": [],
+       "deliverable": "A public project using Git in an end-to-end model you train, evaluate and deploy",
+       "criterion": "Git reaches Foundational from your evidence",
+       "estimateWeeks": 2
+      }
+     ],
+     "estimateWeeks": 24
+    },
+    {
+     "key": "build",
+     "title": "Build on them",
+     "milestones": [
+      {
+       "id": "ml_engineer:machine-learning",
+       "skill": "Machine Learning",
+       "state": "inferred",
+       "done": false,
+       "requires": [
+        "Python",
+        "Statistics"
+       ],
+       "deliverable": "A public project using Machine Learning in an end-to-end model you train, evaluate and deploy",
+       "criterion": "Machine Learning reaches Proficient from your evidence",
+       "estimateWeeks": 8
+      }
+     ],
+     "estimateWeeks": 8
+    },
+    {
+     "key": "deepen",
+     "title": "Round out the role",
+     "milestones": [
+      {
+       "id": "ml_engineer:mlflow",
+       "skill": "MLflow",
+       "state": "missing",
+       "done": false,
+       "requires": [
+        "Machine Learning"
+       ],
+       "deliverable": "A public project using MLflow in an end-to-end model you train, evaluate and deploy",
+       "criterion": "MLflow reaches Foundational from your evidence",
+       "estimateWeeks": 2
+      }
+     ],
+     "estimateWeeks": 2
+    }
+   ],
+   "assumption": "Estimates assume about 6 hours a week, one skill at a time. They are planning figures, not measured."
+  },
+  "graph": {
+   "nodes": [
+    {
+     "id": "Python",
+     "name": "Python",
+     "category": "language",
+     "status": "verified",
+     "level": "Proficient",
+     "proficiency": 51.6,
+     "confidence": 0.6,
+     "evidenceCount": 4,
+     "evidence": [
+      {
+       "kind": "repository",
+       "source": "github",
+       "label": "asha/resume-parser",
+       "ref": "https://github.com/asha/resume-parser",
+       "at": "2026-10-21T11:38:04.072689+00:00"
+      },
+      {
+       "kind": "repository",
+       "source": "github",
+       "label": "asha/sql-dashboards",
+       "ref": "https://github.com/asha/sql-dashboards",
+       "at": "2026-10-21T11:38:04.072689+00:00"
+      },
+      {
+       "kind": "project",
+       "source": "resume",
+       "label": "Resume Parser",
+       "ref": "f16",
+       "at": "2026-10-21T11:38:04.072689+00:00"
+      },
+      {
+       "kind": "project",
+       "source": "resume",
+       "label": "Undated Side Project",
+       "ref": "f18",
+       "at": "2026-10-21T11:38:04.072689+00:00"
+      }
+     ],
+     "inferredFrom": []
+    },
+    {
+     "id": "SQL",
+     "name": "SQL",
+     "category": "language",
+     "status": "verified",
+     "level": "Foundational",
+     "proficiency": 21.8,
+     "confidence": 0.35,
+     "evidenceCount": 1,
+     "evidence": [
+      {
+       "kind": "repository",
+       "source": "github",
+       "label": "asha/sql-dashboards",
+       "ref": "https://github.com/asha/sql-dashboards",
+       "at": "2026-10-21T11:38:04.072689+00:00"
+      }
+     ],
+     "inferredFrom": []
+    },
+    {
+     "id": "scikit-learn",
+     "name": "scikit-learn",
+     "category": "ml_framework",
+     "status": "verified",
+     "level": "Foundational",
+     "proficiency": 19.3,
+     "confidence": 0.6,
+     "evidenceCount": 2,
+     "evidence": [
+      {
+       "kind": "repository",
+       "source": "github",
+       "label": "asha/resume-parser",
+       "ref": "https://github.com/asha/resume-parser",
+       "at": "2026-10-21T11:38:04.072689+00:00"
+      },
+      {
+       "kind": "project",
+       "source": "resume",
+       "label": "Resume Parser",
+       "ref": "f16",
+       "at": "2026-10-21T11:38:04.072689+00:00"
+      }
+     ],
+     "inferredFrom": []
+    },
+    {
+     "id": "PyTorch",
+     "name": "PyTorch",
+     "category": "ml_framework",
+     "status": "verified",
+     "level": "Foundational",
+     "proficiency": 11.0,
+     "confidence": 0.35,
+     "evidenceCount": 1,
+     "evidence": [
+      {
+       "kind": "repository",
+       "source": "github",
+       "label": "asha/resume-parser",
+       "ref": "https://github.com/asha/resume-parser",
+       "at": "2026-10-21T11:38:04.072689+00:00"
+      }
+     ],
+     "inferredFrom": []
+    },
+    {
+     "id": "Kubernetes",
+     "name": "Kubernetes",
+     "category": "mlops",
+     "status": "claimed",
+     "level": "Not assessed",
+     "proficiency": null,
+     "confidence": 0.35,
+     "evidenceCount": 1,
+     "evidence": [
+      {
+       "kind": "claim",
+       "source": "resume",
+       "label": "Listed in your skills",
+       "ref": "f21",
+       "at": "2026-10-21T11:38:04.072689+00:00"
+      }
+     ],
+     "inferredFrom": []
+    },
+    {
+     "id": "Machine Learning",
+     "name": "Machine Learning",
+     "category": "other",
+     "status": "inferred",
+     "level": "Not assessed",
+     "proficiency": null,
+     "confidence": 0.0,
+     "evidenceCount": 0,
+     "evidence": [],
+     "inferredFrom": [
+      "PyTorch",
+      "scikit-learn"
+     ]
+    },
+    {
+     "id": "Data Science",
+     "name": "Data Science",
+     "category": "other",
+     "status": "inferred",
+     "level": "Not assessed",
+     "proficiency": null,
+     "confidence": 0.0,
+     "evidenceCount": 0,
+     "evidence": [],
+     "inferredFrom": [
+      "scikit-learn"
+     ]
+    },
+    {
+     "id": "Deep Learning",
+     "name": "Deep Learning",
+     "category": "other",
+     "status": "inferred",
+     "level": "Not assessed",
+     "proficiency": null,
+     "confidence": 0.0,
+     "evidenceCount": 0,
+     "evidence": [],
+     "inferredFrom": [
+      "PyTorch"
+     ]
+    },
+    {
+     "id": "Neural Networks",
+     "name": "Neural Networks",
+     "category": "other",
+     "status": "inferred",
+     "level": "Not assessed",
+     "proficiency": null,
+     "confidence": 0.0,
+     "evidenceCount": 0,
+     "evidence": [],
+     "inferredFrom": [
+      "PyTorch"
+     ]
+    }
+   ],
+   "edges": [
+    {
+     "source": "PyTorch",
+     "target": "Python",
+     "relationship": "used_together",
+     "basis": "evidence",
+     "evidence": [
+      "asha/resume-parser"
+     ],
+     "weight": 1
+    },
+    {
+     "source": "PyTorch",
+     "target": "scikit-learn",
+     "relationship": "used_together",
+     "basis": "evidence",
+     "evidence": [
+      "asha/resume-parser"
+     ],
+     "weight": 1
+    },
+    {
+     "source": "Python",
+     "target": "SQL",
+     "relationship": "used_together",
+     "basis": "evidence",
+     "evidence": [
+      "asha/sql-dashboards"
+     ],
+     "weight": 1
+    },
+    {
+     "source": "Python",
+     "target": "scikit-learn",
+     "relationship": "used_together",
+     "basis": "evidence",
+     "evidence": [
+      "Resume Parser",
+      "asha/resume-parser"
+     ],
+     "weight": 2
+    },
+    {
+     "source": "PyTorch",
+     "target": "Deep Learning",
+     "relationship": "implements",
+     "basis": "ontology",
+     "evidence": [],
+     "weight": 0.95
+    },
+    {
+     "source": "PyTorch",
+     "target": "Neural Networks",
+     "relationship": "implements",
+     "basis": "ontology",
+     "evidence": [],
+     "weight": 0.9
+    },
+    {
+     "source": "PyTorch",
+     "target": "Machine Learning",
+     "relationship": "subdomain_of",
+     "basis": "ontology",
+     "evidence": [],
+     "weight": 0.85
+    },
+    {
+     "source": "scikit-learn",
+     "target": "Machine Learning",
+     "relationship": "subdomain_of",
+     "basis": "ontology",
+     "evidence": [],
+     "weight": 0.95
+    },
+    {
+     "source": "scikit-learn",
+     "target": "Data Science",
+     "relationship": "subdomain_of",
+     "basis": "ontology",
+     "evidence": [],
+     "weight": 0.85
+    }
+   ],
+   "totalSkills": 9
+  },
+  "counts": {
+   "verified": 4,
+   "claimed": 1,
+   "inferred": 4,
+   "assessed": 4
+  }
+ },
+ "facts": [
+  {
+   "group": "education",
+   "record": "edu1",
+   "field": "degree",
+   "value": "B.Tech Computer Science"
+  },
+  {
+   "group": "education",
+   "record": "edu1",
+   "field": "institution",
+   "value": "IIT Delhi"
+  },
+  {
+   "group": "education",
+   "record": "edu1",
+   "field": "end_date",
+   "value": "2022"
+  },
+  {
+   "group": "education",
+   "record": "edu2",
+   "field": "degree",
+   "value": "Online Diploma in Data Science"
+  },
+  {
+   "group": "experience",
+   "record": "exp1",
+   "field": "role",
+   "value": "Data Analyst Intern"
+  },
+  {
+   "group": "experience",
+   "record": "exp1",
+   "field": "organization",
+   "value": "Acme Analytics"
+  },
+  {
+   "group": "experience",
+   "record": "exp1",
+   "field": "start_date",
+   "value": "2021"
+  },
+  {
+   "group": "experience",
+   "record": "exp1",
+   "field": "end_date",
+   "value": "2021"
+  },
+  {
+   "group": "experience",
+   "record": "exp1",
+   "field": "technologies",
+   "value": "[\"Python\", \"SQL\"]"
+  },
+  {
+   "group": "experience",
+   "record": "exp2",
+   "field": "role",
+   "value": "ML Engineer"
+  },
+  {
+   "group": "experience",
+   "record": "exp2",
+   "field": "organization",
+   "value": "Nimbus AI"
+  },
+  {
+   "group": "experience",
+   "record": "exp2",
+   "field": "start_date",
+   "value": "2023"
+  },
+  {
+   "group": "experience",
+   "record": "exp2",
+   "field": "end_date",
+   "value": "Present"
+  },
+  {
+   "group": "experience",
+   "record": "exp2",
+   "field": "technologies",
+   "value": "[\"Python\", \"PyTorch\"]"
+  },
+  {
+   "group": "projects",
+   "record": "p1",
+   "field": "title",
+   "value": "Resume Parser"
+  },
+  {
+   "group": "projects",
+   "record": "p1",
+   "field": "date",
+   "value": "2022"
+  },
+  {
+   "group": "projects",
+   "record": "p1",
+   "field": "technologies",
+   "value": "[\"Python\", \"scikit-learn\"]"
+  },
+  {
+   "group": "projects",
+   "record": "p2",
+   "field": "title",
+   "value": "Undated Side Project"
+  },
+  {
+   "group": "projects",
+   "record": "p2",
+   "field": "technologies",
+   "value": "[\"Python\"]"
+  },
+  {
+   "group": "achievements",
+   "record": "a1",
+   "field": "title",
+   "value": "Smart India Hackathon winner"
+  },
+  {
+   "group": "achievements",
+   "record": "a1",
+   "field": "date",
+   "value": "2021"
+  }
+ ]
+}

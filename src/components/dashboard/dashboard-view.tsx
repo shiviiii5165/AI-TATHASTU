@@ -5,6 +5,7 @@ import { Activity } from "lucide-react";
 import dynamic from "next/dynamic";
 import { DashboardHero } from "@/components/dashboard/mockup-sections/dashboard-hero";
 import { MetricCards } from "@/components/dashboard/mockup-sections/metric-cards";
+import { CareerRoadmap } from "@/components/dashboard/mockup-sections/career-roadmap";
 import { JourneyTimeline } from "@/components/dashboard/mockup-sections/journey-timeline";
 import { EvidenceAchievementRow } from "@/components/dashboard/mockup-sections/evidence-achievement-row";
 import { GrowthDevelopmentRow } from "@/components/dashboard/mockup-sections/growth-development-row";
@@ -53,6 +54,8 @@ interface DashboardViewProps {
   /** Still accepted from callers; no longer rendered (the Quick Actions panel was removed). */
   quickActions?: QuickActionItem[];
   roadmapSubmissions?: MilestoneSubmission[];
+  /** A one-time notice shown above everything else (the updated AI-consent request). */
+  notice?: React.ReactNode;
   children?: React.ReactNode;
 }
 
@@ -76,12 +79,14 @@ export function DashboardView({
   researchOpportunities,
   internships,
   roadmapSubmissions,
+  notice,
   children,
 }: DashboardViewProps) {
   const [yoraOpen, setYoraOpen] = useState(false);
 
   return (
     <div className="space-y-6 sm:space-y-7 pb-12">
+      {notice}
       {/* C. Personalized Hero Banner */}
       <DashboardHero
         name={name}
@@ -100,8 +105,10 @@ export function DashboardView({
         networkCount={networkCount}
       />
 
-      {/* E. Main Overview Row: 2 Panels. The Yora Quick Actions panel was removed from the dashboard
-          (its actions had no working behaviour); Yora itself stays available from the hero and next actions. */}
+      {/* Next steps first: the most actionable thing on the page. */}
+      <NextActionsRow actions={nextActions} />
+
+      {/* E. Journey and skills. Yora is available from the hero. */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
         {/* Fits its content: not stretched to the row height (which left a tall empty card). */}
         <div className="lg:col-span-6 lg:self-start">
@@ -121,7 +128,10 @@ export function DashboardView({
       />
 
       {/* G. Growth and Development Row: 4 Panels */}
-      <GrowthDevelopmentRow intelligence={intelligence} roadmapSubmissions={roadmapSubmissions} />
+      <GrowthDevelopmentRow intelligence={intelligence} />
+
+      {/* G2. Career Roadmap: where you are, your chosen goal, what's missing and what to do next. */}
+      <CareerRoadmap intelligence={intelligence} submissions={roadmapSubmissions} />
 
       {/* H. Ecosystem and Opportunities Row: 4 Panels */}
       <EcosystemOpportunitiesRow
@@ -129,29 +139,19 @@ export function DashboardView({
         internships={internships}
       />
 
-      {/* I. Next Actions and Yora Assistant */}
-      <NextActionsRow actions={nextActions} onOpenYora={() => setYoraOpen(true)} />
-
-      {/* Real Intelligence Engine & Verified Evidence Widgets */}
+      {/* Your widgets: readiness, GitHub activity, profile completeness and the like, which the user can pin or hide. */}
       {children && (
-        <section aria-label="Intelligence Engine & Verified Evidence" className="mt-8 space-y-4">
-          <div className="flex items-center justify-between border-b border-[#E7EAF3] pb-3">
-            <div className="flex items-center gap-2">
-              <div className="flex size-7 items-center justify-center rounded-lg bg-[#F4F1FD] text-[#8554FF]">
-                <Activity className="size-4" />
-              </div>
-              <div>
-                <h2 className="font-sans text-sm font-bold text-[#11182B]">
-                  Intelligence Engine & Scored Evidence
-                </h2>
-                <p className="text-xs text-[#64748B]">
-                  Dynamic scoring, interview readiness breakdown & real-time connector feeds
-                </p>
-              </div>
+        <section aria-labelledby="your-widgets-title" className="mt-8 space-y-4">
+          <div className="flex items-center gap-2 border-b border-border pb-3">
+            <div className="flex size-7 items-center justify-center rounded-lg bg-[#F4F1FD] text-[#8554FF] dark:bg-violet-500/15 dark:text-violet-300">
+              <Activity aria-hidden className="size-4" />
             </div>
-            <span className="rounded-full bg-[#E8FAF4] px-2.5 py-0.5 text-[11px] font-bold text-[#19C58A]">
-              Live Engine Active
-            </span>
+            <div>
+              <h2 id="your-widgets-title" className="font-sans text-sm font-bold text-foreground">
+                Your widgets
+              </h2>
+              <p className="text-xs text-muted-foreground">Readiness, activity and profile details. Pin or hide them to suit you.</p>
+            </div>
           </div>
 
           <div>{children}</div>

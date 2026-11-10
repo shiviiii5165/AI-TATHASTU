@@ -127,6 +127,69 @@ class _Cursor:
         return self.row
 
 
+class _ConsentCursor:
+    """Answers the latest-consent query with one stored row, and counts how often it was asked."""
+
+    class _Col:
+        def __init__(self, name):
+            self.name = name
+
+    def __init__(self, row):
+        self.row = row
+        self.queries = 0
+        self.description = [self._Col("granted"), self._Col("policy_version")]
+
+    def execute(self, sql, params=None):
+        self.queries += 1
+        assert "ORDER BY created_at DESC LIMIT 1" in sql
+
+    def fetchall(self):
+        return [self.row] if self.row else []
+
+
+class ConsentScopeTests(unittest.TestCase):
+    def setUp(self) -> None:
+        from db import EXTERNAL_AI_FULL_SCOPE_SINCE, has_consent
+
+        self.has_consent, self.since = has_consent, EXTERNAL_AI_FULL_SCOPE_SINCE
+
+    def test_one_grant_is_reused_for_every_later_operation(self) -> None:
+        cur = _ConsentCursor((True, self.since))
+        # Uploads, syncs and recomputes all read the same stored grant: nothing new is recorded or asked.
+        self.assertTrue(all(self.has_consent(cur, "u1", "external_ai", min_version=self.since) for _ in range(5)))
+        self.assertTrue(self.has_consent(cur, "u1", "external_ai"))
+        self.assertTrue(self.has_consent(_ConsentCursor((True, "2027-03-01")), "u1", "external_ai", min_version=self.since))
+
+    def test_an_earlier_grant_still_covers_resume_reading_but_not_the_newly_disclosed_purposes(self) -> None:
+        old = _ConsentCursor((True, "2026-10-29"))
+        self.assertTrue(self.has_consent(old, "u1", "external_ai"))  # resume reading was always disclosed
+        self.assertFalse(self.has_consent(old, "u1", "external_ai", min_version=self.since))
+
+    def test_withdrawal_and_unknown_versions_never_count_as_consent(self) -> None:
+        self.assertFalse(self.has_consent(_ConsentCursor((False, self.since)), "u1", "external_ai", min_version=self.since))
+        self.assertFalse(self.has_consent(_ConsentCursor((False, self.since)), "u1", "external_ai"))
+        self.assertFalse(self.has_consent(_ConsentCursor(None), "u1", "external_ai"))
+        for version in (None, "", "test", "v2"):
+            self.assertFalse(self.has_consent(_ConsentCursor((True, version)), "u1", "external_ai", min_version=self.since), version)
+
+    def test_scope_versions_match_the_web_app(self) -> None:
+        from pathlib import Path
+
+        catalog = (Path(__file__).resolve().parents[2] / "src" / "lib" / "consent" / "catalog.ts").read_text(encoding="utf-8")
+        self.assertIn(f'EXTERNAL_AI_FULL_SCOPE_SINCE = "{self.since}"', catalog)
+
+    def test_portfolio_and_compute_require_the_full_scope_and_resume_does_not(self) -> None:
+        import inspect
+
+        from connectors import portfolio
+        from intelligence import compute
+        from resume import extract
+
+        self.assertIn("min_version=EXTERNAL_AI_FULL_SCOPE_SINCE", inspect.getsource(portfolio.sync_portfolio))
+        self.assertIn("min_version=EXTERNAL_AI_FULL_SCOPE_SINCE", inspect.getsource(compute))
+        self.assertNotIn("min_version", inspect.getsource(extract.process_resume_extract))
+
+
 class OwnershipFenceTests(unittest.TestCase):
     def job(self, locked_by="worker-a"):
         return Job(id="j1", type="compute_intelligence", user_id="u1", payload={}, attempts=1, max_attempts=3,

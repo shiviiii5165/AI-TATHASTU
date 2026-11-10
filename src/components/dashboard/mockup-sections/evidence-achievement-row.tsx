@@ -105,7 +105,7 @@ function RecentProjectsCard({ projects = [] }: { projects?: RecentProjectItem[] 
                 {p.tags.slice(0, 3).map((t, tidx) => (
                   <span
                     key={tidx}
-                    className="rounded-md bg-white border border-[#E7EAF3] px-1.5 py-0.5 text-[9px] font-medium text-[#4A5568]"
+                    className="rounded-md bg-white border border-[#E7EAF3] px-1.5 py-0.5 text-[10px] font-medium text-[#4A5568]"
                   >
                     {t}
                   </span>
@@ -154,7 +154,7 @@ function RecentProjectsCard({ projects = [] }: { projects?: RecentProjectItem[] 
       <div className="border-t border-[#F8FAFC] pt-2 text-[11px] text-[#617493] flex justify-between items-center">
         <span>{hasProjects ? `${projects.length} repositories` : "GitHub sync"}</span>
         <span className="font-medium text-[#2878F0]">
-          {hasProjects ? "Auto-synced" : "Pending"}
+          {hasProjects ? "From GitHub" : ""}
         </span>
       </div>
     </div>
@@ -216,8 +216,8 @@ function GitHubActivityCard({ activity }: { activity?: GitHubActivityData | null
                       className={`h-8 w-full rounded-xs ${getColor(levelOf(b.count))}`}
                       title={`${b.count} ${b.count === 1 ? "repository" : "repositories"} last pushed in ${b.label}`}
                     />
-                    <span className="text-[9px] font-medium text-[#8C9AA8]">{b.label}</span>
-                    <span className="text-[9px] tabular-nums text-[#4A5568]">{b.count}</span>
+                    <span className="text-[10px] font-medium text-[#8C9AA8]">{b.label}</span>
+                    <span className="text-[10px] tabular-nums text-[#4A5568]">{b.count}</span>
                   </div>
                 ))}
               </div>
@@ -228,19 +228,19 @@ function GitHubActivityCard({ activity }: { activity?: GitHubActivityData | null
           <div className="grid grid-cols-4 gap-1 border-t border-[#F8FAFC] pt-3 text-center">
             <div>
               <p className="font-sans text-xs font-bold tabular-nums text-[#11182B]">{activity?.stars ?? 0}</p>
-              <p className="text-[9px] text-[#64748B]">Stars</p>
+              <p className="text-[10px] text-[#64748B]">Stars</p>
             </div>
             <div>
               <p className="font-sans text-xs font-bold tabular-nums text-[#11182B]">{activity?.repositories || 0}</p>
-              <p className="text-[9px] text-[#64748B]">Repositories</p>
+              <p className="text-[10px] text-[#64748B]">Repositories</p>
             </div>
             <div>
               <p className="font-sans text-xs font-bold tabular-nums text-[#11182B]">{activity?.languages || 0}</p>
-              <p className="text-[9px] text-[#64748B]">Languages</p>
+              <p className="text-[10px] text-[#64748B]">Languages</p>
             </div>
             <div>
               <p className="font-sans text-xs font-bold tabular-nums text-[#11182B]">{activity?.forks ?? 0}</p>
-              <p className="text-[9px] text-[#64748B]">Forks</p>
+              <p className="text-[10px] text-[#64748B]">Forks</p>
             </div>
           </div>
         </>

@@ -27,7 +27,7 @@ from typing import Any, Dict, List, Optional
 
 import psycopg2.extras
 
-from db import enqueue_compute_matches, fetch_all, fetch_one, has_consent, jsonb
+from db import EXTERNAL_AI_FULL_SCOPE_SINCE, enqueue_compute_matches, fetch_all, fetch_one, has_consent, jsonb
 from intelligence import career_engine, eris, projects, skills, widgets
 import ai_budget
 from intelligence.collaboration import build_collaboration_embedding, embedding_fingerprint, save_collaboration_embedding
@@ -131,7 +131,9 @@ def process_compute_intelligence(conn: Any, job: Job) -> None:
         connections = fetch_all(cur, "SELECT source_id, status, last_sync_at FROM connections WHERE user_id = %s", (user_id,))
         # The user's current answer, re-read on every run (and every retry),
         # so a revoked consent stops external calls immediately.
-        ai_ok = has_consent(cur, user_id, "external_ai")
+        # Used only for repository scoring and the people-matching embedding: purposes the consent text has
+        # disclosed since EXTERNAL_AI_FULL_SCOPE_SINCE, so an earlier, resume-only grant doesn't cover them.
+        ai_ok = has_consent(cur, user_id, "external_ai", min_version=EXTERNAL_AI_FULL_SCOPE_SINCE)
 
         index = skills.SkillIndex(cur)
         repo_count: Dict[str, int] = {}

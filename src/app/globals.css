@@ -255,6 +255,27 @@ html:has(#step-content) {
   overflow-wrap: break-word;
 }
 
+/* Signed-in app shell (dashboard and module pages): one sans-serif system, no display serif.
+   Redefining the display token here covers .editorial-title and the font-heading utility together,
+   while onboarding, auth and marketing pages keep the brand's display face. */
+.app-type {
+  --font-display: var(--font-sans);
+  /* landing-base.css sets body text to Figtree (not loaded by the app, so it falls back to a system
+     face). Inside the shell, body text uses the same loaded sans as headings. */
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+.app-type .editorial-title {
+  font-family: var(--font-sans), sans-serif;
+  font-weight: 700;
+  font-style: normal;
+  letter-spacing: -0.02em;
+}
+
+.app-type .font-heading {
+  font-weight: 700;
+}
+
 .section-title {
   font-family: var(--font-sans), sans-serif;
   font-size: clamp(1.125rem, 2vw, 1.375rem);
@@ -319,6 +340,54 @@ html:has(#step-content) {
 @keyframes roadmapDraw {
   from {
     stroke-dashoffset: 100;
+  }
+}
+
+/* Your Journey: each connecting segment grows downward, then the milestone it leads to lights up.
+   Delays are set per item from its position in the real chronological order. */
+@keyframes journeySegment {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes journeyNode {
+  0% {
+    opacity: 0.25;
+    transform: scale(0.6);
+    filter: saturate(0);
+  }
+  70% {
+    transform: scale(1.12);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: saturate(1);
+  }
+}
+
+@keyframes journeyText {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Skills graph: evidence links draw in after the nodes appear. */
+@keyframes graphLinkDraw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
   }
 }
 
