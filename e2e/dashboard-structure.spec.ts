@@ -90,3 +90,38 @@ test("the Collaborate launch goes through the existing authorised route, never a
   expect(location).toMatch(/\/settings\/integrations\?unavailable=collaborate|^https?:\/\//);
   await context.close();
 });
+
+test("sidebar runs in one sequence: the lower links follow straight after the last module", async ({ browser }) => {
+  const { context, page } = await setUp(browser, "Structure sequence", 1440);
+  const sidebar = page.locator("aside");
+  const last = await sidebar.getByRole("navigation", { name: "Main" }).getByRole("link").last().boundingBox();
+  const collaborate = await sidebar.getByRole("link", { name: /^Collaborate/ }).boundingBox();
+  // Just the divider between them, however tall the window is.
+  expect(collaborate!.y - (last!.y + last!.height)).toBeLessThan(48);
+  await context.close();
+});
+
+for (const [path, title, testId] of [["/ai-interview", /practice interview room/, "coming-soon-ai-interview"], ["/mentor", /mentor network/, "coming-soon-mentor"]] as const) {
+  test(`${path} shows its animated coming-soon page, still under reduced motion`, async ({ browser }) => {
+    const { context, page } = await setUp(browser, `Coming soon ${path}`, 1440);
+    await page.goto(path);
+    const scene = page.getByTestId(testId);
+    await expect(scene.getByRole("heading", { level: 1 })).toContainText(title);
+    await expect(scene).toContainText("Coming soon");
+    await expect(scene.getByRole("link", { name: "Return to dashboard" })).toHaveAttribute("href", "/dashboard");
+    expect(await scene.locator(".cs-ring, .cs-orbit, .cs-wave").count()).toBeGreaterThan(0);
+    expect(await scene.locator(".cs-ring").first().evaluate((e) => getComputedStyle(e).animationName)).not.toBe("none");
+    await context.close();
+
+    const calm = await browser.newContext({ viewport: { width: 390, height: 900 }, reducedMotion: "reduce" });
+    const user = await createUser(`Calm ${path}`, "done");
+    await signIn(calm, user, { onboarded: true });
+    const p = await calm.newPage();
+    await p.goto(path);
+    const still = p.getByTestId(testId);
+    await expect(still).toBeVisible();
+    expect(await still.locator("[class*='cs-']").evaluateAll((els) => els.every((e) => getComputedStyle(e).animationName === "none"))).toBe(true);
+    expect(await p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+    await calm.close();
+  });
+}

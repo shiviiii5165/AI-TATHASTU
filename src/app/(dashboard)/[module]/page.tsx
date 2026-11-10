@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
+import { ComingSoon } from "@/components/coming-soon/coming-soon";
 import { requireOnboardedUser } from "@/lib/dal";
 import { EXTRA_MODULES, NAV_ITEMS, PLACEHOLDER_SLUGS } from "@/lib/dashboard/nav";
 
@@ -33,14 +34,17 @@ export default async function ModulePage({ params }: PageProps<"/[module]">) {
   if (!label) notFound();
   return (
     <Suspense fallback={null}>
-      <ModulePlaceholder label={label} />
+      <ModulePlaceholder label={label} module={module} />
     </Suspense>
   );
 }
 
-async function ModulePlaceholder({ label }: { label: string }) {
+async function ModulePlaceholder({ label, module }: { label: string; module: string }) {
   // Authoritative check (the proxy's is optimistic).
   await requireOnboardedUser();
+
+  // Mentors and AI Interview have their own animated coming-soon pages.
+  if (module === "ai-interview" || module === "mentor") return <ComingSoon module={module} />;
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto pb-16">

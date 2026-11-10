@@ -31,7 +31,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
         {/* Desktop Sidebar (hidden on mobile, persistent on desktop) */}
         <aside className="hidden lg:flex flex-col gap-4 border-r border-border bg-card px-4 py-5 lg:sticky lg:top-16 lg:h-[calc(100dvh-4rem)] shadow-[1px_0_4px_rgba(15,23,42,0.02)] overflow-y-auto [scrollbar-width:none]">
           <AppNav />
-          <div className="flex flex-col items-stretch gap-1 border-t border-border pt-3 mt-auto">
+          <div className="flex flex-col items-stretch gap-1 border-t border-border pt-3">
             {/* Plain <a>: a server redirect into Collaborate's own sign-in (OAuth), never prefetched. */}
             {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- route handler that redirects off-site; needs a full navigation */}
             <a
