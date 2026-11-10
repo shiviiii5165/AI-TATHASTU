@@ -151,25 +151,23 @@ test("Phase 1–3 journey: onboarding to a personalized dashboard", async ({ pag
       await expect(page.getByText("Built around ML Engineer · Internships & Jobs first")).toBeVisible();
     }).toPass({ timeout: 30_000 });
 
-    // The engine's alignment state, never a readiness score or percentage.
+    // This fixture is an engine v1 document: no score is shown from it (dashboard-home-intelligence.spec.ts covers v3).
     const eris = widget(page, "Where you stand");
-    await expect(eris.getByTestId("alignment-state")).toHaveText("Developing alignment");
-    await expect(eris).toContainText("for ML Engineer");
-    await expect(eris).toContainText("1 of 4 required skills shown at the expected level");
-    await expect(eris.getByRole("link", { name: /Kubernetes\s*Foundational, needs Working/ })).toBeVisible();
-    await expect(eris.getByRole("link", { name: /Docker\s*No proof yet/ })).toBeVisible();
+    await expect(eris).toContainText("earlier version of the engine");
+    await expect(eris.getByTestId("eris-value")).toHaveCount(0);
+    await expect(eris).toContainText("Last assessed");
     await expect(eris).not.toContainText("%");
-    await expect(eris.getByRole("meter")).toHaveCount(0);
 
     const github = widget(page, "Recent GitHub work");
     await expect(github).toContainText("2 repositories");
-    // Newest commit first; links go to the repository on GitHub.
+    // Newest push first; links go to the repository on GitHub, with its owner.
     const repos = github.getByRole("link", { name: /opens GitHub/ });
-    await expect(repos).toHaveText([/^resume-parser/, /^mnist-from-scratch/]);
+    await expect(repos).toHaveText([/^asha\/resume-parser/, /^asha\/mnist-from-scratch/]);
     await expect(repos.first()).toHaveAttribute("href", "https://github.com/asha/resume-parser");
 
     const gaps = widget(page, "Skills to develop");
-    await expect(gaps).toContainText("For ML Engineer: 2 skills missing or thin on your profile.");
+    await expect(gaps).toContainText("For ML Engineer:");
+    await expect(gaps).toContainText("Start here");
     await expect(gaps.getByRole("link", { name: "Learn Kubernetes" })).toBeVisible();
     await expect(gaps.getByRole("link", { name: "Learn Docker" })).toBeVisible();
 

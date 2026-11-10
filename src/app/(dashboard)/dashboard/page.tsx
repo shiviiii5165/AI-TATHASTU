@@ -20,7 +20,9 @@ import { connections, erisScores, profileViews } from "@/db/schema";
 import { requireOnboardedUser } from "@/lib/dal";
 import { compose, type ComposedWidget } from "@/lib/dashboard/compose";
 import { getWidgetPrefs } from "@/lib/dashboard/prefs";
-import type { CompletenessData, ErisData, ProfileViewDoc, SkillGapsData } from "@/lib/dashboard/types";
+import type { CompletenessData, ProfileViewDoc } from "@/lib/dashboard/types";
+import type { MilestoneSubmission } from "@/lib/roadmap/progress";
+import { FolderGit2, Gauge, Target } from "lucide-react";
 import { timeAgo } from "@/lib/format";
 import { matchesForMentor, type MatchCard } from "@/lib/matches";
 import { needsExternalAiScopeUpdate } from "@/lib/consent/catalog";
@@ -156,9 +158,9 @@ async function Dashboard() {
       {visible.length === 0 ? (
         <p className="text-[#617493]">You&apos;ve hidden every widget. Bring some back below.</p>
       ) : (
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-flow-row-dense xl:grid-cols-3">
           {visible.map((w) => (
-            <WidgetSlot key={w.def.id} widget={w} view={view} data={widgetData} now={now} matches={mentorMatches} />
+            <WidgetSlot key={w.def.id} widget={w} view={view} data={widgetData} now={now} matches={mentorMatches} submissions={roadmapSubmissions} layoutClass={intelligenceLayout(w.def.id, visible.map((v) => v.def.id))} />
           ))}
         </div>
       )}
@@ -171,6 +173,30 @@ async function Dashboard() {
 type MentorMatches = { visible: MatchCard[]; hidden: number } | null;
 const MATCH_WIDGETS = new Set(["student_matches", "top_talent"]);
 
+/** The Home intelligence widgets share the dashboard's card style (coloured icon chip, compact title). */
+const INTELLIGENCE_ACCENT: Partial<Record<string, { icon: React.ReactNode; tone: "purple" | "coral" | "blue" }>> = {
+  eris_readiness: { icon: <Gauge />, tone: "purple" },
+  skill_gaps: { icon: <Target />, tone: "coral" },
+  github_activity: { icon: <FolderGit2 />, tone: "blue" },
+};
+/** Engine-driven widgets: their bodies explain every no-data case themselves, so the worker's "empty" isn't used. */
+const ENGINE_WIDGETS = new Set(["eris_readiness", "skill_gaps"]);
+
+/**
+ * With all three intelligence widgets on screen, Where you stand and Recent GitHub work stack in the left two
+ * columns and Skills to develop runs down the right, so no card leaves a hole beside it. Pins reorder freely:
+ * dense flow fills each gap. Otherwise the registry's sizes apply.
+ */
+function intelligenceLayout(id: string, visibleIds: string[]): string | undefined {
+  const trio = ["eris_readiness", "skill_gaps", "github_activity"].every((w) => visibleIds.includes(w));
+  if (id === "eris_readiness") return "md:col-span-2";
+  if (!trio) return undefined;
+  if (id === "skill_gaps") return "xl:row-span-2";
+  // Two columns (tablet): beside the longer Skills list it keeps its own height instead of stretching empty.
+  if (id === "github_activity") return "md:self-start xl:col-span-2 xl:self-stretch";
+  return undefined;
+}
+
 /** Rows the widgets render, loaded once by the page (no per-widget queries). */
 type WidgetData = {
   erisBreakdown: (role: string | null) => Record<string, unknown> | undefined;
@@ -178,12 +204,13 @@ type WidgetData = {
 };
 
 function WidgetSlot({
-  widget, view, data, now, matches,
-}: { widget: ComposedWidget; view: ProfileViewDoc; data: WidgetData; now: Date; matches: MentorMatches }) {
+  widget, view, data, now, matches, submissions, layoutClass,
+}: { widget: ComposedWidget; view: ProfileViewDoc; data: WidgetData; now: Date; matches: MentorMatches; submissions: MilestoneSubmission[]; layoutClass?: string }) {
   const { def, scored } = widget;
   // A match widget stops being a preview once there are matches to show.
   const hasMatches = MATCH_WIDGETS.has(def.id) && Boolean(matches && (matches.visible.length || matches.hidden));
-  const state = hasMatches ? "ready" : widget.state;
+  const engineState = ENGINE_WIDGETS.has(def.id) && view.intelligence ? (scored && scored.state !== "empty" ? scored.state : "ready") : null;
+  const state = hasMatches ? "ready" : (engineState ?? widget.state);
   const lastSync =
     def.id === "github_activity" ? (scored?.data as { lastSyncAt?: string | null } | null)?.lastSyncAt : null;
   const staleBySync = lastSync && now.getTime() - new Date(lastSync).getTime() > STALE_AFTER_HOURS * 3600_000;
@@ -200,10 +227,12 @@ function WidgetSlot({
       primaryAction={def.primaryAction}
       staleNote={lastSync ? `Synced ${timeAgo(lastSync, now)}.` : undefined}
       refreshable={def.freshnessField === "github" ? "github" : undefined}
+      accent={INTELLIGENCE_ACCENT[def.id]}
+      layoutClass={layoutClass}
     >
       <WidgetErrorBoundary label={def.label}>
         <Suspense fallback={<WidgetSkeleton label={def.label} />}>
-          {effectiveState === "empty" ? <WidgetEmpty def={def} /> : <WidgetBody widget={widget} view={view} data={data} now={now} matches={hasMatches ? matches : null} />}
+          {effectiveState === "empty" ? <WidgetEmpty def={def} /> : <WidgetBody widget={widget} view={view} data={data} now={now} matches={hasMatches ? matches : null} submissions={submissions} />}
         </Suspense>
       </WidgetErrorBoundary>
     </WidgetWrapper>
@@ -212,8 +241,8 @@ function WidgetSlot({
 
 /** Maps a registry id to its component. Unknown ids never get here (compose() only yields registry widgets). */
 function WidgetBody({
-  widget, view, data: rows, now, matches,
-}: { widget: ComposedWidget; view: ProfileViewDoc; data: WidgetData; now: Date; matches: MentorMatches }) {
+  widget, view, data: rows, now, matches, submissions,
+}: { widget: ComposedWidget; view: ProfileViewDoc; data: WidgetData; now: Date; matches: MentorMatches; submissions: MilestoneSubmission[] }) {
   const data = widget.scored?.data;
   // Older views scored these with the previous formula; don't show it beside the engine's results.
   if ((widget.def.id === "eris_readiness" || widget.def.id === "skill_gaps") && !view.intelligence) {
@@ -221,9 +250,9 @@ function WidgetBody({
   }
   switch (widget.def.id) {
     case "eris_readiness":
-      return <ErisWidget data={data as ErisData} roles={view.intelligence?.roles ?? []} />;
+      return <ErisWidget intelligence={view.intelligence} primaryRole={view.goals.primaryRole} submissions={submissions} />;
     case "skill_gaps":
-      return <SkillGapsWidget data={data as SkillGapsData} breakdown={rows.erisBreakdown((data as SkillGapsData).role)} />;
+      return <SkillGapsWidget intelligence={view.intelligence} primaryRole={view.goals.primaryRole} submissions={submissions} />;
     case "github_activity":
       return <GithubWidget data={rows.github} now={now} />;
     case "profile_completeness":

@@ -54,13 +54,14 @@ export const widgets: WidgetDefinition[] = [
     label: "Where you stand",
     requiredIntent: ["avasar_jobs"],
     requiredData: ["skills", "experience"],
-    eligibility: (view) => view.erisScore.overall !== null,
+    // Rendered from the engine output (lib/dashboard/eris-intelligence), which explains every no-score case itself.
+    eligibility: (view) => Boolean(view.intelligence),
     primaryAction: { label: "Start mock interview", href: "/eris" },
     freshnessField: null,
     size: "wide",
     empty: {
-      title: "No readiness score yet",
-      body: "Pick a target role and confirm a few skills, and we'll score how interview-ready you are for it.",
+      title: "No assessment yet",
+      body: "Your assessment appears once your profile has been processed with your evidence and career direction.",
       action: { label: "Review your skills", href: "/skills" },
     },
   },
@@ -76,7 +77,8 @@ export const widgets: WidgetDefinition[] = [
     label: "Skills to develop",
     requiredIntent: ["learn_ai_ml", "avasar_jobs"],
     requiredData: ["skills"],
-    eligibility: (view) => view.erisScore.gaps.length > 0,
+    // The engine's open competencies for the selected direction; the body explains when there are none.
+    eligibility: (view) => Boolean(view.intelligence),
     primaryAction: { label: "Start learning", href: "/learn" },
     freshnessField: null,
     size: "regular",
