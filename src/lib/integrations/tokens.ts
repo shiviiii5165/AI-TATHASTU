@@ -128,6 +128,26 @@ export async function mintAccessToken(input: { userId: string; email: string | n
   return { token, expiresIn };
 }
 
+/**
+ * Service assertion for calling a partner app's API as AI Tathastu itself (no user). Same signing key
+ * and JWKS as user tokens, but never interchangeable with them: subject "ai-tathastu", an audience that
+ * is not any app's client id, and a partner scope, so verifyAccessToken below rejects it and a partner
+ * rejects user tokens. Two-minute lifetime; never sent to a browser.
+ */
+export const PARTNER_SUBJECT = "ai-tathastu";
+export async function mintPartnerAssertion(input: { audience: string; scope: string }) {
+  const { privateKey, kid } = await keys();
+  return new SignJWT({ scope: input.scope })
+    .setProtectedHeader({ alg: "ES256", kid, typ: "JWT" })
+    .setIssuer(ISSUER)
+    .setAudience(input.audience)
+    .setSubject(PARTNER_SUBJECT)
+    .setIssuedAt()
+    .setExpirationTime("120s")
+    .setJti(crypto.randomUUID())
+    .sign(privateKey);
+}
+
 /** Claims if the token is ours (current or a still-published previous key), unexpired, for a registered app and the right scope; else null. */
 export async function verifyAccessToken(token: string) {
   try {

@@ -1,14 +1,18 @@
-import { desc, eq, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   codeRepositories,
   githubScores,
-  opportunities,
   profileFacts,
+  profileViews,
   skillEvidence,
   skills,
   githubContributions,
+  users,
 } from "@/db/schema";
+import { getAvsarInternships, type InternshipFeed } from "@/lib/opportunities/avsar";
+import type { OppDb } from "@/lib/opportunities/ingest";
+import { buildStudentSignals, researchForStudent, type ResearchCard } from "@/lib/opportunities/recommend";
 import { toContributionsData } from "@/lib/dashboard/github-contributions";
 import type { Viewer } from "@/lib/discovery";
 import { discoverableCount } from "@/lib/dashboard/network-count";
@@ -68,18 +72,15 @@ export interface AchievementItem {
   year?: string;
 }
 
-export interface OpportunityItem {
-  id: string;
-  title: string;
-  org: string;
-  match: string;
-  /** Share of the role's required skills found on the profile; null when it can't be computed. */
-  matchPercentage: number | null;
-  type: string;
-  location?: string;
-  deadline?: string;
-  url: string;
-}
+/**
+ * Research opportunities: verified, active listings from the curated source registry only.
+ * "unavailable" means the listings could not be read (never replaced by sample data).
+ */
+export type ResearchFeed =
+  | { status: "ok"; items: ResearchCard[]; /** false when the profile has no skills to match on yet */ personalised: boolean }
+  | { status: "unavailable" };
+
+export type { InternshipFeed, ResearchCard };
 
 export interface QuickActionItem {
   id: string;
@@ -101,8 +102,8 @@ export interface LiveDashboardStats {
   githubActivity: GitHubActivityData | null;
   recentPublications: PublicationItem[];
   recentAchievements: AchievementItem[];
-  researchOpportunities: OpportunityItem[];
-  internships: OpportunityItem[];
+  researchOpportunities: ResearchFeed;
+  internships: InternshipFeed;
   quickActions: QuickActionItem[];
   /** The user's repositories, newest push first (shared with the GitHub widget). */
   repositories: (typeof codeRepositories.$inferSelect)[];
@@ -112,14 +113,13 @@ import { isCodingActivityRecord } from "@/lib/profile/coding-activity";
 
 const ACHIEVEMENT_GROUPS =["achievement", "publication", "certification", "patent", "award"];
 const isAchievementGroup = (g: string) => ACHIEVEMENT_GROUPS.some((a) => g.toLowerCase().startsWith(a));
-const OPPORTUNITY_LIMIT = 50;
 
 const text = (v: unknown) => (v === null || v === undefined ? "" : String(v));
 
 export async function getLiveDashboardData(viewer: Viewer): Promise<LiveDashboardStats> {
   const userId = viewer.id;
   // One wave: every read is independent.
-  const [reposRows, scoresRows, networkRes, factsRows, evidenceSkills, oppsRows, contributionRow] = await Promise.all([
+  const [reposRows, scoresRows, networkRes, factsRows, evidenceSkills, viewRow, contributionRow] = await Promise.all([
     db
       .select()
       .from(codeRepositories)
@@ -146,20 +146,14 @@ export async function getLiveDashboardData(viewer: Viewer): Promise<LiveDashboar
       .from(skillEvidence)
       .innerJoin(skills, eq(skillEvidence.skillId, skills.id))
       .where(eq(skillEvidence.userId, userId)),
+    // The Intelligence Engine's assessed skill levels and the student's degree, for opportunity fit.
     db
-      .select({
-        id: opportunities.id,
-        title: opportunities.title,
-        organization: opportunities.organization,
-        type: opportunities.type,
-        location: opportunities.location,
-        deadline: opportunities.deadline,
-        requiredSkills: opportunities.requiredSkills,
-        url: opportunities.url,
-      })
-      .from(opportunities)
-      .orderBy(desc(opportunities.createdAt))
-      .limit(OPPORTUNITY_LIMIT),
+      .select({ view: profileViews.view, degree: users.degree })
+      .from(users)
+      .leftJoin(profileViews, eq(profileViews.userId, users.id))
+      .where(eq(users.id, userId))
+      .limit(1)
+      .then((rows) => rows[0] ?? null),
     // Only this user's snapshot. Before migration 0027 runs the table is missing: no calendar, no failure.
     db
       .select()
@@ -263,28 +257,26 @@ export async function getLiveDashboardData(viewer: Viewer): Promise<LiveDashboar
 
   const milestones = buildJourney(factsMap.values());
 
-  // Opportunity match = share of its required skills found on the profile. No floors or defaults.
-  const scoredOpps: OpportunityItem[] = oppsRows.map((opp) => {
-    const required = (opp.requiredSkills || []).map((s) => s.toLowerCase());
-    const matchPct =
-      required.length > 0 && userSkillNames.size > 0
-        ? Math.round((required.filter((s) => userSkillNames.has(s)).length / required.length) * 100)
-        : null;
-    return {
-      id: opp.id,
-      title: opp.title,
-      org: opp.organization,
-      match: matchPct === null ? (userSkillNames.size === 0 ? "Add skills to match" : "No skills listed") : `${matchPct}% skills match`,
-      matchPercentage: matchPct,
-      type: opp.type,
-      location: opp.location || undefined,
-      deadline: opp.deadline || undefined,
-      url: opp.url || "/opportunities",
-    };
+  // Research: verified active listings with an explainable fit (lib/opportunities). No percentages.
+  // Demonstrated skills = the engine's Proficient/Advanced assessments; everything else is "listed".
+  const intelligenceSkills = ((viewRow?.view as { intelligence?: { skills?: { name: string; proficiency: number | null; level: string | null }[] } } | null)?.intelligence?.skills ?? []).filter((s) => s && typeof s.name === "string");
+  const signals = buildStudentSignals({
+    skills: [...userSkillNames].map((name) => ({ name })),
+    intelligenceSkills,
+    degree: viewRow?.degree ?? null,
   });
-
-  const researchOpportunities = scoredOpps.filter((o) => o.type === "research" || o.type === "grant");
-  const internships = scoredOpps.filter((o) => o.type === "internship");
+  let researchOpportunities: ResearchFeed;
+  try {
+    const items = await researchForStudent(db as unknown as OppDb, signals);
+    researchOpportunities = { status: "ok", items, personalised: signals.demonstrated.size + signals.listed.size > 0 };
+  } catch (err) {
+    // e.g. migration 0028 not applied yet: say so, never show the old seeded rows.
+    console.error("[getLiveDashboardData] research opportunities unavailable:", err instanceof Error ? err.message : err);
+    researchOpportunities = { status: "unavailable" };
+  }
+  // Internships come only from Avsar's partner API (server-side, cached, never sample data), explained
+  // against the same Intelligence Engine signals as research.
+  const internships = await getAvsarInternships(signals);
 
   const quickActions: QuickActionItem[] = [];
   const hasResume = factsRows.some((f) => f.fieldGroup === "education" || f.fieldGroup === "experience");
@@ -318,7 +310,7 @@ export async function getLiveDashboardData(viewer: Viewer): Promise<LiveDashboar
     skillsCount,
     githubReposCount: reposRows.length,
     achievementsCount,
-    opportunitiesCount: oppsRows.length,
+    opportunitiesCount: researchOpportunities.status === "ok" ? researchOpportunities.items.length : 0,
     networkCount,
     milestones,
     recentProjects,

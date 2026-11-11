@@ -457,6 +457,76 @@ def alignment(rows: List[Dict[str, Any]], has_evidence_base: bool) -> Dict[str, 
     }
 
 
+# ─── ERIS — Intelligence Score ──────────────────────────────────────────────
+#
+# How much of the selected role's competency framework the student's evidence currently backs, 0-100.
+# For each framework competency (counted once), with its framework weight w:
+#   attainment = min(1, proficiency / expected)          when the engine scored it
+#   credit     = attainment                              evidence meets the framework's requirement
+#              = attainment * DESCRIBED_ONLY_FACTOR      only the student's own descriptions back a competency
+#                                                        that needs independent evidence
+#              = 0                                       no engine score (listed only, suggested, missing):
+#                                                        no evidence, so no credit; never shown as a level
+#   score = round(100 * sum(w * credit) / sum(w))
+# Not a proficiency, not the alignment state, not a probability of being hired. None (never 0) when the role
+# can't be assessed, alignment is "not enough evidence", or no competency has a score.
+
+SCORE_VERSION = 1
+DESCRIBED_ONLY_FACTOR = 0.5
+
+
+def _credit_kind(row: Dict[str, Any]) -> str:
+    if row.get("proficiency") is None:
+        return "none"
+    if row.get("state") == "met" or row.get("evidenceRequirement") != "independent" or row.get("evidenceState") == "demonstrated":
+        return "evidenced"
+    return "described"
+
+
+def _credit(row: Dict[str, Any]) -> float:
+    kind = _credit_kind(row)
+    if kind == "none" or not row.get("expected"):
+        return 0.0
+    attained = min(1.0, max(0.0, float(row["proficiency"])) / float(row["expected"]))
+    return attained * DESCRIBED_ONLY_FACTOR if kind == "described" else attained
+
+
+def _weighted(rows: List[Dict[str, Any]]) -> Optional[int]:
+    valid = [r for r in rows if (r.get("weight") or 0) > 0]
+    total = sum(r["weight"] for r in valid)
+    if not total:
+        return None
+    return int(round(100 * sum(r["weight"] * _credit(r) for r in valid) / total + 1e-9))
+
+
+def alignment_score(rows: List[Dict[str, Any]], has_evidence_base: bool, alignment_state: str) -> Optional[Dict[str, Any]]:
+    if not has_evidence_base or alignment_state == "not_enough_evidence":
+        return None
+    unique: Dict[str, Dict[str, Any]] = {}
+    for r in rows:
+        key = str(r["skill"]).strip().lower()
+        if key not in unique or _credit(r) > _credit(unique[key]):
+            unique[key] = r
+    deduped = list(unique.values())
+    if not any(_credit_kind(r) != "none" for r in deduped):
+        return None
+    value = _weighted(deduped)
+    if value is None:
+        return None
+    required = [r for r in deduped if r.get("tier", "required") == "required"]
+    supporting = [r for r in deduped if r.get("tier") == "supporting"]
+    counts = {"evidenced": 0, "described": 0, "none": 0}
+    for r in deduped:
+        counts[_credit_kind(r)] += 1
+    return {
+        "value": value,
+        "version": SCORE_VERSION,
+        "required": {"score": _weighted(required), "competencies": len(required)},
+        "supporting": {"score": _weighted(supporting), "competencies": len(supporting)},
+        "counts": counts,
+    }
+
+
 def _evidence_state(skill: Dict[str, Any]) -> str:
     """Older callers (ERIS tests, stored skills) may lack evidenceState: verified means demonstrated, else claimed."""
     return skill.get("evidenceState") or ("demonstrated" if skill.get("status") == "verified" else "claimed")
@@ -528,6 +598,7 @@ def analyze_role(role: str, skills: Dict[str, Dict[str, Any]], inferred: Dict[st
 
     total = sum(r["weight"] for r in rows)
     met = sum(r["weight"] for r in rows if r["state"] == "met")
+    role_alignment = alignment(rows, has_evidence_base)
     return {
         "role": role,
         "label": fw.label,
@@ -535,7 +606,8 @@ def analyze_role(role: str, skills: Dict[str, Dict[str, Any]], inferred: Dict[st
         # Internal only (documented above); the dashboard shows `alignment`, never this as a percentage.
         "coverage": round(met / total, 3) if total else 0.0,
         "assessed": has_evidence_base,
-        "alignment": alignment(rows, has_evidence_base),
+        "alignment": role_alignment,
+        "alignmentScore": alignment_score(rows, has_evidence_base, role_alignment["state"]),
         "skills": rows,
         "open": open_rows,
         "counts": {state: sum(1 for r in rows if r["state"] == state) for state in ("met", "underdeveloped", "unverified", "inferred", "missing", "not_assessed")},

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { IntelligenceDoc, RoleAnalysis, RoleSkillRow } from "@/lib/dashboard/types";
 
-import { credit, creditKind, gapNote, intelligenceScore, priorityGaps, standingView } from "./eris-intelligence";
+import { engineScore, gapNote, intelligenceScore, priorityGaps, standingView } from "./eris-intelligence";
 
 const row = (skill: string, extra: Partial<RoleSkillRow> = {}): RoleSkillRow => ({
   skill,
@@ -36,55 +36,27 @@ const role = (skills: RoleSkillRow[], extra: Partial<RoleAnalysis> = {}): RoleAn
 
 const none = (skill: string, extra: Partial<RoleSkillRow> = {}) => row(skill, { proficiency: null, level: "Not assessed", state: "missing", gapType: "missing_competency", evidenceState: undefined, ...extra });
 
-describe("ERIS — Intelligence Score", () => {
-  it("is the weighted share of the framework backed by evidence", () => {
-    // Python fully met (w 1), SQL half the expected level (w 1) → (1 + 0.5) / 2 = 75
-    expect(intelligenceScore(role([row("Python"), row("SQL", { proficiency: 25, state: "underdeveloped" })]))?.score).toBe(75);
+describe("ERIS — Intelligence Score is read from the engine, never computed here", () => {
+  const engine = { value: 37, version: 1, required: { score: 55, competencies: 4 }, supporting: { score: 17, competencies: 6 }, counts: { evidenced: 4, described: 0, none: 6 } };
+
+  it("shows the engine's own value and breakdown", () => {
+    const s = engineScore(role([none("A")], { alignmentScore: engine }));
+    expect(s).toMatchObject({ status: "ready", score: { score: 37, required: { score: 55, competencies: 4 }, supporting: { score: 17 }, counts: { none: 6 } } });
   });
 
-  it("weights competencies by the framework's weights", () => {
-    expect(intelligenceScore(role([row("A", { weight: 3 }), none("B", { weight: 1 })]))?.score).toBe(75);
+  it("doesn't invent a score from the rows, even when they'd give one", () => {
+    // Fully met rows but no engine score: still nothing, because only the engine scores.
+    expect(engineScore(role([row("Python"), row("SQL")])).status).toBe("pending");
   });
 
-  it("caps attainment at the expected level, so exceeding it can't inflate the score", () => {
-    expect(intelligenceScore(role([row("A", { proficiency: 100 }), none("B")]))?.score).toBe(50);
-  });
-
-  it("halves credit when only the student's descriptions back a skill that needs independent proof", () => {
-    const described = row("A", { evidenceState: "unverified", state: "unverified" });
-    expect(creditKind(described)).toBe("described");
-    expect(credit(described)).toBe(0.5);
-    // A competency whose framework accepts described evidence keeps full credit.
-    expect(credit(row("B", { evidenceRequirement: "described", evidenceState: "unverified" }))).toBe(1);
-  });
-
-  it("gives claimed, suggested and missing competencies no credit, never a level", () => {
-    for (const r of [none("A", { state: "unverified", gapType: "claimed_unverified", evidenceState: "claimed" }), none("B", { state: "inferred" }), none("C")]) {
-      expect(creditKind(r)).toBe("none");
-      expect(credit(r)).toBe(0);
-    }
-  });
-
-  it("counts a duplicated competency once", () => {
-    expect(intelligenceScore(role([row("Python"), row("python"), none("SQL")]))?.score).toBe(50);
-  });
-
-  it("returns no score, not zero, when nothing is evidenced or the engine couldn't assess", () => {
-    expect(intelligenceScore(role([none("A"), none("B")]))).toBeNull();
-    expect(intelligenceScore(role([row("A")], { assessed: false }))).toBeNull();
-    expect(intelligenceScore(role([row("A")], { alignment: { ...role([]).alignment!, state: "not_enough_evidence" } }))).toBeNull();
-    expect(intelligenceScore(null)).toBeNull();
-    expect(intelligenceScore(role([row("A", { weight: 0 })]))).toBeNull();
-  });
-
-  it("breaks the score into required and supporting parts with honest counts", () => {
-    const s = intelligenceScore(role([row("A"), none("B"), row("C", { tier: "supporting", evidenceState: "unverified", state: "unverified" })]))!;
-    expect(s.required).toMatchObject({ score: 50, competencies: 2 });
-    expect(s.supporting).toMatchObject({ score: 50, competencies: 1 });
-    expect(s.counts).toEqual({ evidenced: 1, described: 1, none: 1 });
+  it("separates 'not calculated yet' from 'not enough evidence', and never turns either into 0", () => {
+    expect(engineScore(role([row("A")]))).toEqual({ status: "pending" });
+    expect(engineScore(role([row("A")], { alignmentScore: null }))).toEqual({ status: "unavailable" });
+    expect(engineScore(role([row("A")], { alignmentScore: { ...engine, value: Number.NaN } }))).toEqual({ status: "unavailable" });
+    expect(engineScore(null)).toEqual({ status: "pending" });
+    expect(intelligenceScore(role([row("A")], { alignmentScore: null }))).toBeNull();
   });
 });
-
 describe("Where you stand view", () => {
   const doc = (roles: RoleAnalysis[], extra: Partial<IntelligenceDoc> = {}) =>
     ({ engineVersion: 3, computedAt: "2026-11-01T10:00:00Z", hasEvidenceBase: true, skills: [], inferred: [], roles, unsupportedRoles: [], recommendations: [], roadmap: null, graph: { nodes: [], edges: [], totalSkills: 0 }, counts: { verified: 0, claimed: 0, inferred: 0, assessed: 0 }, ...extra }) as IntelligenceDoc;
@@ -103,14 +75,14 @@ describe("Where you stand view", () => {
     const r = role([none("A"), row("B", { proficiency: 20, state: "underdeveloped", gapType: "insufficient_proficiency" }), none("C", { tier: "supporting" }), none("D"), none("E")], {});
     r.alignment!.criticalGaps = ["D", "A"];
     expect(priorityGaps(r).map((g) => g.skill)).toEqual(["D", "A", "B"]);
-    expect(priorityGaps(r)[2].note).toBe("Shown, below the expected level");
+    expect(priorityGaps(r)[2].note).toBe("More practice needed");
   });
 
   it("never calls a suggested or listed skill missing, nor a suggested one self-described", () => {
-    expect(gapNote(none("ML", { state: "inferred", gapType: "insufficient_evidence" }))).toBe("Only suggested by related skills");
-    expect(gapNote(none("A", { state: "unverified", gapType: "claimed_unverified" }))).toBe("Listed, not yet shown in your work");
-    expect(gapNote(row("B", { state: "unverified", evidenceState: "unverified", gapType: "insufficient_evidence" }))).toBe("Shown only in your own descriptions");
-    expect(gapNote(none("C"))).toBe("No evidence yet");
+    expect(gapNote(none("ML", { state: "inferred", gapType: "insufficient_evidence" }))).toBe("Possibly relevant");
+    expect(gapNote(none("A", { state: "unverified", gapType: "claimed_unverified" }))).toBe("Listed, not yet shown");
+    expect(gapNote(row("B", { state: "unverified", evidenceState: "unverified", gapType: "insufficient_evidence" }))).toBe("Described, not yet checkable");
+    expect(gapNote(none("C"))).toBe("No work examples yet");
   });
 
   it("labels a draft framework as a draft", () => {

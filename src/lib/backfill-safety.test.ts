@@ -105,7 +105,7 @@ describe("enqueueIntelligence", () => {
 
   it("a dry run writes nothing", async () => {
     const before = await count("jobs");
-    expect(await enqueueIntelligence(query)).toEqual({ pending: 1, queued: 0 });
+    expect(await enqueueIntelligence(query)).toEqual({ pending: 1, queued: 0, alreadyInBatch: 0, wouldQueue: 1 });
     expect(await count("jobs")).toBe(before);
   });
 
@@ -120,5 +120,17 @@ describe("enqueueIntelligence", () => {
     expect(await enqueueIntelligence(query, { apply: true })).toEqual({ pending: 0, queued: 0 });
     await query("UPDATE jobs SET status = 'done' WHERE idempotency_key <> 'existing'", []);
     expect((await enqueueIntelligence(query, { apply: true })).queued).toBe(0);
+  });
+
+  it("a dry run of an already-used batch says it would queue nothing; a new batch would", async () => {
+    // The finished engine-v1 job no longer blocks PENDING_SQL, but its key does: the old batch queues nobody.
+    expect(await enqueueIntelligence(query)).toEqual({ pending: 1, queued: 0, alreadyInBatch: 1, wouldQueue: 0 });
+    expect(await enqueueIntelligence(query, { batch: "engine-v3-score" })).toEqual({ pending: 1, queued: 0, alreadyInBatch: 0, wouldQueue: 1 });
+    const before = await count("jobs");
+    expect(await enqueueIntelligence(query, { apply: true, batch: "engine-v3-score" })).toEqual({ pending: 1, queued: 1 });
+    expect(await count("jobs")).toBe(before + 1);
+    // Re-applying the same new batch is still a no-op.
+    await query("UPDATE jobs SET status = 'done' WHERE idempotency_key <> 'existing'", []);
+    expect((await enqueueIntelligence(query, { apply: true, batch: "engine-v3-score" })).queued).toBe(0);
   });
 });

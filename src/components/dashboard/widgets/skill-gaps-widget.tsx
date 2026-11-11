@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { roleLabel } from "@/components/dashboard/widgets/labels";
 import { gapNote } from "@/lib/dashboard/eris-intelligence";
+import { expectsText, needsShort } from "@/lib/dashboard/plain-language";
 import type { IntelligenceDoc, RoleSkillRow } from "@/lib/dashboard/types";
 import type { MilestoneSubmission } from "@/lib/roadmap/progress";
 import { roadmapView } from "@/lib/roadmap/view";
@@ -87,11 +88,14 @@ function Row({ row, first }: { row: RoleSkillRow; first: boolean }) {
         </p>
         <p className="mt-0.5 text-[11px] text-muted-foreground">
           <span className="font-medium text-violet-700 dark:text-violet-300">{gapNote(row)}</span>
-          {row.proficiency !== null && row.proficiency !== undefined ? ` · now ${row.level}` : ""} · needs {row.expectedLevel}
+          {row.proficiency !== null && row.proficiency !== undefined ? ` · now ${row.level}` : ""}
+        </p>
+        <p className="text-[11px] text-muted-foreground" title={expectsText("Your target role", row.expectedLevel)}>
+          {needsShort(row.expectedLevel)}
         </p>
         {blocked.length > 0 && (
           <p className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
-            <Lock aria-hidden className="size-3" /> Build {blocked.join(", ")} first
+            <Lock aria-hidden className="size-3" /> Builds on {blocked.join(", ")}, so start that first
           </p>
         )}
         {first && row.whyItMatters && <p className="mt-0.5 line-clamp-2 text-[11px] text-muted-foreground">{row.whyItMatters}</p>}

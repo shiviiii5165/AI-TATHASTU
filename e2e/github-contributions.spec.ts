@@ -106,6 +106,59 @@ test("calendar shows GitHub's totals, days, legend and sync time; a later failur
   }
 });
 
+test("an account connected before the calendar existed gets one catch-up sync, then its calendar", async ({ page, context }) => {
+  // The reported bug: GitHub connected and repositories synced, but no calendar row because no sync ran since.
+  const user = await seedUser("Catch Up");
+  await sql.query("INSERT INTO connections (user_id, source_id, access_method, status, last_sync_at) VALUES ($1, 'github', 'oauth', 'connected', now() - interval '2 days')", [user.id]);
+  await signIn(context, user, { onboarded: true });
+  const jobs = async () =>
+    (await sql.query("SELECT idempotency_key FROM jobs WHERE user_id = $1 AND type = 'connector_sync' ORDER BY created_at", [user.id])).rows.map((r) => r.idempotency_key as string);
+
+  await page.goto("/dashboard");
+  const card = await githubCard(page);
+  await expect(card.getByTestId("contribution-unavailable")).toContainText("No contribution calendar yet");
+  await expect.poll(jobs).toEqual([expect.stringMatching(/:contributions-initial$/)]);
+  // Repeat visits never queue another.
+  await page.reload();
+  await page.reload();
+  await githubCard(page);
+  expect(await jobs()).toHaveLength(1);
+
+  // The card's own button: the existing rate-limited refresh, with clear feedback.
+  await card.getByTestId("contribution-sync").click();
+  await expect(card.getByTestId("contribution-sync-queued")).toContainText("Sync started");
+
+  // The worker finishes and stores GitHub's snapshot: the calendar replaces the notice.
+  const days = calendar((i) => i % 4);
+  await sql.query(
+    `INSERT INTO github_contributions (user_id, total_contributions, days, category_totals, synced_at, last_attempt_at)
+     VALUES ($1, $2, $3, '{"commits":10,"pullRequests":1,"issues":0,"reviews":0,"repositories":1,"restricted":0}', now(), now())`,
+    [user.id, days.reduce((s, d) => s + d.count, 0), JSON.stringify(days)],
+  );
+  await page.reload();
+  await expect((await githubCard(page)).getByTestId("contribution-calendar").locator("[data-level]")).toHaveCount(365);
+  // With a calendar in place, nothing new is queued.
+  const before = (await jobs()).length;
+  await page.reload();
+  await githubCard(page);
+  expect(await jobs()).toHaveLength(before);
+});
+
+test("without migration 0027 nothing is queued and the card still renders", async ({ page, context }) => {
+  const user = await seedUser("No Table");
+  await sql.query("INSERT INTO connections (user_id, source_id, access_method, status, last_sync_at) VALUES ($1, 'github', 'oauth', 'connected', now())", [user.id]);
+  await signIn(context, user, { onboarded: true });
+  await sql.query("ALTER TABLE github_contributions RENAME TO github_contributions_hidden");
+  try {
+    await page.goto("/dashboard");
+    await expect((await githubCard(page)).getByTestId("contribution-unavailable")).toBeVisible();
+    const queued = (await sql.query("SELECT count(*)::int AS n FROM jobs WHERE user_id = $1 AND idempotency_key LIKE '%contributions-initial'", [user.id])).rows[0].n;
+    expect(queued).toBe(0);
+  } finally {
+    await sql.query("ALTER TABLE github_contributions_hidden RENAME TO github_contributions");
+  }
+});
+
 test("a sync that never succeeded is unavailable, not zero; no calendar is shown for another user", async ({ browser }) => {
   const failed = await seedUser("Failed Calendar");
   await sql.query(
@@ -122,7 +175,7 @@ test("a sync that never succeeded is unavailable, not zero; no calendar is shown
 
   for (const [user, heading, detail] of [
     [failed, "Contribution calendar unavailable", "Could not reach GitHub"],
-    [fresh, "No contribution calendar yet", "after your next GitHub sync"],
+    [fresh, "No contribution calendar yet", "none has finished since it was added"],
   ] as const) {
     const context = await browser.newContext();
     await signIn(context, user, { onboarded: true });

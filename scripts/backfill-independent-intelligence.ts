@@ -3,6 +3,7 @@
 //
 //   npx tsx scripts/backfill-independent-intelligence.ts            # dry run: counts only
 //   npx tsx scripts/backfill-independent-intelligence.ts --apply    # queues the jobs
+//   ... --batch=engine-v3-score [--apply]   # a new batch: re-queues users an older batch already processed
 //
 // Reads DATABASE_URL from the environment only, never from .env files, so the target is
 // always what the operator set for this command. See scripts/lib/db-target.mjs for what a
@@ -26,12 +27,16 @@ async function connect(url: string) {
 
 async function main() {
   const apply = process.argv.includes("--apply");
+  // A new batch name re-queues users already processed under an older batch (e.g. engine-v3-score).
+  const batchArg = process.argv.find((a) => a.startsWith("--batch="))?.slice("--batch=".length);
+  if (batchArg !== undefined && !/^[a-z0-9][a-z0-9._-]{1,40}$/i.test(batchArg)) throw new Error("--batch must be 2-41 letters, digits, '.', '_' or '-'.");
+  const batch = batchArg ?? "engine-v1";
   // Even a dry run lists users, so it needs the same approval as a write.
   const url = assertWriteAllowed(process.env.DATABASE_URL);
   const { query, close } = await connect(url);
   try {
-    const result = await enqueueIntelligence(query, { apply });
-    console.log({ host: hostOf(url), ...result });
+    const result = await enqueueIntelligence(query, { apply, batch });
+    console.log({ host: hostOf(url), batch, ...result });
     if (!apply) console.log("Dry run. Re-run with --apply to queue the jobs.");
   } finally {
     await close();

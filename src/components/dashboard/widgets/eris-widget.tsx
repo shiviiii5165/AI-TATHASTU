@@ -32,7 +32,12 @@ export function ErisWidget({ intelligence, primaryRole, submissions = [] }: { in
 
   if (view.state === "pending") return <Note>Your assessment is being prepared from your evidence.</Note>;
   if (view.state === "legacy")
-    return <Note when={when}>This assessment was made by an earlier version of the engine, so no score is shown. It is recalculated the next time your profile is processed.</Note>;
+    return (
+      <Note when={when} action={{ label: "Sync GitHub or update your evidence", href: "/connections" }}>
+        This assessment was made by an earlier version of the engine, so no score is shown from it. It is recalculated
+        the next time your profile is processed, for example after a GitHub sync or a resume update.
+      </Note>
+    );
   if (view.state === "no_direction")
     return (
       <Note when={when}>No career direction is selected, so there&apos;s nothing to score against. We don&apos;t assume one for you. Your skills and evidence are still shown elsewhere on the dashboard.</Note>
@@ -46,7 +51,7 @@ export function ErisWidget({ intelligence, primaryRole, submissions = [] }: { in
   return (
     <div className="space-y-4" data-testid="where-you-stand">
       <div className="grid gap-4 sm:grid-cols-[minmax(0,15rem)_minmax(0,1fr)]">
-        <ScoreBlock score={view.score} />
+        <ScoreBlock score={view.score} status={view.scoreStatus} />
 
         <dl className="grid content-start gap-2.5 text-xs">
           <div>
@@ -70,7 +75,7 @@ export function ErisWidget({ intelligence, primaryRole, submissions = [] }: { in
                     {view.alignment.label}
                   </span>
                   <p className="mt-1 text-muted-foreground">
-                    {view.alignment.requiredMet} of {view.alignment.required} required skills shown at the expected level. {ALIGNMENT_TEXT[view.alignment.state]}
+                    Your work shows {view.alignment.requiredMet} of {view.alignment.required} required skills at the expected level. {ALIGNMENT_TEXT[view.alignment.state]}
                   </p>
                 </>
               ) : (
@@ -124,7 +129,7 @@ export function ErisWidget({ intelligence, primaryRole, submissions = [] }: { in
   );
 }
 
-function ScoreBlock({ score }: { score: IntelligenceScore | null }) {
+function ScoreBlock({ score, status }: { score: IntelligenceScore | null; status: "ready" | "pending" | "unavailable" }) {
   return (
     <div className="rounded-xl border border-violet-100 bg-violet-50/50 p-3 dark:border-violet-400/20 dark:bg-violet-500/10" data-testid="eris-score">
       <p className="text-[11px] font-semibold text-violet-700 dark:text-violet-300">ERIS — Intelligence Score</p>
@@ -139,7 +144,7 @@ function ScoreBlock({ score }: { score: IntelligenceScore | null }) {
           <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-violet-100 dark:bg-violet-500/20" role="meter" aria-label="ERIS — Intelligence Score" aria-valuemin={0} aria-valuemax={100} aria-valuenow={score.score}>
             <div className="h-full origin-left rounded-full bg-violet-500" style={{ transform: `scaleX(${score.score / 100})` }} />
           </div>
-          <p className="mt-2 text-[11px] leading-snug text-muted-foreground">How much of this direction&apos;s competency framework your evidence currently backs. Not a job-readiness or hiring estimate.</p>
+          <p className="mt-2 text-[11px] leading-snug text-muted-foreground">How much of what this career needs is backed by examples of your work. It is not a prediction of getting a job.</p>
           <ul className="mt-2 space-y-0.5 text-[11px]" aria-label="Score breakdown">
             {[score.required, score.supporting].filter((f) => f.competencies > 0).map((f) => (
               <li key={f.label} className="flex justify-between gap-2">
@@ -152,12 +157,21 @@ function ScoreBlock({ score }: { score: IntelligenceScore | null }) {
           </ul>
           <p className="mt-1.5 text-[10px] leading-snug text-muted-foreground">
             {[
-              `${score.counts.evidenced} backed by evidence`,
-              score.counts.described > 0 ? `${score.counts.described} by your own descriptions only (half credit)` : null,
-              `${score.counts.none} not yet shown (no credit)`,
+              `${score.counts.evidenced} shown in work we could check`,
+              score.counts.described > 0 ? `${score.counts.described} only in your own descriptions (counts half)` : null,
+              `${score.counts.none} without work examples yet (counts nothing until shown)`,
             ]
               .filter(Boolean)
               .join(" · ")}
+          </p>
+        </>
+      ) : status === "pending" ? (
+        <>
+          <p className="mt-1 text-sm font-semibold text-foreground" data-testid="eris-value">
+            Arrives with your next update
+          </p>
+          <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
+            Your assessment was saved before the engine started calculating this score. It appears the next time your profile is processed, for example after a GitHub sync or a resume update.
           </p>
         </>
       ) : (
@@ -165,7 +179,7 @@ function ScoreBlock({ score }: { score: IntelligenceScore | null }) {
           <p className="mt-1 text-sm font-semibold text-foreground" data-testid="eris-value">
             Not enough evidence
           </p>
-          <p className="mt-1 text-[11px] leading-snug text-muted-foreground">No score until at least one competency for this direction is backed by evidence. A GitHub repository, an assessment or a confirmed project on your resume would help.</p>
+          <p className="mt-1 text-[11px] leading-snug text-muted-foreground">We need more examples of your work before we can assess your progress. A GitHub repository, an assessment or a confirmed project on your resume would help.</p>
           <Link href="/connections" className="mt-2 inline-flex text-[11px] font-semibold text-orange-600 hover:underline dark:text-orange-300">
             Add evidence
           </Link>

@@ -17,6 +17,7 @@ import { PreviewWidget } from "@/components/dashboard/widgets/preview-widget";
 import { SkillGapsWidget } from "@/components/dashboard/widgets/skill-gaps-widget";
 import { db } from "@/db";
 import { connections, erisScores, profileViews } from "@/db/schema";
+import { ensureContributionCalendar } from "@/lib/connectors/contribution-calendar";
 import { requireOnboardedUser } from "@/lib/dal";
 import { compose, type ComposedWidget } from "@/lib/dashboard/compose";
 import { getWidgetPrefs } from "@/lib/dashboard/prefs";
@@ -54,7 +55,7 @@ async function Dashboard() {
     getLiveDashboardData({ id: user.id, role: user.role }),
     db.select({ role: erisScores.role, breakdown: erisScores.breakdownJson }).from(erisScores).where(eq(erisScores.userId, user.id)),
     db
-      .select({ tokenEnc: connections.tokenEnc, lastSyncAt: connections.lastSyncAt })
+      .select({ id: connections.id, tokenEnc: connections.tokenEnc, lastSyncAt: connections.lastSyncAt })
       .from(connections)
       .where(and(eq(connections.userId, user.id), eq(connections.sourceId, "github"))),
     // Faculty and alumni: matched students (compute_matches), shown only with the student's consent.
@@ -66,6 +67,9 @@ async function Dashboard() {
     }),
     getCurrentConsents(user.id),
   ]);
+  // Accounts connected before the contribution calendar existed have none: queue their one catch-up sync.
+  // Awaited (serverless may stop work after the response), cheap, and it never throws.
+  if (github && !liveStats.githubActivity?.contributions) await ensureContributionCalendar(user.id, github.id);
   // Once, for grants given before the AI permission's full scope was disclosed; gone as soon as they answer.
   const notice = needsExternalAiScopeUpdate(consents.external_ai) ? <ConsentScopeNotice /> : undefined;
   const widgetData: WidgetData = {

@@ -246,32 +246,60 @@ test("roadmap: evidenced position, alignment state, blocked milestone, catalogue
   // The engine's alignment state in words, never a percentage.
   await expect(roadmap.getByTestId("roadmap-alignment")).toHaveText(role.alignment!.label);
   await expect(roadmap.getByTestId("roadmap-alignment")).toHaveAttribute("data-state", role.alignment!.state);
-  await expect(roadmap).toContainText(`${role.alignment!.requiredMet} of ${role.alignment!.required} required skills shown at the expected level`);
+  await expect(roadmap).toContainText(`Your work shows ${role.alignment!.requiredMet} of ${role.alignment!.required} required skills at the expected level`);
+  // What the role involves, from the framework itself.
+  await expect(roadmap.getByTestId("roadmap-goal-duties")).toContainText(role.framework!.responsibilities[0]);
   await expect(page.getByTestId("roadmap-progress-bar")).toHaveCount(0);
   expect(await roadmap.innerText()).not.toMatch(/\d+\s?%/);
 
-  // Goal skill progress: the engine's own classification, counts and evidence.
+  // Required-skill progress: three separate engine groups; optional skills counted apart, never as gaps.
   const progress = roadmap.getByTestId("roadmap-skill-progress");
-  const count = (states: string[]) => String(role.skills.filter((s) => states.includes(s.state)).length);
+  const required = role.skills.filter((s) => (s.tier ?? "required") === "required");
+  const count = (states: string[]) => String(required.filter((s) => states.includes(s.state)).length);
   await expect(progress.locator('[data-bucket="demonstrated"]')).toContainText(count(["met"]));
   await expect(progress.locator('[data-bucket="inProgress"]')).toContainText(count(["underdeveloped"]));
   await expect(progress.locator('[data-bucket="notYet"]')).toContainText(count(["unverified", "inferred", "missing", "not_assessed"]));
+  const optional = role.skills.filter((s) => s.tier === "supporting");
+  await expect(progress.getByTestId("roadmap-optional-count")).toContainText(`${optional.filter((s) => s.state === "met").length} of ${optional.length}`);
   await progress.locator('[data-bucket="inProgress"]').click();
-  for (const s of role.skills.filter((x) => x.state === "underdeveloped")) await expect(progress.getByTestId("roadmap-skill-bucket")).toContainText(s.skill);
+  const bucket = progress.getByTestId("roadmap-skill-bucket");
+  for (const s of required.filter((x) => x.state === "underdeveloped")) {
+    const item = bucket.locator(`[data-skill="${s.skill}"]`);
+    // Assessed vs expected level, whether it's met, and where the evidence came from.
+    await expect(item).toContainText(`Assessed at ${s.level}`);
+    await expect(item).toContainText(`expected: ${s.expectedLevel}`);
+    await expect(item).toContainText("not met yet");
+    if (s.evidence.length) await expect(item).toContainText(s.evidence[0]);
+  }
+  for (const s of optional) await expect(bucket).not.toContainText(s.skill);
 
   // Machine Learning requires Statistics, which the evidence doesn't show: its stage is locked, with the reason.
-  await expect(roadmap.getByTestId("journey-stage-build")).toContainText("Complete Statistics first to unlock this step");
+  const prereq = "Start this after your work shows Statistics at the level this role expects, because it builds on it";
+  await expect(roadmap.getByTestId("journey-stage-build")).toContainText(prereq);
+  await expect(roadmap).not.toContainText("unlock");
   await roadmap.getByTestId("journey-stage-build").getByRole("button").click();
   const stage = roadmap.getByTestId("roadmap-stage-detail");
   await expect(roadmap.getByTestId("roadmap-focus-skill")).toHaveText("Machine Learning");
+  // Each stage says which skills it covers, why it's here and what completing it means.
+  const buildStage = rm.stages.find((s) => s.key === "build")!;
+  for (const m of buildStage.milestones) await expect(stage.getByTestId("roadmap-stage-skills")).toContainText(m.skill);
+  await expect(stage.getByTestId("roadmap-stage-meaning")).toContainText("builds on another skill earlier in your roadmap");
+  await expect(stage.getByTestId("roadmap-stage-meaning")).toContainText("When it's complete");
   await stage.getByRole("button", { name: "View skill details" }).click();
   const detail = roadmap.locator("#roadmap-milestone-detail");
-  await expect(detail).toContainText("Complete Statistics first to unlock this step.");
+  await expect(detail).toContainText(`${prereq}.`);
 
   // Statistics: the engine's next milestone, with the catalogue course it recommends, also as the next action.
   const rec = intel.recommendations.find((r) => r.skill === "Statistics")!;
   expect(rec.resource).not.toBeNull();
   await expect(roadmap.getByTestId("roadmap-next-action").getByRole("link", { name: /Start the course/ })).toHaveAttribute("href", rec.resource!.url);
+  // The next action says what to produce and how progress is recognised, from the engine's own milestone.
+  const nextMilestone = rm.stages.flatMap((s) => s.milestones).find((m) => m.skill === "Statistics")!;
+  const actionDetail = roadmap.getByTestId("roadmap-next-action-detail");
+  // The practical task appears once: as the headline, or below it only when it says something different.
+  const headlineCount = await roadmap.getByTestId("roadmap-next-action").getByText(nextMilestone.practicalTask ?? "§none§", { exact: false }).count();
+  if (nextMilestone.practicalTask) expect(headlineCount).toBe(1);
+  await expect(actionDetail).toContainText("How we'll recognise your progress");
   await detail.getByRole("button", { name: /Statistics/ }).click(); // follows the prerequisite to its stage
   await expect(roadmap.getByTestId("roadmap-focus-skill")).toHaveText("Statistics");
   await expect(roadmap.locator("#roadmap-milestone-detail").getByRole("heading", { name: "Statistics" })).toBeVisible();
@@ -294,7 +322,7 @@ test("roadmap: evidenced position, alignment state, blocked milestone, catalogue
     .toEqual([{ milestone_id: "ml_engineer:statistics", evidence_url: "https://github.com/asha/stats-notebooks" }]);
   await page.reload();
   await expect(roadmap.getByTestId("roadmap-focus-skill")).toHaveText("Statistics");
-  await expect(roadmap.getByTestId("roadmap-stage-detail")).toContainText("In review");
+  await expect(roadmap.getByTestId("roadmap-stage-detail")).toContainText("Waiting for next check");
   await expect(roadmap.getByTestId("roadmap-alignment")).toHaveText(role.alignment!.label); // a submission changes nothing by itself
   // Still nothing completed: the runner hasn't moved.
   await expect(roadmap.getByTestId("journey-runner")).toHaveAttribute("data-at", "0");

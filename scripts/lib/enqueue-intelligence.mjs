@@ -20,13 +20,22 @@ export const ENQUEUE_SQL = `
  * `query(text, params)` returns rows. Dry run unless `apply`. The key is fixed per user and
  * `batch`, so re-running a batch queues nothing twice.
  */
+export const keyFor = (id, batch) => `compute_intelligence:${id}:backfill:${batch}`;
+
+// How many of these users already have a job for this batch: re-applying the same batch queues them nowhere.
+export const ALREADY_SQL = `SELECT count(*)::int AS n FROM jobs WHERE idempotency_key = ANY($1::text[])`;
+
 export async function enqueueIntelligence(query, { apply = false, batch = "engine-v1" } = {}) {
   const pending = (await query(PENDING_SQL, [])).map((row) => String(row.id));
-  if (!apply) return { pending: pending.length, queued: 0 };
+  if (!apply) {
+    // A dry run says what --apply would really do, not just who is eligible.
+    const already = pending.length ? Number((await query(ALREADY_SQL, [pending.map((id) => keyFor(id, batch))]))[0]?.n ?? 0) : 0;
+    return { pending: pending.length, queued: 0, alreadyInBatch: already, wouldQueue: pending.length - already };
+  }
 
   let queued = 0;
   for (const id of pending) {
-    const rows = await query(ENQUEUE_SQL, [id, `compute_intelligence:${id}:backfill:${batch}`, JSON.stringify({ trigger: `backfill:${batch}` })]);
+    const rows = await query(ENQUEUE_SQL, [id, keyFor(id, batch), JSON.stringify({ trigger: `backfill:${batch}` })]);
     queued += rows.length;
   }
   return { pending: pending.length, queued };

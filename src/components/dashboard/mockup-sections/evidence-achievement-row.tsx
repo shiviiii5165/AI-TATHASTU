@@ -17,7 +17,9 @@ import {
   Trophy,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+
+import { refreshGithub } from "@/app/(dashboard)/dashboard/actions";
 import { describeDay, layoutCalendar } from "@/lib/dashboard/github-contributions";
 import type {
   AchievementItem,
@@ -287,10 +289,57 @@ function ContributionNotice({ data }: { data: GitHubContributionsData | null }) 
       </p>
       <p className="mx-auto mt-1 max-w-[230px] text-[11px] leading-4 text-[#617493]">
         {data?.lastError
-          ? `The last attempt failed: ${data.lastError}. Sync GitHub to try again.`
-          : "It appears after your next GitHub sync."}
+          ? `The last attempt failed: ${data.lastError}.`
+          : "Your calendar is fetched from GitHub during a sync, and none has finished since it was added. Your repository stats below are unaffected."}
       </p>
+      <SyncGithubButton />
+      {data?.lastError && (
+        <Link href="/connections" className="mt-1.5 block text-[11px] font-semibold text-primary hover:underline">
+          Reconnect GitHub
+        </Link>
+      )}
     </div>
+  );
+}
+
+/** Queues a GitHub sync (the existing rate-limited refresh action); the calendar arrives when it finishes. */
+function SyncGithubButton() {
+  const [state, setState] = useState<"idle" | "queued" | "error">("idle");
+  const [message, setMessage] = useState("");
+  const [pending, start] = useTransition();
+  if (state === "queued") {
+    return (
+      <p role="status" className="mx-auto mt-2 max-w-[230px] text-[11px] leading-4 text-emerald-700" data-testid="contribution-sync-queued">
+        Sync started. Your calendar appears here when it finishes, usually within a few minutes. Refresh the page to check.
+      </p>
+    );
+  }
+  return (
+    <>
+      <button
+        type="button"
+        disabled={pending}
+        data-testid="contribution-sync"
+        onClick={() =>
+          start(async () => {
+            const result = await refreshGithub().catch(() => ({ ok: false as const, error: "Couldn't start a sync. Try again." }));
+            if (result.ok) setState("queued");
+            else {
+              setState("error");
+              setMessage(result.error);
+            }
+          })
+        }
+        className="mt-2.5 inline-flex items-center gap-1.5 rounded-lg bg-[#F4F1FD] px-3 py-1.5 text-[11px] font-semibold text-[#6B3FE0] transition-colors hover:bg-[#ECE6FC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
+      >
+        {pending ? "Starting…" : "Sync GitHub now"}
+      </button>
+      {state === "error" && (
+        <p role="alert" className="mt-1.5 text-[11px] text-amber-700">
+          {message}
+        </p>
+      )}
+    </>
   );
 }
 

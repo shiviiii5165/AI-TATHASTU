@@ -58,13 +58,13 @@ test("a current v3 assessment shows the documented score, the alignment separate
   await expect(wys).toContainText(`${analysis.alignment.requiredMet} of ${analysis.alignment.required} required skills`);
   await expect(wys).toContainText("ML Engineer");
   await expect(wys).toContainText(/Last assessed \d{1,2} \w{3} \d{4}/);
-  await expect(wys).toContainText("Not a job-readiness or hiring estimate");
+  await expect(wys).toContainText("not a prediction of getting a job");
   await expect(wys).not.toContainText("%");
 
   // Required gaps only, the engine's critical one first; a suggested skill is never called missing or self-described.
   const gaps = wys.getByRole("list", { name: "Priority gaps" }).getByRole("listitem");
   await expect(gaps.first()).toContainText(analysis.alignment.criticalGaps[0]);
-  await expect(gaps.first()).toContainText("Only suggested by related skills");
+  await expect(gaps.first()).toContainText("Possibly relevant");
   for (const item of await gaps.allInnerTexts()) expect(analysis.skills.find((s: { skill: string }) => item.includes(s.skill))?.tier).toBe("required");
   await expect(wys.getByTestId("next-action")).toHaveAttribute("href", /\/learn\?skill=/);
 
@@ -79,11 +79,11 @@ test("a current v3 assessment shows the documented score, the alignment separate
   await expect(std.locator(`[data-skill="${decodeURIComponent(nextSkill)}"]`)).toContainText("Start here");
   await expect(std.getByText("Start here")).toHaveCount(1);
   await expect(std.getByText("Supporting", { exact: false }).first()).toBeVisible();
-  // "No evidence yet" only where the engine says missing.
+  // "No work examples yet" only where the engine says missing.
   for (const r of open.slice(0, 7)) {
     const row = std.locator(`[data-skill="${r.skill}"]`);
-    if (r.state === "missing") await expect(row).toContainText("No evidence yet");
-    else await expect(row).not.toContainText("No evidence yet");
+    if (r.state === "missing") await expect(row).toContainText("No work examples yet");
+    else await expect(row).not.toContainText("No work examples yet");
   }
   if (open.length > 7) await expect(std.getByRole("link", { name: `See all ${open.length} on Skills` })).toBeVisible();
 
@@ -94,6 +94,20 @@ test("a current v3 assessment shows the documented score, the alignment separate
   await expect(links.nth(1)).toHaveAttribute("href", "https://github.com/acme-labs/sql-dashboards");
   await expect(gh).toContainText("Updated");
   await expect(gh).toContainText("not who wrote each part");
+  await context.close();
+});
+
+test("a v3 assessment saved before the engine wrote a score says when it arrives, and shows no number", async ({ browser }) => {
+  const { context, page } = await setUp(browser, "Home awaiting score", {
+    mutate: (v) => {
+      for (const r of v.intelligence.roles) delete r.alignmentScore;
+    },
+  });
+  const wys = widget(page, "Where you stand");
+  await expect(wys.getByTestId("eris-value")).toHaveText("Arrives with your next update");
+  await expect(wys.getByRole("meter")).toHaveCount(0);
+  await expect(wys.getByTestId("alignment-state")).toBeVisible(); // the qualitative assessment is still shown
+  await expect(wys).not.toContainText(/\b0\s*\/\s*100\b/);
   await context.close();
 });
 

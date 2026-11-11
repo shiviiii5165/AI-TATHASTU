@@ -194,8 +194,10 @@ describe("Deterministic Yora Intent Router", () => {
       const res = await POST(req);
       expect(res.status).toBe(200);
       const json = await res.json();
-      // A plain listing: nothing here is ranked against the profile, so it mustn't claim to be.
-      expect(json.response).toContain("Here are some opportunities:");
+      // Only verified, active listings are quoted. The test database holds just the fabricated
+      // 0014 seed rows (retired by 0028), so none may appear.
+      expect(json.response).toContain("no verified research opportunities");
+      expect(json.response).not.toMatch(/Google Research|NVIDIA|Adobe Research|Tathastu AI Labs|SERB/);
       expect(json.response).not.toContain("matching your profile");
     });
 

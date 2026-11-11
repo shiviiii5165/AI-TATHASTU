@@ -2,18 +2,31 @@ import { and, eq, ilike, or, sql } from "drizzle-orm";
 import { connection, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { codeRepositories, skills, unifiedProjects, users } from "@/db/schema";
+import { codeRepositories, opportunities, skills, unifiedProjects, users } from "@/db/schema";
+import { recommendableWhere } from "@/lib/opportunities/recommend";
 import { discoverableBy } from "@/lib/discovery";
 import { viewerFor } from "@/lib/people";
 import { hitRateLimit } from "@/lib/rate-limit";
 
-const CURATED_OPPORTUNITIES = [
-  { title: "Advanced LLMs: From Foundations to Agents", category: "Learning", url: "/learning" },
-  { title: "MLOps for Real-World AI", category: "Learning", url: "/learning" },
-  { title: "AI in Healthcare & Clinical Diagnostics", category: "Learning", url: "/learning" },
-  { title: "IIT Delhi · LLM-based Intelligent Systems", category: "Research", url: "/research" },
-  { title: "IIT Bombay · Agentic AI Research Fellowship", category: "Research", url: "/research" },
-];
+/**
+ * Opportunities in search: verified, active research listings only (lib/opportunities). The previous
+ * hardcoded list named fellowships and courses that did not exist and linked to placeholder pages.
+ * Before migration 0028 the provenance columns are missing: search then returns no opportunities.
+ */
+async function verifiedOpportunities(q: string): Promise<{ title: string; category: string; url: string }[]> {
+  try {
+    const term = `%${q.replace(/[%_\\]/g, (m) => `\\${m}`)}%`;
+    const rows = await db
+      .select({ title: opportunities.title, organization: opportunities.organization, url: opportunities.url })
+      .from(opportunities)
+      .where(and(recommendableWhere(new Date()), or(ilike(opportunities.title, term), ilike(opportunities.organization, term))))
+      .limit(3);
+    return rows.filter((r) => r.url).map((r) => ({ title: `${r.title} · ${r.organization}`, category: "Research", url: r.url! }));
+  } catch (err) {
+    console.error("[search] opportunities unavailable:", err instanceof Error ? err.message : err);
+    return [];
+  }
+}
 
 export async function GET(req: Request) {
   await connection();
@@ -141,16 +154,14 @@ export async function GET(req: Request) {
     const projects = Array.from(allProjectsMap.values()).slice(0, 4);
 
     // Format matching opportunities
-    const opportunities = CURATED_OPPORTUNITIES.filter(
-      (o) => o.title.toLowerCase().includes(q.toLowerCase()) || o.category.toLowerCase().includes(q.toLowerCase())
-    ).slice(0, 3);
+    const opportunityResults = await verifiedOpportunities(q);
 
     return NextResponse.json({
       results: {
         people,
         skills: skillList,
         projects,
-        opportunities,
+        opportunities: opportunityResults,
       },
     });
   } catch (err) {

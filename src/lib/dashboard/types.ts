@@ -99,11 +99,25 @@ export type RoleAlignment = {
 
 export type FrameworkMeta = { version: string; status: string; basis?: string; reviewed?: boolean; alignmentRules?: string };
 
+/**
+ * ERIS — Intelligence Score, written by the engine (career_engine.alignment_score): how much of the role's
+ * competency framework the evidence backs, 0-100. null when it can't be assessed; absent on documents computed
+ * before the engine produced it. Never computed in the web app.
+ */
+export type AlignmentScore = {
+  value: number;
+  version: number;
+  required: { score: number | null; competencies: number };
+  supporting: { score: number | null; competencies: number };
+  counts: { evidenced: number; described: number; none: number };
+};
+
 export type RoleAnalysis = {
   role: string;
   label?: string;
   framework?: FrameworkMeta & { responsibilities: string[]; completionCriteria: string };
   alignment?: RoleAlignment;
+  alignmentScore?: AlignmentScore | null;
   /** Internal weighted share of competencies met. Not for display: the dashboard shows `alignment`. */
   coverage: number;
   assessed: boolean;

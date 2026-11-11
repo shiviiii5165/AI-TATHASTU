@@ -1,4 +1,5 @@
-import { eq, ilike, or, sql } from "drizzle-orm";
+import { desc, eq, ilike, or, sql } from "drizzle-orm";
+import { recommendableWhere } from "@/lib/opportunities/recommend";
 import { crossSiteRefusal } from "@/lib/same-origin";
 import { connection, NextResponse } from "next/server";
 import { auth } from "@/auth";
@@ -134,17 +135,26 @@ export async function POST(req: Request) {
       case "opportunities": {
         // Fetch from opportunities table
         // Not ranked against the user's profile, so don't say it is.
+        // Verified, active research listings only (the 0014 seed rows were fabricated and never qualify).
+        // Internships are fetched from Avsar for the dashboard card; they are not quoted here.
+        // Before migration 0028 the provenance columns don't exist: answer "none" rather than fail.
         const opps = await db
           .select({ title: opportunities.title, organization: opportunities.organization })
           .from(opportunities)
-          .limit(3);
+          .where(recommendableWhere(new Date()))
+          .orderBy(desc(opportunities.lastVerifiedAt))
+          .limit(3)
+          .catch((err: unknown) => {
+            console.error("[yora] opportunities unavailable:", err instanceof Error ? err.message : err);
+            return [] as { title: string; organization: string }[];
+          });
         if (opps.length > 0) {
           const listStr = opps
             .map((o) => `"${o.title}" at ${o.organization}`)
             .join(", ");
-          reply = `Here are some opportunities: ${listStr}. Check the Opportunities section on your dashboard to apply!`;
+          reply = `Here are some verified research opportunities: ${listStr}. See the Research opportunities card on your dashboard for how each fits you and a link to the original listing.`;
         } else {
-          reply = "I don't have any opportunities to show right now. Check the Opportunities section later for new postings.";
+          reply = "There are no verified research opportunities listed right now. Internships are published on Avsar, which you can open from your dashboard.";
         }
         break;
       }

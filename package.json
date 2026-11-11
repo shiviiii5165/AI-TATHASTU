@@ -21,6 +21,7 @@
     "integrations:check": "tsx scripts/integrations-check.ts",
     "db:seed:academic": "tsx scripts/seed-academic.ts",
     "db:migrate:academic": "tsx scripts/migrate-academic.ts",
+    "opportunities:refresh": "tsx scripts/opportunities-refresh.ts",
     "db:backfill:intelligence": "npx tsx scripts/backfill-independent-intelligence.ts"
   },
   "dependencies": {

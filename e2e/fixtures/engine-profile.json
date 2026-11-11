@@ -8,7 +8,7 @@
    "reviewed": false,
    "alignmentRules": "not_enough_evidence: nothing to read yet, or no competency in the framework has any evidence (even a claim). requirements_demonstrated: every required competency is met (expected level, demonstrated evidence). strong: every required competency has an assessed level, at least half are met, and every required competency with no required prerequisite (the foundations) is met. developing: at least one required competency is met, or at least half have an assessed level. early: anything else with some evidence. Supporting competencies never raise the state."
   },
-  "computedAt": "2026-11-10T18:00:19.344413+00:00",
+  "computedAt": "2026-11-11T05:51:49.795065+00:00",
   "hasEvidenceBase": true,
   "skills": [
    {
@@ -32,31 +32,31 @@
       "source": "github",
       "label": "asha/resume-parser",
       "ref": "https://github.com/asha/resume-parser",
-      "at": "2026-10-21T18:00:19.344413+00:00"
+      "at": "2026-10-22T05:51:49.795065+00:00"
      },
      {
       "kind": "repository",
       "source": "github",
       "label": "asha/sql-dashboards",
       "ref": "https://github.com/asha/sql-dashboards",
-      "at": "2026-10-21T18:00:19.344413+00:00"
+      "at": "2026-10-22T05:51:49.795065+00:00"
      },
      {
       "kind": "project",
       "source": "resume",
       "label": "Resume Parser",
       "ref": "f16",
-      "at": "2026-10-21T18:00:19.344413+00:00"
+      "at": "2026-10-22T05:51:49.795065+00:00"
      },
      {
       "kind": "project",
       "source": "resume",
       "label": "Undated Side Project",
       "ref": "f18",
-      "at": "2026-10-21T18:00:19.344413+00:00"
+      "at": "2026-10-22T05:51:49.795065+00:00"
      }
     ],
-    "lastEvidenceAt": "2026-10-21T18:00:19.344413+00:00",
+    "lastEvidenceAt": "2026-10-22T05:51:49.795065+00:00",
     "credential": null,
     "coursesCompleted": 0
    },
@@ -80,10 +80,10 @@
       "source": "github",
       "label": "asha/sql-dashboards",
       "ref": "https://github.com/asha/sql-dashboards",
-      "at": "2026-10-21T18:00:19.344413+00:00"
+      "at": "2026-10-22T05:51:49.795065+00:00"
      }
     ],
-    "lastEvidenceAt": "2026-10-21T18:00:19.344413+00:00",
+    "lastEvidenceAt": "2026-10-22T05:51:49.795065+00:00",
     "credential": null,
     "coursesCompleted": 0
    },
@@ -107,17 +107,17 @@
       "source": "github",
       "label": "asha/resume-parser",
       "ref": "https://github.com/asha/resume-parser",
-      "at": "2026-10-21T18:00:19.344413+00:00"
+      "at": "2026-10-22T05:51:49.795065+00:00"
      },
      {
       "kind": "project",
       "source": "resume",
       "label": "Resume Parser",
       "ref": "f16",
-      "at": "2026-10-21T18:00:19.344413+00:00"
+      "at": "2026-10-22T05:51:49.795065+00:00"
      }
     ],
-    "lastEvidenceAt": "2026-10-21T18:00:19.344413+00:00",
+    "lastEvidenceAt": "2026-10-22T05:51:49.795065+00:00",
     "credential": null,
     "coursesCompleted": 0
    },
@@ -140,10 +140,10 @@
       "source": "github",
       "label": "asha/resume-parser",
       "ref": "https://github.com/asha/resume-parser",
-      "at": "2026-10-21T18:00:19.344413+00:00"
+      "at": "2026-10-22T05:51:49.795065+00:00"
      }
     ],
-    "lastEvidenceAt": "2026-10-21T18:00:19.344413+00:00",
+    "lastEvidenceAt": "2026-10-22T05:51:49.795065+00:00",
     "credential": null,
     "coursesCompleted": 0
    },
@@ -163,10 +163,10 @@
       "source": "resume",
       "label": "Listed in your skills",
       "ref": "f21",
-      "at": "2026-10-21T18:00:19.344413+00:00"
+      "at": "2026-10-22T05:51:49.795065+00:00"
      }
     ],
-    "lastEvidenceAt": "2026-10-21T18:00:19.344413+00:00",
+    "lastEvidenceAt": "2026-10-22T05:51:49.795065+00:00",
     "credential": null,
     "coursesCompleted": 0
    }
@@ -249,7 +249,7 @@
   "roles": [
    {
     "role": "ml_engineer",
-    "label": "Machine Learning Engineer",
+    "label": "ML Engineer",
     "framework": {
      "version": "2026.11-draft.1",
      "status": "draft_unreviewed",
@@ -277,6 +277,23 @@
       "Machine Learning"
      ],
      "foundationsMet": true
+    },
+    "alignmentScore": {
+     "value": 37,
+     "version": 1,
+     "required": {
+      "score": 55,
+      "competencies": 4
+     },
+     "supporting": {
+      "score": 17,
+      "competencies": 6
+     },
+     "counts": {
+      "evidenced": 4,
+      "described": 0,
+      "none": 6
+     }
     },
     "skills": [
      {
@@ -311,7 +328,7 @@
       ],
       "blockedBy": [],
       "unblocks": [],
-      "whyItMatters": "A required skill for Machine Learning Engineer. Writing, structuring and debugging Python programs; Machine Learning, PyTorch, scikit-learn build on it."
+      "whyItMatters": "A required skill for ML Engineer. Writing, structuring and debugging Python programs; Machine Learning, PyTorch, scikit-learn build on it."
      },
      {
       "skill": "Machine Learning",
@@ -346,7 +363,7 @@
       "unblocks": [
        "MLflow"
       ],
-      "whyItMatters": "A required skill for Machine Learning Engineer. Framing problems, training, validating and comparing classical ML models; MLflow builds on it.",
+      "whyItMatters": "A required skill for ML Engineer. Framing problems, training, validating and comparing classical ML models; MLflow builds on it.",
       "priorityRank": 1,
       "priorityReason": "Required for this goal; needed before MLflow; no assessed evidence yet."
      },
@@ -379,7 +396,7 @@
       "prerequisiteFor": [],
       "blockedBy": [],
       "unblocks": [],
-      "whyItMatters": "A required skill for Machine Learning Engineer. Classical ML pipelines with scikit-learn.",
+      "whyItMatters": "A required skill for ML Engineer. Classical ML pipelines with scikit-learn.",
       "priorityRank": 3,
       "priorityReason": "Required for this goal; currently Foundational, expected Working."
      },
@@ -411,7 +428,7 @@
       "prerequisiteFor": [],
       "blockedBy": [],
       "unblocks": [],
-      "whyItMatters": "A required skill for Machine Learning Engineer. Building and training models with PyTorch.",
+      "whyItMatters": "A required skill for ML Engineer. Building and training models with PyTorch.",
       "priorityRank": 2,
       "priorityReason": "Required for this goal; currently Foundational, expected Working."
      },
@@ -441,7 +458,7 @@
       "prerequisiteFor": [],
       "blockedBy": [],
       "unblocks": [],
-      "whyItMatters": "A supporting skill for Machine Learning Engineer. Querying, joining and aggregating relational data.",
+      "whyItMatters": "A supporting skill for ML Engineer. Querying, joining and aggregating relational data.",
       "priorityRank": 6,
       "priorityReason": "Supporting skill (optional for the goal); currently Foundational, expected Working."
      },
@@ -469,7 +486,7 @@
       "prerequisiteFor": [],
       "blockedBy": [],
       "unblocks": [],
-      "whyItMatters": "A supporting skill for Machine Learning Engineer. Packaging software into reproducible containers.",
+      "whyItMatters": "A supporting skill for ML Engineer. Packaging software into reproducible containers.",
       "priorityRank": 5,
       "priorityReason": "Supporting skill (optional for the goal); no assessed evidence yet."
      },
@@ -501,7 +518,7 @@
        "Machine Learning"
       ],
       "unblocks": [],
-      "whyItMatters": "A supporting skill for Machine Learning Engineer. Tracking experiments and managing model versions with MLflow.",
+      "whyItMatters": "A supporting skill for ML Engineer. Tracking experiments and managing model versions with MLflow.",
       "priorityRank": 7,
       "priorityReason": "Supporting skill (optional for the goal); no assessed evidence yet."
      },
@@ -533,7 +550,7 @@
       "unblocks": [
        "Machine Learning"
       ],
-      "whyItMatters": "A supporting skill for Machine Learning Engineer. Descriptive and inferential statistics: distributions, estimation, hypothesis tests; Machine Learning builds on it.",
+      "whyItMatters": "A supporting skill for ML Engineer. Descriptive and inferential statistics: distributions, estimation, hypothesis tests; Machine Learning builds on it.",
       "priorityRank": 4,
       "priorityReason": "Supporting skill (optional for the goal); needed before Machine Learning; no assessed evidence yet."
      },
@@ -561,7 +578,7 @@
       "prerequisiteFor": [],
       "blockedBy": [],
       "unblocks": [],
-      "whyItMatters": "A supporting skill for Machine Learning Engineer. Deploying and operating workloads on AWS.",
+      "whyItMatters": "A supporting skill for ML Engineer. Deploying and operating workloads on AWS.",
       "priorityRank": 8,
       "priorityReason": "Supporting skill (optional for the goal); no assessed evidence yet."
      },
@@ -589,7 +606,7 @@
       "prerequisiteFor": [],
       "blockedBy": [],
       "unblocks": [],
-      "whyItMatters": "A supporting skill for Machine Learning Engineer. Version control: branching, history and collaboration.",
+      "whyItMatters": "A supporting skill for ML Engineer. Version control: branching, history and collaboration.",
       "priorityRank": 9,
       "priorityReason": "Supporting skill (optional for the goal); no assessed evidence yet."
      }
@@ -628,7 +645,7 @@
       "unblocks": [
        "MLflow"
       ],
-      "whyItMatters": "A required skill for Machine Learning Engineer. Framing problems, training, validating and comparing classical ML models; MLflow builds on it.",
+      "whyItMatters": "A required skill for ML Engineer. Framing problems, training, validating and comparing classical ML models; MLflow builds on it.",
       "priorityRank": 1,
       "priorityReason": "Required for this goal; needed before MLflow; no assessed evidence yet."
      },
@@ -660,7 +677,7 @@
       "prerequisiteFor": [],
       "blockedBy": [],
       "unblocks": [],
-      "whyItMatters": "A required skill for Machine Learning Engineer. Building and training models with PyTorch.",
+      "whyItMatters": "A required skill for ML Engineer. Building and training models with PyTorch.",
       "priorityRank": 2,
       "priorityReason": "Required for this goal; currently Foundational, expected Working."
      },
@@ -693,7 +710,7 @@
       "prerequisiteFor": [],
       "blockedBy": [],
       "unblocks": [],
-      "whyItMatters": "A required skill for Machine Learning Engineer. Classical ML pipelines with scikit-learn.",
+      "whyItMatters": "A required skill for ML Engineer. Classical ML pipelines with scikit-learn.",
       "priorityRank": 3,
       "priorityReason": "Required for this goal; currently Foundational, expected Working."
      },
@@ -725,7 +742,7 @@
       "unblocks": [
        "Machine Learning"
       ],
-      "whyItMatters": "A supporting skill for Machine Learning Engineer. Descriptive and inferential statistics: distributions, estimation, hypothesis tests; Machine Learning builds on it.",
+      "whyItMatters": "A supporting skill for ML Engineer. Descriptive and inferential statistics: distributions, estimation, hypothesis tests; Machine Learning builds on it.",
       "priorityRank": 4,
       "priorityReason": "Supporting skill (optional for the goal); needed before Machine Learning; no assessed evidence yet."
      },
@@ -753,7 +770,7 @@
       "prerequisiteFor": [],
       "blockedBy": [],
       "unblocks": [],
-      "whyItMatters": "A supporting skill for Machine Learning Engineer. Packaging software into reproducible containers.",
+      "whyItMatters": "A supporting skill for ML Engineer. Packaging software into reproducible containers.",
       "priorityRank": 5,
       "priorityReason": "Supporting skill (optional for the goal); no assessed evidence yet."
      },
@@ -783,7 +800,7 @@
       "prerequisiteFor": [],
       "blockedBy": [],
       "unblocks": [],
-      "whyItMatters": "A supporting skill for Machine Learning Engineer. Querying, joining and aggregating relational data.",
+      "whyItMatters": "A supporting skill for ML Engineer. Querying, joining and aggregating relational data.",
       "priorityRank": 6,
       "priorityReason": "Supporting skill (optional for the goal); currently Foundational, expected Working."
      },
@@ -815,7 +832,7 @@
        "Machine Learning"
       ],
       "unblocks": [],
-      "whyItMatters": "A supporting skill for Machine Learning Engineer. Tracking experiments and managing model versions with MLflow.",
+      "whyItMatters": "A supporting skill for ML Engineer. Tracking experiments and managing model versions with MLflow.",
       "priorityRank": 7,
       "priorityReason": "Supporting skill (optional for the goal); no assessed evidence yet."
      },
@@ -843,7 +860,7 @@
       "prerequisiteFor": [],
       "blockedBy": [],
       "unblocks": [],
-      "whyItMatters": "A supporting skill for Machine Learning Engineer. Deploying and operating workloads on AWS.",
+      "whyItMatters": "A supporting skill for ML Engineer. Deploying and operating workloads on AWS.",
       "priorityRank": 8,
       "priorityReason": "Supporting skill (optional for the goal); no assessed evidence yet."
      },
@@ -871,7 +888,7 @@
       "prerequisiteFor": [],
       "blockedBy": [],
       "unblocks": [],
-      "whyItMatters": "A supporting skill for Machine Learning Engineer. Version control: branching, history and collaboration.",
+      "whyItMatters": "A supporting skill for ML Engineer. Version control: branching, history and collaboration.",
       "priorityRank": 9,
       "priorityReason": "Supporting skill (optional for the goal); no assessed evidence yet."
      }
@@ -898,7 +915,7 @@
     "state": "inferred",
     "gapType": "insufficient_evidence",
     "priority": "High",
-    "why": "Only suggested by related skills so far; it's a required skill for Machine Learning Engineer (expected: Proficient).",
+    "why": "Only suggested by related skills so far; it's a required skill for ML Engineer (expected: Proficient).",
     "currentEvidence": [],
     "roles": [
      "ml_engineer"
@@ -929,7 +946,7 @@
     "state": "underdeveloped",
     "gapType": "insufficient_proficiency",
     "priority": "High",
-    "why": "Your evidence puts you at Foundational; it's a required skill for Machine Learning Engineer (expected: Working).",
+    "why": "Your evidence puts you at Foundational; it's a required skill for ML Engineer (expected: Working).",
     "currentEvidence": [
      "asha/resume-parser"
     ],
@@ -967,7 +984,7 @@
     "state": "underdeveloped",
     "gapType": "insufficient_proficiency",
     "priority": "High",
-    "why": "Your evidence puts you at Foundational; it's a required skill for Machine Learning Engineer (expected: Working).",
+    "why": "Your evidence puts you at Foundational; it's a required skill for ML Engineer (expected: Working).",
     "currentEvidence": [
      "asha/resume-parser",
      "Resume Parser"
@@ -997,7 +1014,7 @@
     "state": "missing",
     "gapType": "missing_competency",
     "priority": "Medium",
-    "why": "No evidence found yet; it's a supporting skill for Machine Learning Engineer (expected: Working).",
+    "why": "No evidence found yet; it's a supporting skill for ML Engineer (expected: Working).",
     "currentEvidence": [],
     "roles": [
      "ml_engineer"
@@ -1019,7 +1036,7 @@
     "state": "missing",
     "gapType": "missing_competency",
     "priority": "Medium",
-    "why": "No evidence found yet; it's a supporting skill for Machine Learning Engineer (expected: Working).",
+    "why": "No evidence found yet; it's a supporting skill for ML Engineer (expected: Working).",
     "currentEvidence": [],
     "roles": [
      "ml_engineer"
@@ -1050,7 +1067,7 @@
     "state": "underdeveloped",
     "gapType": "insufficient_proficiency",
     "priority": "Medium",
-    "why": "Your evidence puts you at Foundational; it's a supporting skill for Machine Learning Engineer (expected: Working).",
+    "why": "Your evidence puts you at Foundational; it's a supporting skill for ML Engineer (expected: Working).",
     "currentEvidence": [
      "asha/sql-dashboards"
     ],
@@ -1074,7 +1091,7 @@
     "state": "missing",
     "gapType": "missing_competency",
     "priority": "Low",
-    "why": "No evidence found yet; it's a supporting skill for Machine Learning Engineer (expected: Foundational).",
+    "why": "No evidence found yet; it's a supporting skill for ML Engineer (expected: Foundational).",
     "currentEvidence": [],
     "roles": [
      "ml_engineer"
@@ -1101,7 +1118,7 @@
     "state": "missing",
     "gapType": "missing_competency",
     "priority": "Low",
-    "why": "No evidence found yet; it's a supporting skill for Machine Learning Engineer (expected: Foundational).",
+    "why": "No evidence found yet; it's a supporting skill for ML Engineer (expected: Foundational).",
     "currentEvidence": [],
     "roles": [
      "ml_engineer"
@@ -1123,7 +1140,7 @@
     "state": "missing",
     "gapType": "missing_competency",
     "priority": "Low",
-    "why": "No evidence found yet; it's a supporting skill for Machine Learning Engineer (expected: Foundational).",
+    "why": "No evidence found yet; it's a supporting skill for ML Engineer (expected: Foundational).",
     "currentEvidence": [],
     "roles": [
      "ml_engineer"
@@ -1170,7 +1187,7 @@
        "requires": [],
        "blockedBy": [],
        "objective": "Reach Working in Statistics",
-       "why": "A supporting skill for Machine Learning Engineer. Descriptive and inferential statistics: distributions, estimation, hypothesis tests; Machine Learning builds on it.",
+       "why": "A supporting skill for ML Engineer. Descriptive and inferential statistics: distributions, estimation, hypothesis tests; Machine Learning builds on it.",
        "practicalTask": "An analysis that states hypotheses, applies a suitable test and interprets uncertainty, ideally as part of an end-to-end model you train, evaluate and deploy.",
        "deliverable": "An analysis that states hypotheses, applies a suitable test and interprets uncertainty, ideally as part of an end-to-end model you train, evaluate and deploy.",
        "evidenceRequired": "a project or work experience that uses it, or work we can see for ourselves",
@@ -1195,7 +1212,7 @@
        ],
        "blockedBy": [],
        "objective": "Take PyTorch from Foundational to Working",
-       "why": "A required skill for Machine Learning Engineer. Building and training models with PyTorch.",
+       "why": "A required skill for ML Engineer. Building and training models with PyTorch.",
        "practicalTask": "A repository with a PyTorch model, training loop and evaluation, ideally as part of an end-to-end model you train, evaluate and deploy.",
        "deliverable": "A repository with a PyTorch model, training loop and evaluation, ideally as part of an end-to-end model you train, evaluate and deploy.",
        "evidenceRequired": "work we can see for ourselves: a public repository, platform activity or an assessment",
@@ -1220,7 +1237,7 @@
        ],
        "blockedBy": [],
        "objective": "Take scikit-learn from Foundational to Working",
-       "why": "A required skill for Machine Learning Engineer. Classical ML pipelines with scikit-learn.",
+       "why": "A required skill for ML Engineer. Classical ML pipelines with scikit-learn.",
        "practicalTask": "A repository using scikit-learn pipelines with evaluation, ideally as part of an end-to-end model you train, evaluate and deploy.",
        "deliverable": "A repository using scikit-learn pipelines with evaluation, ideally as part of an end-to-end model you train, evaluate and deploy.",
        "evidenceRequired": "work we can see for ourselves: a public repository, platform activity or an assessment",
@@ -1253,7 +1270,7 @@
         "Statistics"
        ],
        "objective": "Reach Proficient in Machine Learning",
-       "why": "A required skill for Machine Learning Engineer. Framing problems, training, validating and comparing classical ML models; MLflow builds on it.",
+       "why": "A required skill for ML Engineer. Framing problems, training, validating and comparing classical ML models; MLflow builds on it.",
        "practicalTask": "An end-to-end ML project with a train/validation split, a baseline and reported metrics, ideally as part of an end-to-end model you train, evaluate and deploy.",
        "deliverable": "An end-to-end ML project with a train/validation split, a baseline and reported metrics, ideally as part of an end-to-end model you train, evaluate and deploy.",
        "evidenceRequired": "work we can see for ourselves: a public repository, platform activity or an assessment",
@@ -1281,7 +1298,7 @@
        "requires": [],
        "blockedBy": [],
        "objective": "Reach Working in Docker",
-       "why": "A supporting skill for Machine Learning Engineer. Packaging software into reproducible containers.",
+       "why": "A supporting skill for ML Engineer. Packaging software into reproducible containers.",
        "practicalTask": "A repository with a Dockerfile that builds and runs the project, ideally as part of an end-to-end model you train, evaluate and deploy.",
        "deliverable": "A repository with a Dockerfile that builds and runs the project, ideally as part of an end-to-end model you train, evaluate and deploy.",
        "evidenceRequired": "a project or work experience that uses it, or work we can see for ourselves",
@@ -1301,7 +1318,7 @@
        "requires": [],
        "blockedBy": [],
        "objective": "Take SQL from Foundational to Working",
-       "why": "A supporting skill for Machine Learning Engineer. Querying, joining and aggregating relational data.",
+       "why": "A supporting skill for ML Engineer. Querying, joining and aggregating relational data.",
        "practicalTask": "A project or analysis with non-trivial SQL queries over real data, ideally as part of an end-to-end model you train, evaluate and deploy.",
        "deliverable": "A project or analysis with non-trivial SQL queries over real data, ideally as part of an end-to-end model you train, evaluate and deploy.",
        "evidenceRequired": "a project or work experience that uses it, or work we can see for ourselves",
@@ -1325,7 +1342,7 @@
         "Machine Learning"
        ],
        "objective": "Reach Foundational in MLflow",
-       "why": "A supporting skill for Machine Learning Engineer. Tracking experiments and managing model versions with MLflow.",
+       "why": "A supporting skill for ML Engineer. Tracking experiments and managing model versions with MLflow.",
        "practicalTask": "A project that logs runs and models to MLflow, ideally as part of an end-to-end model you train, evaluate and deploy.",
        "deliverable": "A project that logs runs and models to MLflow, ideally as part of an end-to-end model you train, evaluate and deploy.",
        "evidenceRequired": "a project or work experience that uses it, or work we can see for ourselves",
@@ -1345,7 +1362,7 @@
        "requires": [],
        "blockedBy": [],
        "objective": "Reach Foundational in AWS",
-       "why": "A supporting skill for Machine Learning Engineer. Deploying and operating workloads on AWS.",
+       "why": "A supporting skill for ML Engineer. Deploying and operating workloads on AWS.",
        "practicalTask": "A project deployed on AWS with its infrastructure described, ideally as part of an end-to-end model you train, evaluate and deploy.",
        "deliverable": "A project deployed on AWS with its infrastructure described, ideally as part of an end-to-end model you train, evaluate and deploy.",
        "evidenceRequired": "a project or work experience that uses it, or work we can see for ourselves",
@@ -1365,7 +1382,7 @@
        "requires": [],
        "blockedBy": [],
        "objective": "Reach Foundational in Git",
-       "why": "A supporting skill for Machine Learning Engineer. Version control: branching, history and collaboration.",
+       "why": "A supporting skill for ML Engineer. Version control: branching, history and collaboration.",
        "practicalTask": "Public repositories with a meaningful commit history, ideally as part of an end-to-end model you train, evaluate and deploy.",
        "deliverable": "Public repositories with a meaningful commit history, ideally as part of an end-to-end model you train, evaluate and deploy.",
        "evidenceRequired": "a project or work experience that uses it, or work we can see for ourselves",
@@ -1403,28 +1420,28 @@
        "source": "github",
        "label": "asha/resume-parser",
        "ref": "https://github.com/asha/resume-parser",
-       "at": "2026-10-21T18:00:19.344413+00:00"
+       "at": "2026-10-22T05:51:49.795065+00:00"
       },
       {
        "kind": "repository",
        "source": "github",
        "label": "asha/sql-dashboards",
        "ref": "https://github.com/asha/sql-dashboards",
-       "at": "2026-10-21T18:00:19.344413+00:00"
+       "at": "2026-10-22T05:51:49.795065+00:00"
       },
       {
        "kind": "project",
        "source": "resume",
        "label": "Resume Parser",
        "ref": "f16",
-       "at": "2026-10-21T18:00:19.344413+00:00"
+       "at": "2026-10-22T05:51:49.795065+00:00"
       },
       {
        "kind": "project",
        "source": "resume",
        "label": "Undated Side Project",
        "ref": "f18",
-       "at": "2026-10-21T18:00:19.344413+00:00"
+       "at": "2026-10-22T05:51:49.795065+00:00"
       }
      ],
      "inferredFrom": []
@@ -1444,7 +1461,7 @@
        "source": "github",
        "label": "asha/sql-dashboards",
        "ref": "https://github.com/asha/sql-dashboards",
-       "at": "2026-10-21T18:00:19.344413+00:00"
+       "at": "2026-10-22T05:51:49.795065+00:00"
       }
      ],
      "inferredFrom": []
@@ -1464,14 +1481,14 @@
        "source": "github",
        "label": "asha/resume-parser",
        "ref": "https://github.com/asha/resume-parser",
-       "at": "2026-10-21T18:00:19.344413+00:00"
+       "at": "2026-10-22T05:51:49.795065+00:00"
       },
       {
        "kind": "project",
        "source": "resume",
        "label": "Resume Parser",
        "ref": "f16",
-       "at": "2026-10-21T18:00:19.344413+00:00"
+       "at": "2026-10-22T05:51:49.795065+00:00"
       }
      ],
      "inferredFrom": []
@@ -1491,7 +1508,7 @@
        "source": "github",
        "label": "asha/resume-parser",
        "ref": "https://github.com/asha/resume-parser",
-       "at": "2026-10-21T18:00:19.344413+00:00"
+       "at": "2026-10-22T05:51:49.795065+00:00"
       }
      ],
      "inferredFrom": []
@@ -1511,7 +1528,7 @@
        "source": "resume",
        "label": "Listed in your skills",
        "ref": "f21",
-       "at": "2026-10-21T18:00:19.344413+00:00"
+       "at": "2026-10-22T05:51:49.795065+00:00"
       }
      ],
      "inferredFrom": []

@@ -934,11 +934,46 @@ export const opportunities = pgTable(
     description: text("description"),
     url: text("url"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    // Provenance and lifecycle (migration 0028). Only status 'active' + recent verification is recommended.
+    sourceId: text("source_id"),
+    externalId: text("external_id"),
+    canonicalUrl: text("canonical_url"),
+    origin: text("origin").notNull().default("curated"), // 'curated' | 'feed' | 'legacy_seed'
+    status: text("status").notNull().default("unverified"), // 'active' | 'expired' | 'withdrawn' | 'unverified'
+    kind: text("kind"),
+    workMode: text("work_mode"),
+    eligibility: text("eligibility"),
+    eligibleLevels: text("eligible_levels").array().notNull().default(sql`'{}'::text[]`),
+    deadlineAt: timestamp("deadline_at", { withTimezone: true }),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    lastVerifiedAt: timestamp("last_verified_at", { withTimezone: true }),
+    statusReason: text("status_reason"),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("opportunities_type_idx").on(t.type)],
 );
 
 export type Opportunity = typeof opportunities.$inferSelect;
+
+/** Curated registry of official opportunity sources (migration 0028). Nothing unregistered is fetched. */
+export const opportunitySources = pgTable("opportunity_sources", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  kind: text("kind").notNull(), // 'rss' | 'json_feed' | 'manual'
+  url: text("url"),
+  organization: text("organization").notNull(),
+  termsReviewedAt: timestamp("terms_reviewed_at", { withTimezone: true }),
+  termsNote: text("terms_note"),
+  autoVerify: boolean("auto_verify").notNull().default(false),
+  enabled: boolean("enabled").notNull().default(false),
+  minFetchIntervalMinutes: integer("min_fetch_interval_minutes").notNull().default(360),
+  lastFetchedAt: timestamp("last_fetched_at", { withTimezone: true }),
+  lastSuccessAt: timestamp("last_success_at", { withTimezone: true }),
+  lastError: text("last_error"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type OpportunitySource = typeof opportunitySources.$inferSelect;
 
 // Fixed-window request counters shared by every serverless instance (an
 // in-memory Map resets per instance). One row per limiter key.

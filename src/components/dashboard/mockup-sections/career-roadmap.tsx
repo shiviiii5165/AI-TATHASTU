@@ -6,6 +6,7 @@ import { useMemo, useRef, useState, useTransition } from "react";
 
 import { submitRoadmapEvidence } from "@/app/(dashboard)/dashboard/roadmap-actions";
 import type { IntelligenceDoc, LearningRecommendation, RoleSkillRow } from "@/lib/dashboard/types";
+import { currentLevelText, expectsText, prerequisiteText, stateText, TONE_CLASS } from "@/lib/dashboard/plain-language";
 import { milestoneReason } from "@/lib/roadmap/explain";
 import { nextStepsFromRoadmap } from "@/lib/roadmap/next-steps";
 import type { MilestoneStatus, MilestoneSubmission, RoadmapStep } from "@/lib/roadmap/progress";
@@ -25,18 +26,26 @@ type ReadyView = Extract<ReturnType<typeof roadmapView>, { state: "ready" }>;
 
 export const STATUS_STYLE: Record<MilestoneStatus, { label: string; icon: typeof CheckCircle2; className: string; hex: string }> = {
   completed: { label: "Done", icon: CheckCircle2, hex: "#10b981", className: "bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:ring-emerald-400/30" },
-  active: { label: "Focus now", icon: Sparkles, hex: "#4f46e5", className: "bg-indigo-50 text-indigo-700 ring-indigo-200 dark:bg-indigo-500/15 dark:text-indigo-300 dark:ring-indigo-400/30" },
-  submitted: { label: "In review", icon: Send, hex: "#0ea5e9", className: "bg-sky-50 text-sky-700 ring-sky-200 dark:bg-sky-500/15 dark:text-sky-300 dark:ring-sky-400/30" },
-  needs_more_evidence: { label: "Needs more proof", icon: TriangleAlert, hex: "#f59e0b", className: "bg-amber-50 text-amber-800 ring-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:ring-amber-400/30" },
-  blocked: { label: "Locked", icon: Lock, hex: "#94a3b8", className: "bg-slate-100 text-slate-600 ring-slate-200 dark:bg-slate-500/15 dark:text-slate-300 dark:ring-slate-400/30" },
+  active: { label: "Work on now", icon: Sparkles, hex: "#3b82f6", className: "bg-blue-50 text-blue-700 ring-blue-200 dark:bg-blue-500/15 dark:text-blue-300 dark:ring-blue-400/30" },
+  submitted: { label: "Waiting for next check", icon: Send, hex: "#0ea5e9", className: "bg-sky-50 text-sky-700 ring-sky-200 dark:bg-sky-500/15 dark:text-sky-300 dark:ring-sky-400/30" },
+  needs_more_evidence: { label: "Needs a clearer work example", icon: TriangleAlert, hex: "#f97316", className: "bg-orange-50 text-orange-700 ring-orange-200 dark:bg-orange-500/15 dark:text-orange-300 dark:ring-orange-400/30" },
+  blocked: { label: "Needs an earlier skill", icon: Lock, hex: "#94a3b8", className: "bg-slate-100 text-slate-600 ring-slate-200 dark:bg-slate-500/15 dark:text-slate-300 dark:ring-slate-400/30" },
   upcoming: { label: "Later", icon: CircleDashed, hex: "#94a3b8", className: "bg-muted text-muted-foreground ring-border" },
 };
 
-const STAGE_STATUS_LABEL: Record<RoadmapStageView["status"], string> = { completed: "Done", active: "In progress", upcoming: "Up next", blocked: "Locked" };
+const STAGE_STATUS_LABEL: Record<RoadmapStageView["status"], string> = { completed: "Complete", active: "Current stage", upcoming: "Later", blocked: "Waiting on an earlier stage" };
 const BUCKET_COLOUR: Record<SkillBucket["key"], string> = { demonstrated: "#10b981", inProgress: "#3b82f6", notYet: "#e2e8f0" };
 /** "PyTorch: a public project using PyTorch…" → "A public project using PyTorch…" (the engine's deliverable, as written). */
 const deliverableOf = (title: string) => { const d = title.slice(title.indexOf(": ") + 2); return d.charAt(0).toUpperCase() + d.slice(1); };
-const unlockText = (skills: string[]) => `Complete ${skills.join(" and ")} first to unlock this step`;
+/** What each engine stage is (career_engine.build_roadmap): foundation, build and the optional deepen stage. */
+const STAGE_PURPOSE: Record<string, string> = {
+  foundation: "These required skills don't depend on any other skill you still need for this role, so they're the place to start.",
+  build: "Each of these required skills builds on another skill earlier in your roadmap, so it comes after it.",
+  deepen: "Supporting skills: useful for the role but not required. They never hold back the required stages.",
+};
+
+/** The real prerequisite, never a bare "unlock" (plain-language.prerequisiteText, without its final full stop). */
+const unlockText = (skills: string[]) => prerequisiteText(skills).replace(/\.$/, "");
 
 export function CareerRoadmap({ intelligence, submissions }: { intelligence?: IntelligenceDoc; submissions?: MilestoneSubmission[] }) {
   const view = useMemo(() => roadmapView(intelligence, submissions), [intelligence, submissions]);
@@ -102,6 +111,8 @@ export function CareerRoadmap({ intelligence, submissions }: { intelligence?: In
     requestAnimationFrame(() => panelRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }));
   };
   const asOf = new Date(view.computedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  // The role framework's own description of the job (career_engine analyze_role → framework.responsibilities).
+  const responsibilities = intelligence?.roles.find((r) => r.role === view.goal.id)?.framework?.responsibilities ?? [];
 
   return (
     <section id="career-roadmap" className="scroll-mt-20 rounded-2xl border border-border bg-card p-4 text-card-foreground shadow-2xs sm:p-6" data-testid="career-roadmap">
@@ -114,9 +125,16 @@ export function CareerRoadmap({ intelligence, submissions }: { intelligence?: In
             <Briefcase aria-hidden className="size-5" />
           </span>
           <div className="min-w-0">
-            <p className="text-xs text-muted-foreground">Your goal</p>
+            <p className="text-xs text-muted-foreground">Career you&apos;re working towards</p>
             <p className="truncate text-base font-bold text-foreground" data-testid="roadmap-goal">{view.goal.label}</p>
             {view.goal.blurb && <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{view.goal.blurb}.</p>}
+            {responsibilities.length > 0 && (
+              <ul className="mt-1.5 space-y-0.5 text-[11px] text-muted-foreground" aria-label={`What a ${view.goal.label} does`} data-testid="roadmap-goal-duties">
+                {responsibilities.slice(0, 2).map((r) => (
+                  <li key={r} className="line-clamp-2">• {r}</li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
 
@@ -126,7 +144,7 @@ export function CareerRoadmap({ intelligence, submissions }: { intelligence?: In
           </span>
           <div className="min-w-0 flex-1">
             <p className="flex items-center gap-1 text-xs font-semibold text-foreground">
-              Where you stand
+              Current assessment
               <span title="Based on this goal's required skills: which ones your work shows at the expected level, starting with the foundations. Not a probability of getting hired." className="text-muted-foreground">
                 <Info aria-hidden className="size-3.5" />
                 <span className="sr-only">How it&apos;s worked out: from this goal&apos;s required skills and the proof your work gives for each. Not a probability of getting hired.</span>
@@ -134,7 +152,7 @@ export function CareerRoadmap({ intelligence, submissions }: { intelligence?: In
             </p>
             {!view.coverage.assessed || !view.alignment || view.alignment.state === "not_enough_evidence" ? (
               <p className="mt-1.5 text-xs text-muted-foreground" data-testid="roadmap-coverage-unavailable">
-                <span className="font-semibold text-foreground">Not enough evidence yet.</span> We need more of your work to see where you stand.{" "}
+                <span className="font-semibold text-foreground">Not assessed yet.</span> We need more examples of your work before we can assess your progress.{" "}
                 <Link href="/connections" className="font-semibold text-primary hover:underline">Add evidence</Link>
               </p>
             ) : (
@@ -142,7 +160,7 @@ export function CareerRoadmap({ intelligence, submissions }: { intelligence?: In
                 <p className="mt-1 text-sm font-bold text-foreground" data-testid="roadmap-alignment" data-state={view.alignment.state}>{view.alignment.label}</p>
                 <p className="mt-0.5 text-xs text-muted-foreground">{view.alignment.explanation}</p>
                 <p className="mt-1.5 text-[11px] text-muted-foreground">
-                  {view.alignment.requiredMet} of {view.alignment.required} required skills shown at the expected level
+                  Your work shows {view.alignment.requiredMet} of {view.alignment.required} required skills at the expected level.
                 </p>
               </>
             )}
@@ -422,12 +440,28 @@ function StagePanel({ view, stage, detailId, onDetail, onOpenStep, rowOf, recOf 
             <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${statusTone}`}>{STAGE_STATUS_LABEL[stage.status]}</span>
           </div>
           <h3 className="mt-1.5 text-base font-bold text-foreground">{stage.title}</h3>
-          <p className="text-xs text-muted-foreground">
-            {open.length === 0 ? `Every skill in this stage is at the level ${view.goal.label} expects.` : `${open.length} ${open.length === 1 ? "skill" : "skills"} to bring to the level ${view.goal.label} expects.`}
+          <p className="text-xs text-muted-foreground" data-testid="roadmap-stage-skills">
+            Covers {stage.steps.map((s) => s.skill).join(", ")}.{" "}
+            {open.length === 0 ? `Your work shows all of them at the level ${view.goal.label} expects.` : `${open.length} of ${stage.steps.length} still need to reach the level ${view.goal.label} expects.`}
           </p>
         </div>
-        {stage.optional && <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">Optional</span>}
+        {stage.optional && <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground" title="Supporting skills: useful for the role, but not required to meet it.">Optional</span>}
       </div>
+
+      <dl className="mt-3 grid grid-cols-1 gap-2 rounded-xl bg-violet-50/50 p-3 text-[11px] sm:grid-cols-2 dark:bg-violet-500/10" data-testid="roadmap-stage-meaning">
+        <div>
+          <dt className="font-semibold text-foreground">Why this stage is here</dt>
+          <dd className="mt-0.5 text-muted-foreground">{STAGE_PURPOSE[stage.key] ?? "The engine grouped these skills by what they build on."}</dd>
+        </div>
+        <div>
+          <dt className="font-semibold text-foreground">When it&apos;s complete</dt>
+          <dd className="mt-0.5 text-muted-foreground">
+            {stage.optional
+              ? `When your work shows these skills at the level ${view.goal.label} expects. Optional: it doesn't affect whether you meet the role's requirements.`
+              : `When your work shows each skill here at the level ${view.goal.label} expects, in work we can check, such as a public repository or an assessment. The roadmap then moves on to the next stage.`}
+          </dd>
+        </div>
+      </dl>
 
       {stage.status === "blocked" && <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-700 dark:bg-slate-500/10 dark:text-slate-300">{unlockText(stage.blockedBy)}.</p>}
 
@@ -498,8 +532,13 @@ function StagePanel({ view, stage, detailId, onDetail, onOpenStep, rowOf, recOf 
 
 // ─── Goal skill progress ────────────────────────────────────────────────────
 
-function SkillProgress({ buckets, goal }: { buckets: SkillBucket[]; goal: string }) {
+function SkillProgress({ buckets: all, goal }: { buckets: SkillBucket[]; goal: string }) {
   const [open, setOpen] = useState<SkillBucket["key"] | null>(null);
+  // Required skills decide the goal; optional (supporting) ones are counted apart so they never read as gaps.
+  const isRequired = (r: RoleSkillRow) => (r.tier ?? "required") === "required";
+  const buckets = all.map((b) => ({ ...b, rows: b.rows.filter(isRequired) }));
+  const optional = all.flatMap((b) => b.rows.filter((r) => !isRequired(r)));
+  const optionalMet = all.find((b) => b.key === "demonstrated")!.rows.filter((r) => !isRequired(r)).length;
   const total = buckets.reduce((s, b) => s + b.rows.length, 0);
   const demonstrated = buckets.find((b) => b.key === "demonstrated")!.rows.length;
   const R = 44, C = 2 * Math.PI * R;
@@ -507,25 +546,26 @@ function SkillProgress({ buckets, goal }: { buckets: SkillBucket[]; goal: string
   const arcs = buckets.map((b, i) => ({ key: b.key, len: lens[i], offset: lens.slice(0, i).reduce((s, l) => s + l, 0) }));
   const shown = buckets.find((b) => b.key === open);
   const plain: Record<SkillBucket["key"], { label: string; note: string }> = {
-    demonstrated: { label: "Demonstrated", note: "at the expected level" },
-    inProgress: { label: "In progress", note: "shown, below the expected level" },
-    notYet: { label: "Not yet demonstrated", note: "listed only, suggested, or no proof yet" },
+    demonstrated: { label: "Meets the expected level", note: "your work shows it" },
+    inProgress: { label: "More practice needed", note: "shown, but below the expected level" },
+    notYet: { label: "Waiting for work examples", note: "listed, possibly relevant, or not found in your work yet" },
   };
   return (
     <div className="h-full rounded-2xl border border-border bg-card p-4 shadow-2xs" data-testid="roadmap-skill-progress">
       <p className="flex items-center gap-2 text-sm font-bold text-foreground">
         <ListChecks aria-hidden className="size-4 text-indigo-600 dark:text-indigo-300" />
-        Goal skill progress
+        Required skills: your progress
       </p>
+      <p className="mt-0.5 text-[11px] text-muted-foreground">Three separate groups: a skill waiting for work examples isn&apos;t the same as one that needs more practice.</p>
       {total === 0 ? (
         <p className="mt-3 text-xs text-muted-foreground">We haven&apos;t compared your work with what {goal} needs yet.</p>
       ) : (
         <div className="mt-3 flex flex-col items-center gap-4 sm:flex-row">
-          <svg width="116" height="116" viewBox="0 0 120 120" role="img" aria-label={`${demonstrated} of ${total} skills demonstrated`} className="shrink-0">
+          <svg width="116" height="116" viewBox="0 0 120 120" role="img" aria-label={`${demonstrated} of ${total} required skills meet the expected level`} className="shrink-0">
             <circle cx="60" cy="60" r={R} fill="none" stroke="#f1f5f9" strokeWidth="13" />
             {arcs.map((a) => (a.len > 0 ? <circle key={a.key} cx="60" cy="60" r={R} fill="none" stroke={BUCKET_COLOUR[a.key]} strokeWidth="13" strokeDasharray={`${a.len} ${C - a.len}`} strokeDashoffset={-a.offset} transform="rotate(-90 60 60)" /> : null))}
             <text x="60" y="58" textAnchor="middle" className="fill-foreground" fontSize="18" fontWeight="700">{demonstrated} / {total}</text>
-            <text x="60" y="75" textAnchor="middle" className="fill-muted-foreground" fontSize="10">skills</text>
+            <text x="60" y="75" textAnchor="middle" className="fill-muted-foreground" fontSize="10">required met</text>
           </svg>
           <ul className="w-full divide-y divide-border rounded-xl border border-border">
             {buckets.map((b) => (
@@ -542,22 +582,34 @@ function SkillProgress({ buckets, goal }: { buckets: SkillBucket[]; goal: string
           </ul>
         </div>
       )}
+      {optional.length > 0 && (
+        <p className="mt-2 text-[11px] text-muted-foreground" data-testid="roadmap-optional-count">
+          Optional skills: {optionalMet} of {optional.length} meet the expected level. They don&apos;t count towards the role&apos;s requirements.
+        </p>
+      )}
       {shown && (
         <div className="mt-3 rounded-xl bg-muted/40 p-3" data-testid="roadmap-skill-bucket">
           {shown.rows.length === 0 ? (
             <p className="text-[11px] text-muted-foreground">None.</p>
           ) : (
-            <ul className="space-y-1.5 text-[11px]">
-              {shown.rows.map((r) => (
-                <li key={r.skill}>
-                  <span className="font-semibold text-foreground">{r.skill}</span>
-                  <span className="text-muted-foreground">
-                    {" "}
-                    · {r.proficiency === null ? "not assessed yet" : r.level}, needs {r.expectedLevel}
-                    {r.evidence.length ? ` · shown by ${r.evidence.slice(0, 2).join("; ")}` : r.state === "unverified" ? " · listed by you, needs proof" : " · no proof yet"}
-                  </span>
-                </li>
-              ))}
+            <ul className="space-y-2 text-[11px]">
+              {shown.rows.map((r) => {
+                const t = stateText(r);
+                return (
+                  <li key={r.skill} data-skill={r.skill}>
+                    <p className="flex flex-wrap items-center gap-1.5">
+                      <span className="font-semibold text-foreground">{r.skill}</span>
+                      <span className={`rounded px-1.5 py-px text-[10px] font-semibold ring-1 ring-inset ${TONE_CLASS[t.tone]}`}>{t.label}</span>
+                    </p>
+                    <p className="text-muted-foreground" title={expectsText(goal, r.expectedLevel)}>
+                      {currentLevelText(r)} · expected: {r.expectedLevel} · {r.state === "met" ? "expectation met" : "not met yet"}
+                    </p>
+                    <p className="text-muted-foreground">
+                      {r.evidence.length ? <>From: {r.evidence.slice(0, 2).join("; ")}</> : t.sentence}
+                    </p>
+                  </li>
+                );
+              })}
             </ul>
           )}
           <Link href="/skills" className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline">
@@ -585,7 +637,10 @@ function NextAction({ action, onOpen }: { action: ReadyView["nextAction"]; onOpe
     );
   }
   const { step, reason, row, rec, horizon } = action;
-  const evidence = row?.evidence[0] ?? (step.blockedBy.length ? `Needs ${step.blockedBy.join(" and ")} first` : "No proof yet");
+  const evidence = row?.evidence[0] ?? (step.blockedBy.length ? `Builds on ${step.blockedBy.join(" and ")}` : "No work examples found yet");
+  // Shown only when it adds to the headline (the engine's deliverable); never the same sentence twice.
+  const same = (a?: string | null) => (a ?? "").trim().toLowerCase().replace(/\.$/, "") === step.deliverable.trim().toLowerCase().replace(/\.$/, "");
+  const produce = [step.practicalTask, step.evidenceRequired].find((t) => t && !same(t)) ?? null;
   return (
     <div className="h-full rounded-2xl border border-border bg-card p-4 shadow-2xs" data-testid="roadmap-next-action">
       <p className="flex items-center gap-2 text-sm font-bold text-foreground">
@@ -624,9 +679,23 @@ function NextAction({ action, onOpen }: { action: ReadyView["nextAction"]; onOpe
         </span>
         <span className="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5">
           <TrendingUp aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
-          <span className="min-w-0"><span className="text-muted-foreground">Advances:</span> <span className="font-semibold text-foreground">{horizon}</span></span>
+          <span className="min-w-0"><span className="text-muted-foreground">Moves forward:</span> <span className="font-semibold text-foreground">{horizon}</span></span>
         </span>
       </div>
+      <dl className="mt-3 grid grid-cols-1 gap-2 text-[11px] sm:grid-cols-2" data-testid="roadmap-next-action-detail">
+        {produce && (
+          <div className="rounded-lg bg-muted/40 p-2.5">
+            <dt className="font-semibold text-foreground">What to build or show</dt>
+            <dd className="mt-0.5 text-muted-foreground">{produce}</dd>
+          </div>
+        )}
+        <div className="rounded-lg bg-muted/40 p-2.5">
+          <dt className="font-semibold text-foreground">How we&apos;ll recognise your progress</dt>
+          <dd className="mt-0.5 text-muted-foreground">
+            {step.criterion ? `${step.criterion.charAt(0).toUpperCase()}${step.criterion.slice(1)}.` : `When your work shows ${step.skill} at the expected level.`} It counts after your profile is next processed, for example after a GitHub sync.
+          </dd>
+        </div>
+      </dl>
     </div>
   );
 }
@@ -712,7 +781,7 @@ function MilestoneDetail({ step, goal, row, rec, assumption, onPick }: { step: R
                   );
                 })}
               </ul>
-              {step.blockedBy.length > 0 && <p className="mt-1 text-[10px] text-muted-foreground">Complete {step.blockedBy.join(" and ")} first to unlock this step.</p>}
+              {step.blockedBy.length > 0 && <p className="mt-1 text-[10px] text-muted-foreground">{prerequisiteText(step.blockedBy)}</p>}
             </div>
           )}
         </div>

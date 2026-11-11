@@ -23,7 +23,8 @@ import type { JourneyMilestone } from "@/lib/dashboard/journey";
 import type {
   AchievementItem,
   GitHubActivityData,
-  OpportunityItem,
+  InternshipFeed,
+  ResearchFeed,
   PublicationItem,
   QuickActionItem,
   RecentProjectItem,
@@ -49,8 +50,8 @@ interface DashboardViewProps {
   githubActivity?: GitHubActivityData | null;
   recentPublications?: PublicationItem[];
   recentAchievements?: AchievementItem[];
-  researchOpportunities?: OpportunityItem[];
-  internships?: OpportunityItem[];
+  researchOpportunities?: ResearchFeed;
+  internships?: InternshipFeed;
   /** Still accepted from callers; no longer rendered (the Quick Actions panel was removed). */
   quickActions?: QuickActionItem[];
   roadmapSubmissions?: MilestoneSubmission[];
@@ -135,7 +136,7 @@ export function DashboardView({
 
       {/* H. Ecosystem and Opportunities Row: 4 Panels */}
       <EcosystemOpportunitiesRow
-        opportunities={researchOpportunities}
+        research={researchOpportunities}
         internships={internships}
       />
 

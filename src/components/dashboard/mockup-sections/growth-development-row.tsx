@@ -5,17 +5,10 @@ import Link from "next/link";
 import { useState, type ReactNode } from "react";
 
 import { roleLabel } from "@/components/dashboard/widgets/labels";
-import type { EngineSkill, GapState, IntelligenceDoc, RoleAnalysis, RoleSkillRow } from "@/lib/dashboard/types";
+import { expectsText, needsShort, stateText } from "@/lib/dashboard/plain-language";
+import type { EngineSkill, IntelligenceDoc, RoleAnalysis, RoleSkillRow } from "@/lib/dashboard/types";
 
 const STATUS_LABEL = { verified: "Verified", claimed: "Claimed", inferred: "Inferred" } as const;
-const STATE_LABEL: Record<GapState, string> = {
-  met: "At level",
-  underdeveloped: "Below expected",
-  unverified: "Not shown yet",
-  inferred: "Only suggested",
-  missing: "No evidence",
-  not_assessed: "Not assessed",
-};
 const PRIORITY_CLASS = {
   High: "bg-rose-50 text-rose-600 ring-rose-200/70 dark:bg-rose-500/15 dark:text-rose-300 dark:ring-rose-400/30",
   Medium: "bg-amber-50 text-amber-700 ring-amber-200/70 dark:bg-amber-500/15 dark:text-amber-300 dark:ring-amber-400/30",
@@ -228,9 +221,12 @@ function GapRow({ row }: { row: RoleSkillRow }) {
           </p>
           <span className={`shrink-0 rounded-full px-1.5 py-px text-[10px] font-semibold ring-1 ${PRIORITY_CLASS[row.priority]}`}>{row.priority}</span>
         </div>
-        <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
-          {STATE_LABEL[row.state]}
-          {row.proficiency !== null ? ` · ${row.level}` : ""} · needs {row.expectedLevel}
+        <p className="mt-0.5 text-[11px] text-muted-foreground" title={stateText(row).sentence}>
+          <span className="font-medium text-foreground/80">{stateText(row).label}</span>
+          {row.proficiency !== null ? ` · now ${row.level}` : ""}
+        </p>
+        <p className="truncate text-[11px] text-muted-foreground" title={expectsText("This role", row.expectedLevel)}>
+          {needsShort(row.expectedLevel)}
         </p>
       </div>
     </li>
@@ -245,7 +241,11 @@ function SkillGapsCard({ intelligence, role, roleIndex, onRole }: { intelligence
       title="Skill Gaps"
       href="/skills"
       linkLabel="View all"
-      footer={role?.assessed ? `${role.counts.met} of ${role.skills.length} at expected level · ${role.counts.unverified + role.counts.inferred} need evidence` : undefined}
+      footer={
+        role?.assessed
+          ? `${role.counts.met} of ${role.skills.length} meet the expected level · ${role.counts.underdeveloped} need more practice · ${role.counts.unverified + role.counts.inferred + role.counts.missing + role.counts.not_assessed} without work examples yet`
+          : undefined
+      }
     >
       {!intelligence ? (
         <Empty {...UPDATING} />
@@ -254,16 +254,17 @@ function SkillGapsCard({ intelligence, role, roleIndex, onRole }: { intelligence
       ) : !role.assessed ? (
         <>
           <RolePicker roles={intelligence.roles} index={roleIndex} onChange={onRole} />
-          <Empty title="Not enough evidence to assess" body="That isn't the same as a gap. Add a resume or connect GitHub." href="/connections" action="Add evidence" />
+          <Empty title="We need more examples of your work" body="Until then we can't tell which requirements you meet. That isn't the same as having gaps. Connect GitHub or confirm a project on your resume." href="/connections" action="Add evidence" />
         </>
       ) : role.open.length === 0 ? (
         <>
           <RolePicker roles={intelligence.roles} index={roleIndex} onChange={onRole} />
-          <Empty title="Every skill for this goal is at its expected level" body="Based on your current evidence." />
+          <Empty title="Your work meets every requirement for this goal" body="Based on the work examples we have now. Optional skills, if any, are on the roadmap." />
         </>
       ) : (
         <>
           <RolePicker roles={intelligence.roles} index={roleIndex} onChange={onRole} />
+          <p className="mb-2 text-[11px] text-muted-foreground">Requirements your work doesn&apos;t show at the expected level yet, highest priority first. Hover a status for what it means.</p>
           <ul className="grid grid-cols-1 gap-x-4 gap-y-0.5 sm:grid-cols-2 xl:grid-cols-4">
             {role.open.slice(0, 8).map((row) => (
               <GapRow key={row.skill} row={row} />

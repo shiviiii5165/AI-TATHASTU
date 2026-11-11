@@ -125,7 +125,7 @@ test("the roadmap shows the goal, alignment state, next milestone, journey, skil
   await expect(roadmap.getByTestId("journey-current")).toContainText("ML Intern at Acme");
   await expect(roadmap.getByTestId("journey-stage-foundation")).toHaveAttribute("data-status", "active");
   await expect(roadmap.getByTestId("journey-stage-build")).toHaveAttribute("data-status", "blocked");
-  await expect(roadmap.getByTestId("journey-stage-build")).toContainText("Complete Docker first to unlock this step");
+  await expect(roadmap.getByTestId("journey-stage-build")).toContainText("Start this after your work shows Docker at the level this role expects, because it builds on it");
   await expect(roadmap.getByTestId("journey-goal")).toContainText("ML Engineer");
   // Nothing completed yet: the runner stands at where you are, not ahead of it.
   await expect(roadmap.getByTestId("journey-runner")).toHaveAttribute("data-at", "0");
@@ -141,12 +141,12 @@ test("the roadmap shows the goal, alignment state, next milestone, journey, skil
   // A locked stage opens with its skill and the real missing prerequisite, in plain words.
   await roadmap.getByTestId("journey-stage-build").getByRole("button").click();
   const stage = roadmap.getByTestId("roadmap-stage-detail");
-  await expect(stage).toContainText("Complete Docker first to unlock this step");
+  await expect(stage).toContainText("Start this after your work shows Docker at the level this role expects, because it builds on it");
   await expect(roadmap.getByTestId("roadmap-focus-skill")).toHaveText("Kubernetes");
   await stage.getByRole("button", { name: "View skill details" }).click();
   const detail = roadmap.locator("#roadmap-milestone-detail");
   await expect(detail).toContainText("Why this is on your roadmap");
-  await expect(detail).toContainText("Complete Docker first to unlock this step.");
+  await expect(detail).toContainText("Start this after your work shows Docker at the level this role expects, because it builds on it.");
   // Following the prerequisite switches to its stage and opens it.
   await detail.getByRole("button", { name: /Docker/ }).click();
   await expect(roadmap.locator("#roadmap-milestone-detail").getByRole("heading", { name: "Docker" })).toBeVisible();

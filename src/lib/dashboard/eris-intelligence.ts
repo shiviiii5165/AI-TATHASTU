@@ -1,41 +1,21 @@
 // ERIS — Intelligence Score, and the "Where you stand" view model.
 //
-// Read-only over the career engine v3 output already stored in profile_views.view.intelligence
-// (worker/intelligence/career_engine.py analyze_role). It adds no skill, level, evidence or relationship.
+// The score is computed by the career engine (worker/intelligence/career_engine.py alignment_score) and stored on
+// each role analysis as `alignmentScore`. This module only reads it; it computes no score. See that function for
+// the definition: how much of the selected role's competency framework the student's evidence currently backs,
+// 0-100, with half credit for self-described evidence where independent proof is required and no credit (never a
+// level) for listed, suggested or missing competencies. Not a proficiency, not the alignment state, not a hiring
+// or job-readiness probability.
 //
-// Why not the worker's eris.py number: that score was built for interview readiness. Its technical part credits a
-// skill's proficiency even when the role framework needs independent evidence and only the student's own
-// descriptions back it, and 25% comes from projects whose technology lists may be self-described (three such
-// projects give full marks with no demonstrated work). It also renormalises when LeetCode/HackerRank are absent,
-// so two students' numbers aren't comparable. It stays in eris_scores for its existing readers; the dashboard no
-// longer shows it.
-//
-// Definition (0–100, for the student's selected career direction):
-//   For each competency in the role framework (deduplicated by name, keeping the best row), with weight w:
-//     attainment a = min(1, proficiency / expected)                     when the engine scored it
-//     credit       = a                                                  when the evidence meets the framework's
-//                                                                        requirement (independent → demonstrated)
-//                  = a / 2                                              when only the student's own descriptions
-//                                                                        back a competency that needs independent proof
-//                  = 0                                                  when the engine has no score (listed only,
-//                                                                        suggested or missing): no evidence, so no credit
-//   score = round(100 · Σ w·credit / Σ w)
-//
-// It measures how much of the selected role's framework the student's evidence currently backs. It is not a
-// proficiency (the four levels stay per skill), not role alignment (a separate rule-based state), and not a
-// hiring or job-readiness probability.
-//
-// No score (null) when: there's no engine output, it predates engine v3, no direction is selected or it has no
-// framework, the engine couldn't assess the role, the alignment is "not enough evidence", or no competency has an
-// engine score at all. Unknown never becomes 0.
+// Why the old number isn't shown: worker/intelligence/eris.py computes interview readiness. It credits
+// self-described skills fully, gives 25% for project technology lists that may be self-described, and rescales
+// when LeetCode/HackerRank are missing, so it isn't comparable or defensible under engine v3. It stays in
+// eris_scores for its existing readers.
 
 import type { AlignmentState, IntelligenceDoc, RoleAnalysis, RoleSkillRow } from "@/lib/dashboard/types";
+import { gapNoteText } from "@/lib/dashboard/plain-language";
 
 export const CURRENT_ENGINE = 3;
-/** Share of credit kept when only the student's descriptions back a competency that needs independent proof. */
-export const DESCRIBED_ONLY_FACTOR = 0.5;
-
-export type CreditKind = "evidenced" | "described" | "none";
 
 export type ScoreFactor = { label: string; score: number | null; competencies: number };
 
@@ -43,58 +23,32 @@ export type IntelligenceScore = {
   score: number;
   required: ScoreFactor;
   supporting: ScoreFactor;
-  counts: Record<CreditKind, number>;
+  counts: { evidenced: number; described: number; none: number };
 };
 
-const attainment = (row: RoleSkillRow) => (row.proficiency === null || row.proficiency === undefined || !(row.expected > 0) ? 0 : Math.min(1, Math.max(0, row.proficiency) / row.expected));
-
-/** How a competency's evidence counts. Uses only the engine's own fields. */
-export function creditKind(row: RoleSkillRow): CreditKind {
-  if (row.proficiency === null || row.proficiency === undefined) return "none";
-  const needsIndependent = row.evidenceRequirement === "independent";
-  if (row.state === "met" || !needsIndependent || row.evidenceState === "demonstrated") return "evidenced";
-  return "described";
-}
-
-export function credit(row: RoleSkillRow): number {
-  const kind = creditKind(row);
-  return kind === "none" ? 0 : kind === "described" ? attainment(row) * DESCRIBED_ONLY_FACTOR : attainment(row);
-}
-
-/** One row per competency: a duplicated row can't count twice. */
-function unique(rows: RoleSkillRow[]): RoleSkillRow[] {
-  const best = new Map<string, RoleSkillRow>();
-  for (const r of rows) {
-    const key = r.skill.trim().toLowerCase();
-    const prev = best.get(key);
-    if (!prev || credit(r) > credit(prev)) best.set(key, r);
-  }
-  return [...best.values()];
-}
-
-function weighted(rows: RoleSkillRow[]): number | null {
-  const valid = rows.filter((r) => r.weight > 0);
-  const total = valid.reduce((s, r) => s + r.weight, 0);
-  if (!total) return null;
-  return Math.round((100 * valid.reduce((s, r) => s + r.weight * credit(r), 0)) / total);
-}
-
-export function intelligenceScore(analysis: RoleAnalysis | undefined | null): IntelligenceScore | null {
-  if (!analysis || !analysis.assessed || analysis.alignment?.state === "not_enough_evidence") return null;
-  const rows = unique(analysis.skills);
-  if (!rows.some((r) => creditKind(r) !== "none")) return null;
-  const score = weighted(rows);
-  if (score === null) return null;
-  const required = rows.filter((r) => (r.tier ?? "required") === "required");
-  const supporting = rows.filter((r) => r.tier === "supporting");
-  const counts: Record<CreditKind, number> = { evidenced: 0, described: 0, none: 0 };
-  for (const r of rows) counts[creditKind(r)]++;
+/**
+ * The engine's score for this role, as stored. "pending": the document predates the engine writing it (it appears
+ * after the next recalculation); "unavailable": the engine wrote null (not enough evidence). Never 0 for unknown.
+ */
+export function engineScore(analysis: RoleAnalysis | undefined | null): { status: "ready"; score: IntelligenceScore } | { status: "pending" | "unavailable" } {
+  if (!analysis || analysis.alignmentScore === undefined) return { status: "pending" };
+  const s = analysis.alignmentScore;
+  if (s === null || typeof s.value !== "number" || !Number.isFinite(s.value)) return { status: "unavailable" };
   return {
-    score,
-    required: { label: "Required competencies", score: weighted(required), competencies: required.length },
-    supporting: { label: "Supporting competencies", score: weighted(supporting), competencies: supporting.length },
-    counts,
+    status: "ready",
+    score: {
+      score: s.value,
+      required: { label: "Required skills", score: s.required?.score ?? null, competencies: s.required?.competencies ?? 0 },
+      supporting: { label: "Supporting skills", score: s.supporting?.score ?? null, competencies: s.supporting?.competencies ?? 0 },
+      counts: { evidenced: s.counts?.evidenced ?? 0, described: s.counts?.described ?? 0, none: s.counts?.none ?? 0 },
+    },
   };
+}
+
+/** @deprecated kept for callers that only need the value; reads the engine's score. */
+export function intelligenceScore(analysis: RoleAnalysis | undefined | null): IntelligenceScore | null {
+  const s = engineScore(analysis);
+  return s.status === "ready" ? s.score : null;
 }
 
 export type PriorityGap = { skill: string; note: string; why: string | null };
@@ -104,21 +58,7 @@ export type PriorityGap = { skill: string; note: string; why: string | null };
  * gap type insufficient_evidence, so the state decides). "Missing" is said only when there is no evidence at all.
  */
 export function gapNote(row: RoleSkillRow): string {
-  const scored = row.proficiency !== null && row.proficiency !== undefined;
-  switch (row.state) {
-    case "missing":
-      return "No evidence yet";
-    case "inferred":
-      return "Only suggested by related skills";
-    case "unverified":
-      return scored ? "Shown only in your own descriptions" : "Listed, not yet shown in your work";
-    case "underdeveloped":
-      return "Shown, below the expected level";
-    case "met":
-      return "At the expected level";
-    default:
-      return "Not assessed";
-  }
+  return gapNoteText(row);
 }
 
 export type StandingView =
@@ -134,6 +74,8 @@ export type StandingView =
       alignment: { state: AlignmentState; label: string; requiredMet: number; required: number } | null;
       assessed: boolean;
       score: IntelligenceScore | null;
+      /** Why there's no score: the engine hasn't recalculated since it started writing one, or there isn't enough evidence. */
+      scoreStatus: "ready" | "pending" | "unavailable";
       gaps: PriorityGap[];
     };
 
@@ -156,6 +98,7 @@ export function standingView(intelligence: IntelligenceDoc | undefined, primaryR
   const analysis = intelligence.roles.find((r) => r.role === primaryRole);
   if (!analysis) return { state: "unsupported", computedAt, roles: intelligence.unsupportedRoles };
   const a = analysis.alignment;
+  const s = analysis.assessed ? engineScore(analysis) : ({ status: "unavailable" } as const);
   return {
     state: "ready",
     computedAt,
@@ -163,7 +106,8 @@ export function standingView(intelligence: IntelligenceDoc | undefined, primaryR
     draft: (analysis.framework?.status ?? intelligence.framework?.status ?? "").startsWith("draft") || analysis.framework?.reviewed === false,
     alignment: a ? { state: a.state, label: a.label, requiredMet: a.requiredMet, required: a.required } : null,
     assessed: analysis.assessed,
-    score: intelligenceScore(analysis),
+    score: s.status === "ready" ? s.score : null,
+    scoreStatus: s.status,
     gaps: analysis.assessed ? priorityGaps(analysis) : [],
   };
 }
