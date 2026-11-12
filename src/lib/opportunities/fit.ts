@@ -25,7 +25,7 @@ export interface FitExplanation {
   state: FitState;
   /** One plain sentence: why this is (or is not) recommended. */
   summary: string;
-  supportedBy: { skill: string; evidence: "demonstrated" | "listed" }[];
+  supportedBy: { skill: string; evidence: "demonstrated" | "listed" | "topic" }[];
   /** Required skills not shown on the profile (unverified, not "lacking"). */
   notShown: string[];
   eligibility: { status: "met" | "not_met" | "not_stated" | "unknown"; detail: string };
@@ -48,7 +48,7 @@ export function studyLevel(degree: string | null | undefined): StudyLevel | null
 const norm = (s: string) => s.trim().toLowerCase();
 
 export function explainFit(
-  opp: { requiredSkills: string[]; eligibleLevels: string[]; eligibility: string | null },
+  opp: { requiredSkills: string[]; eligibleLevels: string[]; eligibility: string | null; /** The project's own topic / qualifications text, for relevance when no skills are published. */ topicText?: string | null },
   student: StudentSignals,
 ): FitExplanation {
   // 1. Mandatory eligibility, separately, from a published structured restriction only.
@@ -88,8 +88,23 @@ export function explainFit(
     state = "insufficient_information";
     summary = "Add skills or connect GitHub so this can be matched to your profile.";
   } else if (required.length === 0) {
-    state = "insufficient_information";
-    summary = "The listing does not name required skills, so fit cannot be assessed.";
+    // No published skill requirements: only say what the project's own text mentions. A demonstrated skill
+    // named in the topic is relevance evidence (potential fit), never a claim that the skill is required.
+    const topic = opp.topicText ? ` ${opp.topicText.replace(/[-_/]/g, " ")} ` : "";
+    const mentioned = (m: Map<string, string>) =>
+      [...m.entries()].filter(([k]) => k.length >= 2 && new RegExp(`[^a-z0-9+#]${k.replace(/[-_/]/g, " ").replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[^a-z0-9+#]`, "i").test(topic)).map(([, name]) => name);
+    const demo = topic ? mentioned(student.demonstrated) : [];
+    const list = topic ? mentioned(student.listed) : [];
+    for (const s of demo) supportedBy.push({ skill: s, evidence: "topic" });
+    if (demo.length) {
+      state = "potential_fit";
+      summary = `The project topic mentions ${demo.slice(0, 3).join(", ")}, which you have demonstrated. It doesn't publish required skills, so check the announcement.`;
+    } else {
+      state = "insufficient_information";
+      summary = list.length
+        ? `The project topic mentions ${list.slice(0, 3).join(", ")}, which you list but haven't demonstrated yet. It doesn't publish required skills.`
+        : "The listing does not name required skills, so fit cannot be assessed.";
+    }
   } else if (demonstratedCount > 0 && demonstratedCount * 2 >= required.length) {
     state = "strong_fit";
     summary = `Your evidence in ${supportedBy.filter((s) => s.evidence === "demonstrated").slice(0, 3).map((s) => s.skill).join(", ")} matches what it asks for.`;
@@ -99,7 +114,7 @@ export function explainFit(
     summary = demonstratedCount > 0 ? `You show evidence for some of what it asks (${names}).` : `It asks for ${names}, which you list but have not yet demonstrated.`;
   } else {
     state = "insufficient_information";
-    summary = "None of its required skills are on your profile yet.";
+    summary = "None of the skills it names are on your profile yet.";
   }
   return { state, summary, supportedBy, notShown, eligibility };
 }

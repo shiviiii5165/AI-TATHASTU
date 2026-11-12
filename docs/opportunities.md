@@ -34,6 +34,58 @@ A failed fetch only records a short code in `last_error`; existing listings are 
 - **Eligibility** is decided only from a structured `eligible_levels` restriction that the listing published. Free-text eligibility is shown for the student to check.
 - Nothing is sent to sources, and providers never learn who viewed a listing.
 
+
+## Automated discovery (2026-11-11)
+
+**Collection methods:**
+
+| Kind | How it works |
+|---|---|
+| `rss` / `json_feed` | Official feeds, read by the existing feed parser |
+| `page_monitor` | An official listing page, parsed by a source-specific adapter (`src/lib/opportunities/adapters.ts`) written against that page's real markup. It throws if the page is redesigned, so a redesign is recorded as a failure and never mass-withdraws listings |
+| `manual` | Exception-only curation (`addCuratedListing`) |
+
+**Sources:** the catalogue is `src/lib/opportunities/catalogue.ts`; each entry records what was verified.
+
+- Register the sources with `npm run opportunities:sources`.
+- Enable them with `npm run opportunities:sources -- --confirm-terms` after you confirm each site's terms of use.
+- Both commands need `AIT_APPROVED_WRITE_HOST` set to exactly the target database host.
+
+**Outcomes:**
+
+| Outcome | Stored status | When |
+|---|---|---|
+| VERIFIED | `active` | The source is trusted, plus an explicit Open status, a future published deadline, or a rolling call |
+| NEEDS_REVIEW | `unverified` | No date or status published, or the source isn't auto-verified |
+| REJECTED | `expired` / `withdrawn` | Marked Closed, deadline passed, the link returns 404/410, or no longer listed by a complete-listing source |
+
+Only VERIFIED listings within the 30-day verification TTL are shown, and the dashboard and YORA share one query (`recommendableWhere`).
+
+**Absence semantics:** `withdraw_on_absence` is true only for pages that list every open position (IISc, IIT Kharagpur, IIT Hyderabad). Rolling feeds such as Max Planck's are false: an entry that disappears from them is not treated as withdrawn, and simply stops being re-verified (it goes stale after 30 days).
+
+**Filtering:** an `include_pattern` keeps research roles only. For example, it drops IT/administrative jobs from the MPG feed and managers or field staff from IIT project pages.
+
+**Scheduling:** `GET /api/internal/opportunities/refresh` (Bearer `CRON_SECRET` or `INTERNAL_API_SECRET`). On each pass it:
+
+- refreshes every enabled source that is due (interval of 6 hours by default), with a 10-minute lease so runs never overlap, and exponential backoff after failures (capped at 24 hours);
+- applies the lifecycle rules;
+- checks up to 20 links.
+
+It is idempotent: calling it often still fetches each source at most once per interval. `vercel.json` runs it daily at 05:41 UTC, because Vercel's Hobby plan allows daily crons only. To get the 6-hour target, either upgrade to Vercel Pro and change the schedule to `0 */6 * * *`, or have any existing scheduler (for example the Render worker) call the endpoint every 6 hours with `INTERNAL_API_SECRET`.
+
+**Not automated yet:** reading the advertisement PDFs, so required skills and detailed eligibility are not extracted. Cards therefore show the published title, department, deadline and link, and fit is "Not enough information" until skills are available. No AI processing is applied to source content.
+
+**Sources checked and not used:**
+
+| Source | Reason |
+|---|---|
+| IIT Kanpur DoRD | 403 to automated requests (not bypassed) |
+| IIT Madras ICSR | Obfuscated dynamic links |
+| IIT Bombay IRCC | Results and withdrawals mixed with adverts; no dates |
+| IISER Tirupati | Feeds return HTTP 500 |
+| jobs.ac.uk | Current official feed URLs not confirmable |
+| EURAXESS | No documented feed |
+| UK university job RSS feeds | Mostly non-research staff roles |
 ## Internships (Avsar is authoritative)
 
 Audit (2026-11-11): Avsar exposes **no** API through which another product can list its published opportunities. Its routes are auth, documents, health and export; opportunities are created and listed through Avsar's own server actions.

@@ -1,6 +1,8 @@
 """Rechecks the learning catalogue's links and records what it found.
 
   python scripts/check_learning_links.py            writes worker/intelligence/resource_checks.json
+  python scripts/check_learning_links.py --curated  checks worker/intelligence/learning_catalogue.json (the engine's
+                                                    curated resources) into learning_catalogue_checks.json, by id
   python scripts/check_learning_links.py --dry-run  prints only
 
 Reads the catalogue from the migration file, so it needs no database and no credentials. Bounded on
@@ -29,8 +31,11 @@ from typing import Any, Dict, List, Optional, Tuple
 ROOT = Path(__file__).resolve().parent.parent
 MIGRATION = ROOT / "src/db/migrations/0015_pgvector_and_rag.sql"
 OUTPUT = ROOT / "worker/intelligence/resource_checks.json"
+CURATED = ROOT / "worker/intelligence/learning_catalogue.json"
+CURATED_OUTPUT = ROOT / "worker/intelligence/learning_catalogue_checks.json"
 
 MAX_URLS = 80
+MAX_CURATED_URLS = 200
 TIMEOUT_S = 12
 PAUSE_S = 0.75
 MAX_BYTES = 400_000
@@ -102,10 +107,11 @@ def fetch(url: str) -> Tuple[Optional[int], Optional[str], str]:
         return None, None, ""
 
 
-def check_all(entries: List[Dict[str, str]], checked_at: str) -> Dict[str, Any]:
+def check_all(entries: List[Dict[str, str]], checked_at: str, key_field: str = "title", max_urls: Optional[int] = None) -> Dict[str, Any]:
     results: Dict[str, Any] = {}
     seen: Dict[str, str] = {}
     requests = 0
+    cap = MAX_URLS if max_urls is None else max_urls
     for entry in entries:
         url = entry["url"]
         key = normalized(url)
@@ -115,31 +121,43 @@ def check_all(entries: List[Dict[str, str]], checked_at: str) -> Dict[str, Any]:
             record.update(status="duplicate", duplicateOf=seen[key])
         elif problem:
             record["status"] = problem
-        elif requests >= MAX_URLS:
+        elif requests >= cap:
             record["status"] = "not_checked"
         else:
             requests += 1
             status, final_url, body = fetch(url)
             record.update(status=classify(entry["title"], url, status, final_url, body), httpStatus=status, finalUrl=final_url if final_url != url else None)
             time.sleep(PAUSE_S)
-        seen.setdefault(key, entry["title"])
-        results[entry["title"]] = record
-        print(f"{record['status']:<22} {entry['title']}", flush=True)
+        seen.setdefault(key, entry[key_field])
+        results[entry[key_field]] = record
+        print(f"{record['status']:<22} {entry[key_field]}", flush=True)
     return {"checkedAt": checked_at, "requests": requests, "resources": results}
+
+
+def curated_entries() -> List[Dict[str, str]]:
+    return [{"id": r["id"], "title": r["title"], "provider": r["provider"], "url": r["url"]} for r in json.loads(CURATED.read_text(encoding="utf-8"))["resources"]]
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--curated", action="store_true", help="check the engine's curated learning catalogue")
     args = parser.parse_args()
-    entries = catalogue(MIGRATION.read_text(encoding="utf-8"))
-    report = check_all(entries, datetime.now(timezone.utc).date().isoformat())
+    today = datetime.now(timezone.utc).date().isoformat()
+    if args.curated:
+        entries = curated_entries()
+        report = check_all(entries, today, key_field="id", max_urls=MAX_CURATED_URLS)
+        target = CURATED_OUTPUT
+    else:
+        entries = catalogue(MIGRATION.read_text(encoding="utf-8"))
+        report = check_all(entries, today)
+        target = OUTPUT
     counts: Dict[str, int] = {}
     for record in report["resources"].values():
         counts[record["status"]] = counts.get(record["status"], 0) + 1
     print(json.dumps({"total": len(entries), "requests": report["requests"], **counts}))
     if not args.dry_run:
-        OUTPUT.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        target.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return 0
 
 

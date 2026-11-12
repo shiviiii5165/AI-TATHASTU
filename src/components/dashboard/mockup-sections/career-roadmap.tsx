@@ -189,6 +189,8 @@ export function CareerRoadmap({ intelligence, submissions }: { intelligence?: In
 
       <CurvedJourney view={view} selectedKey={stage?.key ?? null} onSelect={setStageKey} />
 
+      <Achievements view={view} />
+
       {/* Selected stage · goal skill progress */}
       <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-12">
         <div ref={panelRef} className="min-w-0 lg:col-span-7">
@@ -245,6 +247,42 @@ function NextMilestoneCard({ view, onOpen }: { view: ReadyView; onOpen: () => vo
       </span>
       <ChevronRight aria-hidden className="mt-2 size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
     </button>
+  );
+}
+
+// ─── Achievements ───────────────────────────────────────────────────────────
+
+/**
+ * Milestones already reached: each is a competency the engine found at its expected level, with the evidence that showed
+ * it. No points, streaks or badges: the only way onto this strip is work we can check.
+ */
+function Achievements({ view }: { view: ReadyView }) {
+  if (view.achievements.length === 0) return null;
+  return (
+    <div className="mt-4 rounded-2xl border border-emerald-200/70 bg-emerald-50/40 p-3 dark:border-emerald-400/20 dark:bg-emerald-500/5" data-testid="roadmap-achievements">
+      <p className="flex flex-wrap items-baseline gap-x-2 text-xs font-semibold text-foreground">
+        <span className="inline-flex items-center gap-1.5">
+          <CheckCircle2 aria-hidden className="size-4 text-emerald-600 dark:text-emerald-300" />
+          Already shown in your work
+        </span>
+        <span className="text-[11px] font-normal text-muted-foreground">Each one is a skill this goal needs, at the level it expects, in work we could check.</span>
+      </p>
+      <ul className="mt-2 flex flex-wrap gap-1.5">
+        {view.achievements.map((a, i) => (
+          <li
+            key={a.id}
+            title={a.evidence ? `Shown by: ${a.evidence}` : undefined}
+            className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-card px-2.5 py-1 text-[11px] font-medium text-foreground motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 motion-safe:duration-300 dark:border-emerald-400/30"
+            style={{ animationDelay: `${i * 50}ms` }}
+          >
+            <Check aria-hidden className="size-3 text-emerald-600 dark:text-emerald-300" strokeWidth={3} />
+            {a.title}
+            {a.tier === "required" && <span className="text-[10px] text-muted-foreground">required</span>}
+            {a.forProject && <span className="text-[10px] text-sky-700 dark:text-sky-300">project</span>}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -371,6 +409,12 @@ function NodeText({ node, view, selected }: { node: JNode; view: ReadyView; sele
       <span className="text-xs text-muted-foreground">{node.body}</span>
       {node.kind === "start" && view.coverage.met > 0 && <span className="text-[11px] font-medium text-emerald-700 dark:text-emerald-300">{view.coverage.met} goal {view.coverage.met === 1 ? "skill" : "skills"} already at level</span>}
       {node.kind === "start" && !view.position && <Link href="/profile" className="text-[11px] font-semibold text-primary hover:underline">Add your current role</Link>}
+      {s && s.status !== "completed" && (
+        <span className="text-[11px] text-muted-foreground">
+          {s.steps.filter((x) => x.status !== "completed").length} {s.steps.length === 1 ? "skill" : "skills"}
+          {s.projectSkills > 0 ? ` · ${s.projectSkills} for your project` : ""}
+        </span>
+      )}
       {s?.status === "blocked" && <span className="text-[11px] text-muted-foreground">{unlockText(s.blockedBy)}</span>}
       {s?.optional && <span className="text-[11px] text-muted-foreground">Optional</span>}
       {node.kind === "goal" && (
@@ -440,6 +484,7 @@ function StagePanel({ view, stage, detailId, onDetail, onOpenStep, rowOf, recOf 
             <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${statusTone}`}>{STAGE_STATUS_LABEL[stage.status]}</span>
           </div>
           <h3 className="mt-1.5 text-base font-bold text-foreground">{stage.title}</h3>
+          {stage.focus && <p className="text-[11px] font-medium text-indigo-700 dark:text-indigo-300">{stage.focus}</p>}
           <p className="text-xs text-muted-foreground" data-testid="roadmap-stage-skills">
             Covers {stage.steps.map((s) => s.skill).join(", ")}.{" "}
             {open.length === 0 ? `Your work shows all of them at the level ${view.goal.label} expects.` : `${open.length} of ${stage.steps.length} still need to reach the level ${view.goal.label} expects.`}
@@ -451,14 +496,16 @@ function StagePanel({ view, stage, detailId, onDetail, onOpenStep, rowOf, recOf 
       <dl className="mt-3 grid grid-cols-1 gap-2 rounded-xl bg-violet-50/50 p-3 text-[11px] sm:grid-cols-2 dark:bg-violet-500/10" data-testid="roadmap-stage-meaning">
         <div>
           <dt className="font-semibold text-foreground">Why this stage is here</dt>
-          <dd className="mt-0.5 text-muted-foreground">{STAGE_PURPOSE[stage.key] ?? "The engine grouped these skills by what they build on."}</dd>
+          <dd className="mt-0.5 text-muted-foreground">{stage.purpose ?? STAGE_PURPOSE[stage.key] ?? "The engine grouped these skills by what they build on."}</dd>
         </div>
         <div>
           <dt className="font-semibold text-foreground">When it&apos;s complete</dt>
           <dd className="mt-0.5 text-muted-foreground">
-            {stage.optional
-              ? `When your work shows these skills at the level ${view.goal.label} expects. Optional: it doesn't affect whether you meet the role's requirements.`
-              : `When your work shows each skill here at the level ${view.goal.label} expects, in work we can check, such as a public repository or an assessment. The roadmap then moves on to the next stage.`}
+            {stage.completionCriteria ??
+              (stage.optional
+                ? `When your work shows these skills at the level ${view.goal.label} expects. Optional: it doesn't affect whether you meet the role's requirements.`
+                : `When your work shows each skill here at the level ${view.goal.label} expects, in work we can check, such as a public repository or an assessment. The roadmap then moves on to the next stage.`)}
+            {stage.unlocksTitle && <span className="mt-1 block font-medium text-foreground">Then: {stage.unlocksTitle}</span>}
           </dd>
         </div>
       </dl>
@@ -738,6 +785,8 @@ function MilestoneDetail({ step, goal, row, rec, assumption, onPick }: { step: R
       <div className="flex flex-wrap items-center gap-2">
         <h3 className="text-sm font-bold text-foreground">{step.skill}</h3>
         <span className={`rounded-full px-1.5 py-px text-[10px] font-semibold ring-1 ${st.className}`}>{st.label}</span>
+        {step.sources?.includes("project") && <span className="rounded-full bg-sky-50 px-1.5 py-px text-[10px] font-semibold text-sky-700 ring-1 ring-sky-200 dark:bg-sky-500/15 dark:text-sky-300 dark:ring-sky-400/30">Your project needs it</span>}
+        {step.sources?.length === 1 && step.sources[0] === "prerequisite" && <span className="rounded-full bg-muted px-1.5 py-px text-[10px] font-semibold text-muted-foreground">Builds a foundation</span>}
         {step.optional && <span className="ml-auto text-[10px] text-muted-foreground" title={assumption}>Optional for this goal</span>}
       </div>
       {step.objective && <p className="mt-1 text-[11px] font-medium text-foreground">{step.objective}</p>}
@@ -748,7 +797,17 @@ function MilestoneDetail({ step, goal, row, rec, assumption, onPick }: { step: R
             <p className="font-semibold text-foreground">Why this is on your roadmap</p>
             <p className="mt-0.5 text-muted-foreground">{milestoneReason(goal, row, step)}</p>
           </div>
-          {row && row.evidence.length > 0 && (
+          {step.levelBasis && step.levelBasis.length > 0 ? (
+            <div>
+              <p className="font-semibold text-foreground">What your evidence shows so far</p>
+              <ul className="mt-0.5 space-y-0.5 text-muted-foreground">
+                {step.levelBasis.slice(0, 3).map((b) => (
+                  <li key={b}>• {b}</li>
+                ))}
+              </ul>
+              {step.nextLevel && <p className="mt-0.5 text-muted-foreground"><span className="font-semibold text-foreground">To go further: </span>{step.nextLevel}</p>}
+            </div>
+          ) : row && row.evidence.length > 0 && (
             <div>
               <p className="font-semibold text-foreground">What your evidence shows so far</p>
               <ul className="mt-0.5 space-y-0.5 text-muted-foreground">
@@ -791,6 +850,7 @@ function MilestoneDetail({ step, goal, row, rec, assumption, onPick }: { step: R
             <p className="font-semibold text-foreground">Next step</p>
             <p className="mt-0.5 text-muted-foreground">{step.status === "completed" ? "Nothing to do: keep the evidence public and current." : (row?.action ?? step.deliverable)}</p>
             {step.status !== "completed" && step.practicalTask && <p className="mt-0.5 text-muted-foreground"><span className="font-semibold text-foreground">Build: </span>{step.practicalTask}</p>}
+            {step.status !== "completed" && step.context && <p className="mt-0.5 text-[10px] text-muted-foreground">Ideally as part of {step.context}.</p>}
             {step.status !== "completed" && <p className="mt-0.5 text-[10px] text-muted-foreground">Done when: {step.criterion}.</p>}
           </div>
           {step.status !== "completed" &&
@@ -803,12 +863,18 @@ function MilestoneDetail({ step, goal, row, rec, assumption, onPick }: { step: R
                     <ExternalLink aria-hidden className="size-2.5 shrink-0" />
                     <span className="sr-only">(opens in a new tab)</span>
                   </span>
-                  {(rec.resource.provider || rec.resource.duration) && <span className="block text-[10px] text-muted-foreground">{[rec.resource.provider, rec.resource.duration].filter(Boolean).join(" · ")}</span>}
+                  {(rec.resource.typeLabel || rec.resource.provider) && <span className="block text-[10px] text-muted-foreground">{[rec.resource.typeLabel, rec.resource.provider].filter(Boolean).join(" · ")}</span>}
+                  {rec.resource.fitReason && <span className="block text-[10px] text-muted-foreground">{rec.resource.fitReason}</span>}
                 </span>
               </a>
             ) : rec ? (
-              <p className="text-[10px] text-muted-foreground">No catalogued course for this skill: learn by building the project above.</p>
+              <p className="text-[10px] text-muted-foreground">{rec.noResourceReason ?? "No catalogued course for this skill"}: learn by building the project above.</p>
             ) : null)}
+          {step.submissionCheck && (
+            <p className={`rounded-md px-2 py-1 text-[10px] ${step.submissionCheck.status === "read" ? "bg-sky-50 text-sky-800 dark:bg-sky-500/10 dark:text-sky-200" : "bg-amber-50 text-amber-900 dark:bg-amber-500/10 dark:text-amber-200"}`} data-testid="submission-check">
+              {step.submissionCheck.message}
+            </p>
+          )}
           {step.status !== "completed" &&
             (sent || step.status === "submitted" ? (
               <p className="text-[10px] text-muted-foreground">Evidence submitted. It counts once the next evaluation shows {step.skill} at level; a submission alone doesn&apos;t complete a milestone.</p>

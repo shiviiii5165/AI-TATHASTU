@@ -18,8 +18,9 @@ class Evaluation(unittest.TestCase):
         cls.report = evaluate()
 
     def test_known_disagreements_are_exactly_these(self):
-        # Both are real limits of metadata-only evidence, documented in docs/engineering/SCORING_MODEL.md.
-        self.assertEqual(self.report["false_positives"], ["topic_tagging/Kubernetes"])
+        # Engine v4 no longer credits a topic tag as use (the old topic_tagging/Kubernetes false positive is gone: a tag
+        # alone stops at Working). Private code we can't read remains a real limit, documented in SCORING_MODEL.md.
+        self.assertEqual(self.report["false_positives"], [])
         self.assertEqual(self.report["false_negatives"], ["private_code_senior/Java"])
 
     def test_every_group_is_represented(self):

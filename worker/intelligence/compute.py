@@ -92,6 +92,21 @@ def load_learning_records(cur: Any, user_id: str) -> List[Dict[str, Any]]:
     )
 
 
+def signals_column_exists(cur: Any) -> bool:
+    row = fetch_one(cur, """SELECT EXISTS (SELECT 1 FROM information_schema.columns
+                              WHERE table_schema = 'public' AND table_name = 'code_repositories' AND column_name = 'code_signals') AS present""")
+    return bool(row) and row.get("present") is True
+
+
+def load_submissions(cur: Any, user_id: str) -> List[Dict[str, Any]]:
+    """Evidence links the student submitted for roadmap milestones, so the engine can say whether it could read them."""
+    present = fetch_one(cur, "SELECT to_regclass('public.roadmap_milestone_submissions') IS NOT NULL AS present")
+    if not present or not present["present"]:
+        return []
+    rows = fetch_all(cur, "SELECT milestone_id, evidence_url, created_at FROM roadmap_milestone_submissions WHERE user_id = %s", (user_id,))
+    return [{"milestoneId": r["milestone_id"], "evidenceUrl": r["evidence_url"], "createdAt": r["created_at"].isoformat() if r.get("created_at") else None} for r in rows]
+
+
 def ledger_projection(ledger: List[Dict[str, Any]], resolve: Any) -> List[tuple]:
     """(skill_id, fact_id, source, strength) rows for skill_evidence, one per (skill, fact), from the engine's ledger."""
     rows, seen = [], set()
@@ -149,13 +164,16 @@ def process_compute_intelligence(conn: Any, job: Job) -> None:
                        OR (origin = ANY(%s) AND confirmation <> 'rejected'))""",
             (user_id, list(API_ORIGINS)),
         )
+        # code_signals arrives with migration 0031; until then every repository reads as "files not read yet".
+        signals_col = "code_signals" if signals_column_exists(cur) else "NULL::jsonb AS code_signals"
         repos = fetch_all(
             cur,
-            "SELECT id, repo_name, url, description, languages, topics, stars, last_commit_at FROM code_repositories WHERE user_id = %s",
+            f"SELECT id, repo_name, url, description, languages, topics, stars, last_commit_at, {signals_col} FROM code_repositories WHERE user_id = %s",
             (user_id,),
         )
         resources = fetch_all(cur, "SELECT title, provider, url, description FROM learning_resources WHERE url IS NOT NULL")
         learning = load_learning_records(cur, user_id)
+        submissions = load_submissions(cur, user_id)
         connections = fetch_all(cur, "SELECT source_id, status, last_sync_at FROM connections WHERE user_id = %s", (user_id,))
         # The user's current answer, re-read on every run (and every retry),
         # so a revoked consent stops external calls immediately.
@@ -188,6 +206,9 @@ def process_compute_intelligence(conn: Any, job: Job) -> None:
         canonical=index.canonical, lexicon_scan=lexicon_scan,
         categories={index.names[sid]: cat for sid, cat in categories.items() if sid in index.names}, now=now,
         learning=learning,
+        # The project the student described (goals/project_intent fact) wins; the onboarding "other direction" text is the fallback.
+        intent_text=state["career_role_other"],
+        context={"githubConnected": any(c["source_id"] == "github" for c in connections), "submissions": submissions},
     )
     # The engine is the one evidence model; skill_evidence is written from its ledger as a projection for older readers.
     ledger = intelligence.pop("_ledger")

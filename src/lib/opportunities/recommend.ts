@@ -39,6 +39,8 @@ export interface ResearchCard {
   title: string;
   organization: string;
   kind: string | null;
+  /** Department / lab / PI exactly as the source states it. */
+  researchGroup: string | null;
   location: string | null;
   workMode: string | null;
   /** As published; null when the source published none (never invented). */
@@ -79,6 +81,7 @@ export async function researchForStudent(db: OppDb, student: StudentSignals, now
       title: o.title,
       organization: o.organization,
       kind: o.kind,
+      researchGroup: o.researchGroup,
       location: o.location,
       workMode: o.workMode,
       deadline: o.deadline,
@@ -86,7 +89,7 @@ export async function researchForStudent(db: OppDb, student: StudentSignals, now
       url: o.url!,
       sourceName,
       lastVerifiedAt: o.lastVerifiedAt!.toISOString(),
-      fit: explainFit({ requiredSkills: o.requiredSkills, eligibleLevels: o.eligibleLevels, eligibility: o.eligibility }, student),
+      fit: explainFit({ requiredSkills: o.requiredSkills, eligibleLevels: o.eligibleLevels, eligibility: o.eligibility ?? o.details?.qualifications?.value ?? null, topicText: [o.title, o.details?.researchArea?.value, o.details?.qualifications?.value, o.description].filter(Boolean).join(" ") }, student),
     }))
     .sort((a, b) => ORDER[a.fit.state] - ORDER[b.fit.state]);
 }

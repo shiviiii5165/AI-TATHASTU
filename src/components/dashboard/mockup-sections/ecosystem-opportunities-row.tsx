@@ -18,7 +18,8 @@ interface EcosystemOpportunitiesRowProps {
 export function EcosystemOpportunitiesRow({ research, internships }: EcosystemOpportunitiesRowProps) {
   return (
     // Mentor recommendations were a permanent "coming soon" card with no data source; removed until matching exists.
-    <div id="opportunities" className="grid scroll-mt-20 grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+    // items-start: each card keeps its own height, so a long research list doesn't stretch the compact People card.
+    <div id="opportunities" className="grid scroll-mt-20 grid-cols-1 items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
       <PeopleRecommendationsCard />
       <OpportunitiesCard research={research} />
       <NetworkInternshipsCard feed={internships} />
@@ -102,6 +103,8 @@ const KIND_LABEL: Record<string, string> = {
   collaboration: "Student collaboration",
   funded_programme: "Funded programme",
   call_for_collaborators: "Call for collaborators",
+  phd_position: "PhD position",
+  fellowship: "Fellowship / postdoc",
 };
 
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
@@ -157,12 +160,12 @@ function OpportunitiesCard({ research }: { research?: ResearchFeed }) {
       <ul className="divide-y divide-[#F4F6F9] py-1" aria-label="Research opportunities" data-testid="research-opportunities">
         {shown.map((o) => {
           const fit = FIT_LABEL[o.fit.state];
-          const meta = [o.organization, o.kind ? KIND_LABEL[o.kind] ?? null : null, [o.location, o.workMode].filter(Boolean).join(" · ") || null].filter(Boolean);
+          const meta = [o.organization, o.researchGroup, o.kind ? KIND_LABEL[o.kind] ?? null : null, [o.location, o.workMode].filter(Boolean).join(" · ") || null].filter(Boolean);
           const unmet = o.fit.notShown.slice(0, 3);
           return (
             <li key={o.id} className="py-2.5">
               <div className="flex items-start justify-between gap-2">
-                <p className="text-xs font-bold leading-snug text-[#11182B]">{o.title}</p>
+                <Link href={`/opportunities/${o.id}`} className="text-xs font-bold leading-snug text-[#11182B] hover:text-[#E0264E] focus-visible:outline-2">{o.title}</Link>
                 <span className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-bold ${fit.cls}`}>{fit.label}</span>
               </div>
               <p className="mt-0.5 text-[11px] text-[#475569]">{meta.join(" · ")}</p>
@@ -178,8 +181,9 @@ function OpportunitiesCard({ research }: { research?: ResearchFeed }) {
                 <span>
                   {o.sourceName} · verified {fmtDate(o.lastVerifiedAt)}
                 </span>
-                <a href={o.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 font-semibold text-[#E0264E] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2">
-                  View original <ArrowUpRight aria-hidden className="size-3" />
+                <Link href={`/opportunities/${o.id}`} className="font-semibold text-[#11182B] hover:underline focus-visible:outline-2">View details</Link>
+                <a href={`/opportunities/${o.id}/apply`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 font-semibold text-[#E0264E] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2">
+                  Apply on official site <ArrowUpRight aria-hidden className="size-3" />
                   <span className="sr-only">(opens {o.sourceName} in a new tab)</span>
                 </a>
               </div>
@@ -187,7 +191,10 @@ function OpportunitiesCard({ research }: { research?: ResearchFeed }) {
           );
         })}
       </ul>
-      {research.items.length > 3 && <p className="border-t border-[#F8FAFC] pt-2 text-[11px] text-[#475569]">And {research.items.length - 3} more verified</p>}
+      <div className="flex items-center justify-between border-t border-[#F8FAFC] pt-2 text-[11px] text-[#475569]">
+        <span>{research.items.length > 3 ? `And ${research.items.length - 3} more verified` : "Verified at their official sources"}</span>
+        <Link href="/opportunities" className="font-semibold text-[#E0264E] hover:underline">Browse all</Link>
+      </div>
     </>,
   );
 }

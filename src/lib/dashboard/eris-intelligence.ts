@@ -13,6 +13,7 @@
 // eris_scores for its existing readers.
 
 import type { AlignmentState, IntelligenceDoc, RoleAnalysis, RoleSkillRow } from "@/lib/dashboard/types";
+import { openRows } from "@/lib/dashboard/intelligence";
 import { gapNoteText } from "@/lib/dashboard/plain-language";
 
 export const CURRENT_ENGINE = 3;
@@ -84,7 +85,7 @@ export type StandingView =
  * in its priority order, then other open required rows. Supporting skills never appear here.
  */
 export function priorityGaps(analysis: RoleAnalysis, max = 3): PriorityGap[] {
-  const open = analysis.open.filter((r) => (r.tier ?? "required") === "required" && r.state !== "met");
+  const open = openRows(analysis).filter((r) => (r.tier ?? "required") === "required" && r.state !== "met");
   const critical = analysis.alignment?.criticalGaps ?? [];
   const ordered = [...critical.map((s) => open.find((r) => r.skill === s)).filter((r): r is RoleSkillRow => Boolean(r)), ...open.filter((r) => !critical.includes(r.skill))];
   return ordered.slice(0, max).map((r) => ({ skill: r.skill, note: gapNote(r), why: r.whyItMatters ?? null }));

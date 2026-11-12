@@ -70,7 +70,8 @@ def score_role(
     score = sum(ERIS_WEIGHTS[k] * v for k, v in available.items()) / weight_sum
 
     # Most important gap first, in the engine's order, so every card lists them alike.
-    ordered = analysis["open"] + [r for r in rows if r["state"] == "met"]
+    open_rows = open_rows_of(analysis)
+    ordered = open_rows + [r for r in rows if r["state"] == "met"]
     return {
         "score": round(score, 3),
         "breakdown": {
@@ -79,9 +80,17 @@ def score_role(
             "missing_components": [k for k, v in components.items() if v is None],
             "skills": [_row(r) for r in ordered],
             "relevant_projects": relevant,
-            "gaps": [_row(r) for r in analysis["open"][:3]],
+            "gaps": [_row(r) for r in open_rows[:3]],
         },
     }
+
+
+def open_rows_of(analysis: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """The engine's open rows in priority order. Secondary goals are stored compact (career_engine.compact_analysis) with
+    `open` left empty, so it's derived from `skills` the same way: not met, by priorityRank."""
+    if not analysis.get("compact"):
+        return analysis["open"]
+    return sorted((r for r in analysis["skills"] if r["state"] != "met"), key=lambda r: (r.get("priorityRank") or 999, r["skill"]))
 
 
 def _attainment(row: Dict[str, Any]) -> float:

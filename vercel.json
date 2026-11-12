@@ -2,6 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "crons": [
     { "path": "/api/internal/webhooks/dispatch", "schedule": "17 3 * * *" },
-    { "path": "/api/internal/connectors/weekly-refresh", "schedule": "23 4 * * 1" }
+    { "path": "/api/internal/connectors/weekly-refresh", "schedule": "23 4 * * 1" },
+    { "path": "/api/internal/opportunities/refresh", "schedule": "41 5 * * *" }
   ]
 }

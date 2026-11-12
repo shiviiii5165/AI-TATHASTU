@@ -45,7 +45,7 @@ class AcrossModules(unittest.TestCase):
     def test_eris_gaps_are_the_engines_top_gaps_in_its_order(self):
         for _out, analysis, result in self.each_role():
             if result:
-                self.assertEqual([g["skill"] for g in result["breakdown"]["gaps"]], [r["skill"] for r in analysis["open"][:3]])
+                self.assertEqual([g["skill"] for g in result["breakdown"]["gaps"]], [r["skill"] for r in eris.open_rows_of(analysis)[:3]])
 
     def test_a_skill_at_its_level_is_never_called_a_gap_anywhere(self):
         for out, analysis, result in self.each_role():
@@ -78,7 +78,7 @@ class AcrossModules(unittest.TestCase):
 
     def test_recommended_skills_are_open_gaps_for_the_roles_they_name(self):
         for out, analysis, _result in self.each_role():
-            open_skills = {r["skill"] for r in analysis["open"]}
+            open_skills = {r["skill"] for r in eris.open_rows_of(analysis)}
             for rec in out["recommendations"]:
                 if analysis["role"] in rec["roles"]:
                     self.assertIn(rec["skill"], open_skills)

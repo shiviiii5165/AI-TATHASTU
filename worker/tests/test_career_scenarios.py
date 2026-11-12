@@ -14,14 +14,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from intelligence import career_engine as engine  # noqa: E402
 from intelligence.frameworks import framework_for  # noqa: E402
-from test_career_engine import NOW, OLD, RECENT, RESOURCES, canonical, fact, lexicon, repo  # noqa: E402
+from test_career_engine import NOW, OLD, RECENT, RESOURCES, canonical, code_repo, fact, lexicon, repo, with_login  # noqa: E402
 from skills_catalog import CATALOG  # noqa: E402
 
 CATEGORIES = {name: cat for name, cat, _a, _amb in CATALOG}
 
 
 def run(facts=(), repos=(), roles=("ml_engineer",), learning=None, user=None):
-    out = engine.compute(user=user or {}, roles=list(roles), facts=list(facts), repos=list(repos), resources=RESOURCES,
+    out = engine.compute(user=user or {}, roles=list(roles), facts=with_login(facts, repos), repos=list(repos), resources=RESOURCES,
                          canonical=canonical, lexicon_scan=lexicon, categories=CATEGORIES, now=NOW, learning=learning)
     out.pop("_ledger")
     return out
@@ -47,7 +47,8 @@ def project(record, title, techs, description=None):
     return rows
 
 
-ML_REPOS = [repo(f"me/ml{i}", {"Python": 400_000}, ["machine-learning", "pytorch", "scikit-learn"]) for i in range(5)]
+# Repositories whose files were read: the dependency files show PyTorch and scikit-learn in use, with tests.
+ML_REPOS = [code_repo(f"me/ml{i}", {"Python": 400_000}, ["torch", "scikit-learn", "pandas"], tests=True, topics=["machine-learning"]) for i in range(5)]
 
 
 class A_ResumeOnlyLimited(unittest.TestCase):
@@ -152,8 +153,8 @@ class F_ClaimedCertifications(unittest.TestCase):
 
 class G_StrongAcrossMandatory(unittest.TestCase):
     def setUp(self):
-        topics = ["machine-learning", "pytorch", "scikit-learn", "python"]
-        self.out = run(repos=[repo(f"me/r{i}", {"Python": 900_000}, topics) for i in range(6)])
+        self.out = run(repos=[code_repo(f"me/r{i}", {"Python": 900_000}, ["torch", "scikit-learn", "statsmodels", "pandas"], tests=True, ci=True,
+                                        readme=["Model Evaluation", "Data Preparation", "Model Deployment"]) for i in range(6)])
 
     def test_requirements_demonstrated_and_no_mandatory_gaps(self):
         a = self.out["roles"][0]["alignment"]

@@ -949,9 +949,60 @@ export const opportunities = pgTable(
     lastVerifiedAt: timestamp("last_verified_at", { withTimezone: true }),
     statusReason: text("status_reason"),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    researchGroup: text("research_group"),
+    linkCheckedAt: timestamp("link_checked_at", { withTimezone: true }),
+    linkStatus: integer("link_status"),
+    // Migration 0029: extracted announcement details and source-aware application handling.
+    country: text("country"),
+    details: jsonb("details").$type<OpportunityDetails>().notNull().default({}),
+    extractionStatus: text("extraction_status").notNull().default("pending"), // 'pending' | 'extracted' | 'not_available' | 'failed'
+    extractedAt: timestamp("extracted_at", { withTimezone: true }),
+    applicationMethod: text("application_method").notNull().default("announcement"), // 'portal' | 'announcement' | 'email' | 'unavailable'
+    applicationUrl: text("application_url"),
+    applicationEmail: text("application_email"),
   },
   (t) => [index("opportunities_type_idx").on(t.type)],
 );
+
+/** One extracted field: the value and the exact quote from the official announcement it came from. */
+export type Evidenced<T> = { value: T; evidence: string; /** PDF page the evidence is on, when known. */ page?: number };
+export interface OpportunityDetails {
+  stipend?: Evidenced<string>;
+  duration?: Evidenced<string>;
+  qualifications?: Evidenced<string>;
+  skills?: Evidenced<string[]>;
+  educationLevels?: Evidenced<string[]>;
+  ageLimit?: Evidenced<string>;
+  documents?: Evidenced<string[]>;
+  procedure?: Evidenced<string>;
+  principalInvestigator?: Evidenced<string>;
+  researchArea?: Evidenced<string>;
+  startDate?: Evidenced<string>;
+  /** Source document the evidence was read from (official announcement link). */
+  sourceDocument?: string;
+}
+
+/** Saved opportunities (0029). `remind` is the student's explicit opt-in to one deadline reminder. */
+export const opportunitySaves = pgTable(
+  "opportunity_saves",
+  {
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    opportunityId: uuid("opportunity_id").notNull().references(() => opportunities.id, { onDelete: "cascade" }),
+    remind: boolean("remind").notNull().default(false),
+    remindedAt: timestamp("reminded_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.opportunityId] })],
+);
+
+/** What the student did (0029). External submission is never recorded as verified. */
+export const opportunityInteractions = pgTable("opportunity_interactions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  opportunityId: uuid("opportunity_id").notNull().references(() => opportunities.id, { onDelete: "cascade" }),
+  kind: text("kind").notNull(), // 'viewed' | 'opened_application' | 'confirmed_applied'
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
 
 export type Opportunity = typeof opportunities.$inferSelect;
 
@@ -959,9 +1010,26 @@ export type Opportunity = typeof opportunities.$inferSelect;
 export const opportunitySources = pgTable("opportunity_sources", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
-  kind: text("kind").notNull(), // 'rss' | 'json_feed' | 'manual'
+  kind: text("kind").notNull(), // 'rss' | 'json_feed' | 'page_monitor' | 'manual'
   url: text("url"),
   organization: text("organization").notNull(),
+  adapter: text("adapter"),
+  includePattern: text("include_pattern"),
+  withdrawOnAbsence: boolean("withdraw_on_absence").notNull().default(false),
+  consecutiveFailures: integer("consecutive_failures").notNull().default(0),
+  nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }),
+  lockedUntil: timestamp("locked_until", { withTimezone: true }),
+  country: text("country"),
+  // Migration 0030 (governance and health). Only terms_status 'approved' may be enabled.
+  institutionType: text("institution_type"),
+  termsUrl: text("terms_url"),
+  termsStatus: text("terms_status").notNull().default("needs_human_review"), // 'approved' | 'needs_human_review' | 'rejected'
+  termsEvidence: text("terms_evidence"),
+  approvedBy: text("approved_by"),
+  approvedAt: timestamp("approved_at", { withTimezone: true }),
+  lastSeenCount: integer("last_seen_count"),
+  lastFilteredCount: integer("last_filtered_count"),
+  lastDuplicateCount: integer("last_duplicate_count"),
   termsReviewedAt: timestamp("terms_reviewed_at", { withTimezone: true }),
   termsNote: text("terms_note"),
   autoVerify: boolean("auto_verify").notNull().default(false),

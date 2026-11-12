@@ -121,6 +121,13 @@ export function ErisWidget({ intelligence, primaryRole, submissions = [] }: { in
           <span className="min-w-0 flex-1">
             <span className="block text-[11px] font-semibold text-orange-700 dark:text-orange-300">Next action · {nextAction.step.skill}</span>
             <span className="block text-xs text-foreground">{nextAction.step.objective ?? nextAction.step.deliverable}</span>
+            {nextAction.row?.unblocks?.length ? (
+              <span className="mt-0.5 block text-[11px] text-muted-foreground">
+                First because {nextAction.row.unblocks.slice(0, 3).join(", ")} build{nextAction.row.unblocks.length === 1 ? "s" : ""} on it.
+              </span>
+            ) : nextAction.row?.rationale ? (
+              <span className="mt-0.5 block line-clamp-1 text-[11px] text-muted-foreground">{nextAction.row.rationale}</span>
+            ) : null}
           </span>
           <ArrowRight aria-hidden className="size-4 shrink-0 text-orange-600 transition-transform duration-150 group-hover:translate-x-0.5" />
         </Link>

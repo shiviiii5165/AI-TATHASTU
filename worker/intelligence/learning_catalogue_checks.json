@@ -1,0 +1,1095 @@
+{
+  "checkedAt": "2026-11-12",
+  "requests": 121,
+  "resources": {
+    "airflow-fundamentals": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Apache Airflow (official documentation)",
+      "status": "ok",
+      "title": "Airflow 101: Building Your First Workflow",
+      "url": "https://airflow.apache.org/docs/apache-airflow/stable/tutorial/fundamentals.html"
+    },
+    "aws-skill-builder": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Amazon Web Services",
+      "status": "ok",
+      "title": "AWS Skill Builder",
+      "url": "https://skillbuilder.aws/"
+    },
+    "berkeley-cs285": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "UC Berkeley",
+      "status": "ok",
+      "title": "CS 285: Deep Reinforcement Learning",
+      "url": "https://rail.eecs.berkeley.edu/deeprlcourse/"
+    },
+    "bluedot": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "BlueDot Impact",
+      "status": "ok",
+      "title": "AI safety courses",
+      "url": "https://bluedot.org/courses"
+    },
+    "claude-prompt-engineering": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Anthropic (Claude Platform Docs)",
+      "status": "ok",
+      "title": "Prompt engineering overview",
+      "url": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/overview"
+    },
+    "coursera-dl-spec": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "DeepLearning.AI (Coursera)",
+      "status": "ok",
+      "title": "Deep Learning Specialization",
+      "url": "https://www.coursera.org/specializations/deep-learning"
+    },
+    "coursera-dsa": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "UC San Diego (Coursera)",
+      "status": "ok",
+      "title": "Data Structures and Algorithms Specialization",
+      "url": "https://www.coursera.org/specializations/data-structures-algorithms"
+    },
+    "coursera-genai-llms": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "DeepLearning.AI and AWS (Coursera)",
+      "status": "ok",
+      "title": "Generative AI with Large Language Models",
+      "url": "https://www.coursera.org/learn/generative-ai-with-llms"
+    },
+    "coursera-math-ml": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Imperial College London (Coursera)",
+      "status": "ok",
+      "title": "Mathematics for Machine Learning Specialization",
+      "url": "https://www.coursera.org/specializations/mathematics-machine-learning"
+    },
+    "coursera-ml-spec": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "DeepLearning.AI and Stanford (Coursera)",
+      "status": "ok",
+      "title": "Machine Learning Specialization",
+      "url": "https://www.coursera.org/specializations/machine-learning-introduction"
+    },
+    "coursera-rl-spec": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "University of Alberta (Coursera)",
+      "status": "ok",
+      "title": "Reinforcement Learning Specialization",
+      "url": "https://www.coursera.org/specializations/reinforcement-learning"
+    },
+    "coursera-stat-inference": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Johns Hopkins University (Coursera)",
+      "status": "ok",
+      "title": "Statistical Inference",
+      "url": "https://www.coursera.org/learn/statistical-inference"
+    },
+    "cs197": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Stanford University",
+      "status": "ok",
+      "title": "CS197: Computer Science Research",
+      "url": "https://web.stanford.edu/class/cs197/"
+    },
+    "cs224n": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Stanford University",
+      "status": "ok",
+      "title": "CS224N: Natural Language Processing with Deep Learning",
+      "url": "https://web.stanford.edu/class/cs224n/"
+    },
+    "cs224w": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Stanford University",
+      "status": "ok",
+      "title": "CS224W: Machine Learning with Graphs",
+      "url": "https://web.stanford.edu/class/cs224w/"
+    },
+    "cs229": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Stanford University",
+      "status": "ok",
+      "title": "CS229: Machine Learning",
+      "url": "https://cs229.stanford.edu/"
+    },
+    "cs231n": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Stanford University",
+      "status": "ok",
+      "title": "CS231n: Deep Learning for Computer Vision",
+      "url": "https://cs231n.stanford.edu/"
+    },
+    "cs25": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Stanford University",
+      "status": "ok",
+      "title": "CS25: Transformers United",
+      "url": "https://web.stanford.edu/class/cs25/"
+    },
+    "cs520": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Stanford University",
+      "status": "ok",
+      "title": "CS 520: Knowledge Graphs",
+      "url": "https://web.stanford.edu/class/cs520/"
+    },
+    "cuda-guide": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "NVIDIA",
+      "status": "ok",
+      "title": "CUDA Programming Guide",
+      "url": "https://docs.nvidia.com/cuda/cuda-programming-guide/"
+    },
+    "d2l": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "d2l.ai",
+      "status": "ok",
+      "title": "Dive into Deep Learning",
+      "url": "https://d2l.ai/"
+    },
+    "de-zoomcamp": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "DataTalks.Club",
+      "status": "ok",
+      "title": "Data Engineering Zoomcamp",
+      "url": "https://github.com/DataTalksClub/data-engineering-zoomcamp"
+    },
+    "dlai-eval-agents": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "DeepLearning.AI",
+      "status": "ok",
+      "title": "Evaluating AI Agents",
+      "url": "https://www.deeplearning.ai/courses/evaluating-ai-agents"
+    },
+    "dlai-finetuning": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "DeepLearning.AI",
+      "status": "ok",
+      "title": "Finetuning Large Language Models",
+      "url": "https://www.deeplearning.ai/courses/finetuning-large-language-models"
+    },
+    "dlai-prompt-eng": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "DeepLearning.AI",
+      "status": "ok",
+      "title": "ChatGPT Prompt Engineering for Developers",
+      "url": "https://www.deeplearning.ai/courses/chatgpt-prompt-eng"
+    },
+    "dlai-rag": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "DeepLearning.AI",
+      "status": "ok",
+      "title": "Retrieval Augmented Generation (RAG)",
+      "url": "https://www.deeplearning.ai/courses/retrieval-augmented-generation"
+    },
+    "dlai-vector-db": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "DeepLearning.AI",
+      "status": "ok",
+      "title": "Vector Databases: from Embeddings to Applications",
+      "url": "https://www.deeplearning.ai/courses/vector-databases-embeddings-applications"
+    },
+    "docker-get-started": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Docker (official documentation)",
+      "status": "ok",
+      "title": "Docker: Get started",
+      "url": "https://docs.docker.com/get-started/"
+    },
+    "dp-book": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Dwork and Roth",
+      "status": "ok",
+      "title": "The Algorithmic Foundations of Differential Privacy",
+      "url": "https://www.cis.upenn.edu/~aaroth/privacybook.html"
+    },
+    "evidently-course": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Evidently AI",
+      "status": "ok",
+      "title": "Open-source ML observability course",
+      "url": "https://learn.evidentlyai.com/"
+    },
+    "faiss-wiki": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Meta AI Research",
+      "status": "ok",
+      "title": "Faiss wiki",
+      "url": "https://github.com/facebookresearch/faiss/wiki"
+    },
+    "fastai": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "fast.ai",
+      "status": "ok",
+      "title": "Practical Deep Learning for Coders",
+      "url": "https://course.fast.ai/"
+    },
+    "fastapi-tutorial": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "FastAPI (official documentation)",
+      "status": "ok",
+      "title": "FastAPI Tutorial - User Guide",
+      "url": "https://fastapi.tiangolo.com/tutorial/"
+    },
+    "flower-fl": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Flower",
+      "status": "ok",
+      "title": "Federated Learning tutorial series",
+      "url": "https://flower.ai/docs/framework/tutorial-series-what-is-federated-learning.html"
+    },
+    "fpp3": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Hyndman and Athanasopoulos (OTexts)",
+      "status": "ok",
+      "title": "Forecasting: Principles and Practice (3rd edition)",
+      "url": "https://otexts.com/fpp3/"
+    },
+    "genai-for-everyone": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "DeepLearning.AI",
+      "status": "ok",
+      "title": "Generative AI for Everyone",
+      "url": "https://www.deeplearning.ai/courses/generative-ai-for-everyone"
+    },
+    "github-actions-quickstart": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "GitHub Docs",
+      "status": "ok",
+      "title": "Quickstart for GitHub Actions",
+      "url": "https://docs.github.com/en/actions/get-started/quickstart"
+    },
+    "google-mlcc": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Google for Developers",
+      "status": "ok",
+      "title": "Machine Learning Crash Course",
+      "url": "https://developers.google.com/machine-learning/crash-course"
+    },
+    "google-recsys": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Google for Developers",
+      "status": "ok",
+      "title": "Recommendation Systems",
+      "url": "https://developers.google.com/machine-learning/recommendation"
+    },
+    "google-skills": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Google Cloud",
+      "status": "ok",
+      "title": "Google Skills",
+      "url": "https://www.skills.google/"
+    },
+    "gpu-mode": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "GPU MODE",
+      "status": "ok",
+      "title": "GPU MODE lectures",
+      "url": "https://github.com/gpu-mode/lectures"
+    },
+    "gymnasium-docs": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Farama Foundation",
+      "status": "ok",
+      "title": "Gymnasium documentation",
+      "url": "https://gymnasium.farama.org/"
+    },
+    "hf-advanced-rag": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Hugging Face Cookbook",
+      "status": "ok",
+      "title": "Advanced RAG on Hugging Face documentation using LangChain",
+      "url": "https://huggingface.co/learn/cookbook/advanced_rag"
+    },
+    "hf-agents-course": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Hugging Face",
+      "status": "ok",
+      "title": "AI Agents Course",
+      "url": "https://huggingface.co/learn/agents-course/unit0/introduction"
+    },
+    "hf-audio-course": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Hugging Face",
+      "status": "ok",
+      "title": "Audio Course",
+      "url": "https://huggingface.co/learn/audio-course/chapter0/introduction"
+    },
+    "hf-cv-course": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Hugging Face",
+      "status": "ok",
+      "title": "Community Computer Vision Course",
+      "url": "https://huggingface.co/learn/computer-vision-course/unit0/welcome/welcome"
+    },
+    "hf-deep-rl": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Hugging Face",
+      "status": "ok",
+      "title": "Deep Reinforcement Learning Course",
+      "url": "https://huggingface.co/learn/deep-rl-course/unit0/introduction"
+    },
+    "hf-eval-guidebook": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Hugging Face",
+      "status": "ok",
+      "title": "LLM Evaluation Guidebook",
+      "url": "https://github.com/huggingface/evaluation-guidebook"
+    },
+    "hf-llm-course": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Hugging Face",
+      "status": "ok",
+      "title": "LLM Course",
+      "url": "https://huggingface.co/learn/llm-course/chapter1/1"
+    },
+    "hf-peft": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Hugging Face",
+      "status": "ok",
+      "title": "PEFT documentation",
+      "url": "https://huggingface.co/docs/peft/index"
+    },
+    "hf-quantization": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Hugging Face Transformers documentation",
+      "status": "ok",
+      "title": "Quantization overview",
+      "url": "https://huggingface.co/docs/transformers/main/en/quantization/overview"
+    },
+    "hf-transformers-docs": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Hugging Face",
+      "status": "ok",
+      "title": "Transformers documentation",
+      "url": "https://huggingface.co/docs/transformers/index"
+    },
+    "hf-vlms": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Hugging Face",
+      "status": "ok",
+      "title": "Vision Language Models Explained",
+      "url": "https://huggingface.co/blog/vlms"
+    },
+    "illustrated-transformer": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Jay Alammar",
+      "status": "ok",
+      "title": "The Illustrated Transformer",
+      "url": "https://jalammar.github.io/illustrated-transformer/"
+    },
+    "k8s-basics": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Kubernetes (official documentation)",
+      "status": "ok",
+      "title": "Learn Kubernetes Basics",
+      "url": "https://kubernetes.io/docs/tutorials/kubernetes-basics/"
+    },
+    "kaggle-data-cleaning": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Kaggle Learn",
+      "status": "ok",
+      "title": "Learn Data Cleaning",
+      "url": "https://www.kaggle.com/learn/data-cleaning"
+    },
+    "kaggle-dataviz": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Kaggle Learn",
+      "status": "ok",
+      "title": "Learn Data Visualization",
+      "url": "https://www.kaggle.com/learn/data-visualization"
+    },
+    "kaggle-feature-engineering": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Kaggle Learn",
+      "status": "ok",
+      "title": "Learn Feature Engineering",
+      "url": "https://www.kaggle.com/learn/feature-engineering"
+    },
+    "kaggle-intro-ml": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Kaggle Learn",
+      "status": "ok",
+      "title": "Learn Intro to Machine Learning",
+      "url": "https://www.kaggle.com/learn/intro-to-machine-learning"
+    },
+    "kaggle-pandas": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Kaggle Learn",
+      "status": "ok",
+      "title": "Learn Pandas",
+      "url": "https://www.kaggle.com/learn/pandas"
+    },
+    "karpathy-zero-to-hero": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Andrej Karpathy",
+      "status": "ok",
+      "title": "Neural Networks: Zero to Hero",
+      "url": "https://karpathy.ai/zero-to-hero.html"
+    },
+    "langchain-overview": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "LangChain (official documentation)",
+      "status": "ok",
+      "title": "LangChain overview",
+      "url": "https://docs.langchain.com/oss/python/langchain/overview"
+    },
+    "langgraph-overview": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "LangChain (official documentation)",
+      "status": "ok",
+      "title": "LangGraph overview",
+      "url": "https://docs.langchain.com/oss/python/langgraph/overview"
+    },
+    "langsmith-observability": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "LangChain (official documentation)",
+      "status": "ok",
+      "title": "LangSmith Observability",
+      "url": "https://docs.langchain.com/langsmith/observability"
+    },
+    "learncpp": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "LearnCpp.com",
+      "status": "ok",
+      "title": "Learn C++",
+      "url": "https://www.learncpp.com/"
+    },
+    "litert": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Google AI Edge",
+      "status": "ok",
+      "title": "LiteRT",
+      "url": "https://developers.google.com/edge/litert"
+    },
+    "llamaindex-starter": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "LlamaIndex (official documentation)",
+      "status": "ok",
+      "title": "LlamaIndex Starter Tutorial",
+      "url": "https://developers.llamaindex.ai/python/framework/getting_started/starter_example/"
+    },
+    "lm-eval-harness": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "EleutherAI",
+      "status": "ok",
+      "title": "Language Model Evaluation Harness",
+      "url": "https://github.com/EleutherAI/lm-evaluation-harness"
+    },
+    "made-with-ml": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Anyscale",
+      "status": "ok",
+      "title": "Made With ML",
+      "url": "https://madewithml.com/"
+    },
+    "matplotlib-tutorials": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Matplotlib (official documentation)",
+      "status": "ok",
+      "title": "Matplotlib Tutorials",
+      "url": "https://matplotlib.org/stable/tutorials/index.html"
+    },
+    "mdn-http": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "MDN Web Docs",
+      "status": "ok",
+      "title": "An overview of HTTP",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Overview"
+    },
+    "missing-semester": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "MIT CSAIL",
+      "status": "ok",
+      "title": "The Missing Semester of Your CS Education",
+      "url": "https://missing.csail.mit.edu/"
+    },
+    "mit-1805": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "MIT OpenCourseWare",
+      "status": "ok",
+      "title": "18.05 Introduction to Probability and Statistics",
+      "url": "https://ocw.mit.edu/courses/18-05-introduction-to-probability-and-statistics-spring-2022/"
+    },
+    "mit-1806": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "MIT OpenCourseWare",
+      "status": "ok",
+      "title": "18.06 Linear Algebra",
+      "url": "https://ocw.mit.edu/courses/18-06-linear-algebra-spring-2010/"
+    },
+    "mit-6006": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "MIT OpenCourseWare",
+      "status": "ok",
+      "title": "6.006 Introduction to Algorithms",
+      "url": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/"
+    },
+    "mit-6s191": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "MIT",
+      "status": "ok",
+      "title": "MIT 6.S191 Introduction to Deep Learning",
+      "url": "https://introtodeeplearning.com/"
+    },
+    "mit-tinyml": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "MIT HAN Lab",
+      "status": "ok",
+      "title": "6.5940 TinyML and Efficient Deep Learning Computing",
+      "url": "https://hanlab.mit.edu/courses/2024-fall-65940"
+    },
+    "mlflow-getting-started": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "MLflow (official documentation)",
+      "status": "ok",
+      "title": "Getting Started with MLflow for ML",
+      "url": "https://mlflow.org/docs/latest/ml/getting-started/"
+    },
+    "mlops-zoomcamp": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "DataTalks.Club",
+      "status": "ok",
+      "title": "MLOps Zoomcamp",
+      "url": "https://github.com/DataTalksClub/mlops-zoomcamp"
+    },
+    "mujoco-docs": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Google DeepMind",
+      "status": "ok",
+      "title": "MuJoCo documentation",
+      "url": "https://mujoco.readthedocs.io/en/stable/overview.html"
+    },
+    "neo4j-graphacademy": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Neo4j",
+      "status": "ok",
+      "title": "Neo4j GraphAcademy",
+      "url": "https://graphacademy.neo4j.com/"
+    },
+    "networkx-tutorial": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "NetworkX (official documentation)",
+      "status": "ok",
+      "title": "NetworkX Tutorial",
+      "url": "https://networkx.org/documentation/stable/tutorial.html"
+    },
+    "nextjs-learn": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Vercel (nextjs.org)",
+      "status": "ok",
+      "title": "Learn Next.js",
+      "url": "https://nextjs.org/learn"
+    },
+    "nist-ai-rmf": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "NIST",
+      "status": "ok",
+      "title": "AI Risk Management Framework",
+      "url": "https://www.nist.gov/itl/ai-risk-management-framework"
+    },
+    "numpy-beginners": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "NumPy (official documentation)",
+      "status": "ok",
+      "title": "NumPy: the absolute basics for beginners",
+      "url": "https://numpy.org/doc/stable/user/absolute_beginners.html"
+    },
+    "onnxruntime-tutorials": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Microsoft (onnxruntime.ai)",
+      "status": "ok",
+      "title": "ONNX Runtime Tutorials",
+      "url": "https://onnxruntime.ai/docs/tutorials/"
+    },
+    "opacus-tutorials": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Meta (Opacus)",
+      "status": "ok",
+      "title": "Opacus tutorials",
+      "url": "https://opacus.ai/tutorials/"
+    },
+    "opencv-tutorials": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "OpenCV (official documentation)",
+      "status": "ok",
+      "title": "OpenCV Tutorials",
+      "url": "https://docs.opencv.org/4.13.0/d9/df8/tutorial_root.html"
+    },
+    "openintro-stats": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "OpenIntro",
+      "status": "ok",
+      "title": "OpenIntro Statistics",
+      "url": "https://www.openintro.org/book/os/"
+    },
+    "otel-primer": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "OpenTelemetry",
+      "status": "ok",
+      "title": "Observability primer",
+      "url": "https://opentelemetry.io/docs/concepts/observability-primer/"
+    },
+    "owasp-llm": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "OWASP Gen AI Security Project",
+      "status": "ok",
+      "title": "OWASP Top 10 for LLM Applications",
+      "url": "https://genai.owasp.org/llm-top-10/"
+    },
+    "pandas-10min": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "pandas (official documentation)",
+      "status": "ok",
+      "title": "10 minutes to pandas",
+      "url": "https://pandas.pydata.org/docs/user_guide/10min.html"
+    },
+    "postgres-tutorial": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "PostgreSQL Global Development Group",
+      "status": "ok",
+      "title": "PostgreSQL Tutorial",
+      "url": "https://www.postgresql.org/docs/current/tutorial.html"
+    },
+    "pro-git": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Scott Chacon and Ben Straub (git-scm.com)",
+      "status": "ok",
+      "title": "Pro Git",
+      "url": "https://git-scm.com/book/en/v2"
+    },
+    "prompting-guide": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "DAIR.AI",
+      "status": "ok",
+      "title": "Prompt Engineering Guide",
+      "url": "https://www.promptingguide.ai/"
+    },
+    "pyg-intro": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "PyG",
+      "status": "ok",
+      "title": "PyTorch Geometric: Introduction by Example",
+      "url": "https://pytorch-geometric.readthedocs.io/en/latest/get_started/introduction.html"
+    },
+    "pytest-getting-started": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "pytest (official documentation)",
+      "status": "ok",
+      "title": "pytest: Get Started",
+      "url": "https://docs.pytest.org/en/stable/getting-started.html"
+    },
+    "python-tutorial": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Python Software Foundation",
+      "status": "ok",
+      "title": "The Python Tutorial",
+      "url": "https://docs.python.org/3/tutorial/"
+    },
+    "pytorch-basics": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "PyTorch (official tutorials)",
+      "status": "ok",
+      "title": "Learn the Basics",
+      "url": "https://docs.pytorch.org/tutorials/beginner/basics/intro.html"
+    },
+    "pytorch-ddp": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "PyTorch (official tutorials)",
+      "status": "ok",
+      "title": "Getting Started with Distributed Data Parallel",
+      "url": "https://docs.pytorch.org/tutorials/intermediate/ddp_tutorial.html"
+    },
+    "ray-train": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Anyscale (Ray documentation)",
+      "status": "ok",
+      "title": "Ray Train",
+      "url": "https://docs.ray.io/en/latest/train/train.html"
+    },
+    "ros2-tutorials": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Open Robotics",
+      "status": "ok",
+      "title": "ROS 2 Tutorials (Jazzy)",
+      "url": "https://docs.ros.org/en/jazzy/Tutorials.html"
+    },
+    "sbert-docs": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "SBERT.net",
+      "status": "ok",
+      "title": "Sentence Transformers documentation",
+      "url": "https://sbert.net/"
+    },
+    "seeing-theory": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Brown University",
+      "status": "ok",
+      "title": "Seeing Theory",
+      "url": "https://seeing-theory.brown.edu/"
+    },
+    "sklearn-getting-started": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "scikit-learn (official documentation)",
+      "status": "ok",
+      "title": "scikit-learn: Getting Started",
+      "url": "https://scikit-learn.org/stable/getting_started.html"
+    },
+    "sklearn-model-selection": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "scikit-learn (official documentation)",
+      "status": "ok",
+      "title": "Model selection and evaluation",
+      "url": "https://scikit-learn.org/stable/model_selection.html"
+    },
+    "sklearn-mooc": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Inria",
+      "status": "ok",
+      "title": "Machine learning in Python with scikit-learn",
+      "url": "https://inria.github.io/scikit-learn-mooc/"
+    },
+    "spacy-course": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Explosion",
+      "status": "ok",
+      "title": "Advanced NLP with spaCy",
+      "url": "https://course.spacy.io/en/"
+    },
+    "spinning-up": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "OpenAI",
+      "status": "ok",
+      "title": "Spinning Up in Deep RL",
+      "url": "https://spinningup.openai.com/en/latest/"
+    },
+    "sqlbolt": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "SQLBolt",
+      "status": "ok",
+      "title": "SQLBolt",
+      "url": "https://sqlbolt.com/"
+    },
+    "tensorflow-tutorials": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "TensorFlow (official documentation)",
+      "status": "ok",
+      "title": "TensorFlow Tutorials",
+      "url": "https://www.tensorflow.org/tutorials"
+    },
+    "tensorrt-quickstart": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "NVIDIA",
+      "status": "ok",
+      "title": "TensorRT Quick Start Guide",
+      "url": "https://docs.nvidia.com/deeplearning/tensorrt/latest/getting-started/quick-start-guide.html"
+    },
+    "terraform-tutorials": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "HashiCorp Developer",
+      "status": "ok",
+      "title": "Terraform Tutorials",
+      "url": "https://developer.hashicorp.com/terraform/tutorials"
+    },
+    "torchvision-detection": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "PyTorch (official tutorials)",
+      "status": "ok",
+      "title": "TorchVision Object Detection Finetuning Tutorial",
+      "url": "https://docs.pytorch.org/tutorials/intermediate/torchvision_tutorial.html"
+    },
+    "triton-quickstart": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "NVIDIA",
+      "status": "ok",
+      "title": "Triton Inference Server Quickstart",
+      "url": "https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/getting_started/quickstart.html"
+    },
+    "tuning-playbook": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Google Research",
+      "status": "ok",
+      "title": "Deep Learning Tuning Playbook",
+      "url": "https://github.com/google-research/tuning_playbook"
+    },
+    "typescript-handbook": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Microsoft (typescriptlang.org)",
+      "status": "ok",
+      "title": "The TypeScript Handbook",
+      "url": "https://www.typescriptlang.org/docs/handbook/intro.html"
+    },
+    "ultralytics-docs": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Ultralytics",
+      "status": "ok",
+      "title": "Ultralytics YOLO documentation",
+      "url": "https://docs.ultralytics.com/"
+    },
+    "ultrascale-playbook": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Hugging Face (nanotron)",
+      "status": "ok",
+      "title": "The Ultra-Scale Playbook",
+      "url": "https://huggingface.co/spaces/nanotron/ultrascale-playbook"
+    },
+    "vllm-quickstart": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "vLLM (official documentation)",
+      "status": "ok",
+      "title": "vLLM Quickstart",
+      "url": "https://docs.vllm.ai/en/latest/getting_started/quickstart/"
+    },
+    "wandb-quickstart": {
+      "checkedAt": "2026-11-12",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "CoreWeave (Weights & Biases)",
+      "status": "ok",
+      "title": "Weights & Biases Quickstart",
+      "url": "https://docs.coreweave.com/products/wandb/quickstart"
+    }
+  }
+}

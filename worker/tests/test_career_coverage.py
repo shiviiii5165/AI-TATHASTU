@@ -70,8 +70,55 @@ class Frameworks(unittest.TestCase):
         self.assertTrue(fw.FRAMEWORK_VERSION)
         self.assertEqual(fw.FRAMEWORK_STATUS, "draft_unreviewed")
         self.assertIsNone(fw.FRAMEWORK_PROVENANCE["reviewedBy"])
-        self.assertEqual(fw.FRAMEWORK_PROVENANCE["references"], [])  # no invented sources
         self.assertIn("Not an industry standard", fw.FRAMEWORK_PROVENANCE["basis"])
+        # References are real, link-checked public sources (exam guides, occupational databases, syllabi, standards).
+        refs = fw.FRAMEWORK_PROVENANCE["references"]
+        self.assertGreaterEqual(len(refs), 20)
+        for ref in refs:
+            with self.subTest(ref=ref["id"]):
+                self.assertTrue(ref["url"].startswith("https://"))
+                self.assertTrue(ref["checkedAt"] and ref["publisher"] and ref["kind"] and ref["informs"])
+
+    def test_every_pathway_cites_references_and_explains_itself(self):
+        for role in SELECTABLE:
+            with self.subTest(role=role):
+                f = fw.framework_for(role)
+                self.assertTrue(fw.references_for(role), "each role names the public references that informed it")
+                self.assertTrue(f.summary and f.distinguishing_focus and len(f.practical_capabilities) >= 3)
+                self.assertTrue(all(r.rationale for r in f.requirements), "every competency says why this role needs it")
+                self.assertTrue(f.specialisations, "each role has named specialisation tracks")
+                self.assertTrue(all(r.track for r in f.specialisation_requirements))
+
+    def test_pathways_are_genuinely_distinct(self):
+        """No two roles share the same required set, and no pair overlaps on more than 75% of the smaller required set."""
+        required = {role: {r.competency for r in fw.framework_for(role).requirements if r.required} for role in SELECTABLE}
+        for i, a in enumerate(SELECTABLE):
+            for b in SELECTABLE[i + 1:]:
+                with self.subTest(a=a, b=b):
+                    overlap = len(required[a] & required[b]) / min(len(required[a]), len(required[b]))
+                    self.assertLess(overlap, 0.8, f"{a} and {b} require almost the same skills")
+            for b in SELECTABLE:
+                if b != a:
+                    with self.subTest(subset=(a, b)):
+                        self.assertFalse(required[a] <= required[b], f"everything {a} requires is also required by {b}")
+
+    def test_capabilities_are_part_of_the_frameworks_not_only_tools(self):
+        """Practical capabilities (evaluating models, preparing data, deploying) are required where the job needs them."""
+        def required(role):
+            return {r.competency for r in fw.framework_for(role).requirements if r.required}
+        self.assertIn("Model Evaluation", required("ml_engineer"))
+        self.assertIn("Model Deployment", required("ml_engineer"))
+        self.assertIn("Data Preparation", required("data_scientist"))
+        self.assertIn("Experimental Design", required("ai_researcher"))
+        self.assertIn("Model Monitoring", required("llmops_engineer"))
+        self.assertNotIn("LangChain", required("llm_application_engineer"), "a framework choice isn't a requirement")
+
+    def test_level_criteria_are_behavioural(self):
+        crit = fw.level_criteria("PyTorch", "framework")
+        self.assertIn("training loop", crit["Proficient"])
+        self.assertEqual(set(crit), {"Foundational", "Working", "Proficient", "Advanced"})
+        self.assertEqual(set(fw.level_criteria("Kubernetes", "platform")), {"Foundational", "Working", "Proficient", "Advanced"})
+        self.assertEqual(set(fw.EVIDENCE_FOR_LEVEL), {"Foundational", "Working", "Proficient", "Advanced"})
 
     def test_every_pathway_has_its_own_structured_framework(self):
         for role in SELECTABLE:
@@ -100,10 +147,12 @@ class Frameworks(unittest.TestCase):
     def test_shared_competencies_are_one_definition_with_role_specific_expectations(self):
         def req(role, name):
             return next(r for r in fw.framework_for(role).requirements if r.competency == name)
-        self.assertEqual(req("data_scientist", "Statistics").tier, "required")
-        self.assertEqual(req("ml_engineer", "Statistics").tier, "supporting")
+        self.assertEqual(req("data_scientist", "Statistics").expected_level, "Proficient")
+        self.assertEqual(req("ml_engineer", "Statistics").expected_level, "Working")  # required in v4: ML and evaluation build on it
+        self.assertEqual(req("ai_researcher", "Statistics").tier, "required")
+        self.assertEqual(req("nlp_engineer", "Statistics").tier, "supporting")
         self.assertEqual(req("mlops_engineer", "Docker").expected_level, "Proficient")
-        self.assertEqual(req("llm_application_engineer", "Docker").expected_level, "Foundational")
+        self.assertEqual(req("llm_application_engineer", "Docker").tier, "supporting")
 
     def test_role_specific_requirements_do_not_leak(self):
         def names(role):
@@ -113,7 +162,9 @@ class Frameworks(unittest.TestCase):
         self.assertNotIn("Kubernetes", names("ml_engineer"))
         self.assertIn("Speech Recognition", names("speech_ai_engineer"))
         self.assertIn("Graph Neural Networks", names("graph_ai_engineer"))
-        self.assertIn("Federated Learning", names("edge_federated_ai_engineer"))
+        # Federated learning is a specialisation track of the edge role, not a requirement of every edge engineer.
+        self.assertIn("Federated Learning", {r.competency for r in fw.framework_for("edge_federated_ai_engineer").specialisation_requirements})
+        self.assertIn("On-device ML", names("edge_federated_ai_engineer"))
         self.assertIn("LLM Evaluation", names("ai_evaluation_safety_engineer"))
         self.assertIn("AI Agents", names("ai_agent_engineer"))
 

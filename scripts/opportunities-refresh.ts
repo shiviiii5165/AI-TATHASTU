@@ -1,33 +1,25 @@
-// Controlled refresh of research opportunities from the curated source registry.
+// Research-opportunity refresh, same code path as the scheduled endpoint
+// (/api/internal/opportunities/refresh): every enabled, due source (interval, backoff and lease
+// respected; failures isolated), then lifecycle (deadlines, stale verification) and link checks.
 //
 //   npm run opportunities:refresh            # .env.local (or the environment)
 //
-// For each ENABLED, terms-reviewed feed source in opportunity_sources: respects its
-// min_fetch_interval_minutes and robots.txt, fetches once, dedupes, withdraws entries the source
-// no longer lists. Then applies the lifecycle (expired deadlines, stale verification).
-// Nothing is fetched from an unregistered or disabled source; failures leave listings intact.
-// Prints counts and short error codes only (no payloads). Intended for a scheduled job (e.g. every 6h).
+// Prints counts and short error codes only.
 import { config } from "dotenv";
 
 config({ path: ".env.local", quiet: true });
 
 async function main() {
-  const { eq } = await import("drizzle-orm");
+  const { assertWriteAllowed } = await import("./lib/db-target.mjs");
+  assertWriteAllowed(process.env.DATABASE_URL);
   const { db } = await import("../src/db");
-  const { opportunitySources } = await import("../src/db/schema");
-  const { applyLifecycle, refreshSource } = await import("../src/lib/opportunities/ingest");
-  type Db = Parameters<typeof refreshSource>[0];
-
-  const sources = await db.select().from(opportunitySources).where(eq(opportunitySources.enabled, true));
-  let failed = 0;
-  for (const s of sources) {
-    const r = await refreshSource(db as unknown as Db, s);
-    if (r.status === "failed") failed++;
-    console.log(`${s.id.padEnd(32)} ${r.status}${"reason" in r ? ` (${r.reason})` : ""}${"error" in r ? ` ${r.error}` : ""}${r.status === "ok" ? ` seen=${r.seen} new=${r.inserted} updated=${r.updated} withdrawn=${r.withdrawn} dup=${r.duplicates}` : ""}`);
+  const { refreshDueSources } = await import("../src/lib/opportunities/ingest");
+  const r = await refreshDueSources(db as unknown as Parameters<typeof refreshDueSources>[0]);
+  for (const [id, o] of Object.entries(r.results)) {
+    console.log(`${id.padEnd(32)} ${o.status}${"reason" in o ? ` (${o.reason})` : ""}${"error" in o ? ` ${o.error}` : ""}${o.status === "ok" ? ` seen=${o.seen} new=${o.inserted} updated=${o.updated} withdrawn=${o.withdrawn} dup=${o.duplicates}` : ""}`);
   }
-  const lc = await applyLifecycle(db as unknown as Db);
-  console.log(`lifecycle expired=${lc.expired} stale=${lc.stale}`);
-  process.exit(failed ? 1 : 0);
+  console.log(`lifecycle expired=${r.lifecycle.expired} stale=${r.lifecycle.stale} · links checked=${r.links.checked} broken=${r.links.broken}`);
+  process.exit(Object.values(r.results).some((o) => o.status === "failed") ? 1 : 0);
 }
 
 main().catch((e) => {

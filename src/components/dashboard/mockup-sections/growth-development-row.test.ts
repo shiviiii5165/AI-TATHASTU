@@ -10,35 +10,44 @@ import type { EngineSkill } from "@/lib/dashboard/types";
 // The server action pulls in the database; the card only needs its signature here.
 vi.mock("@/app/(dashboard)/dashboard/roadmap-actions", () => ({ submitRoadmapEvidence: vi.fn() }));
 
-const { SkillRow, barWidth, paletteIndex } = await import("./growth-development-row");
+const { SkillRow, filledSteps, levelWindowText, paletteIndex } = await import("./growth-development-row");
 
-const skill = (name: string, proficiency: number | null, level = "Proficient"): EngineSkill =>
-  ({ name, proficiency, level, status: "verified", confidence: 0.6, evidenceCount: 2, evidence: [], category: "language" }) as unknown as EngineSkill;
+const skill = (name: string, proficiency: number | null, level = "Proficient", extra: Partial<EngineSkill> = {}): EngineSkill =>
+  ({ name, proficiency, level, status: "verified", confidence: 0.6, evidenceCount: 2, evidence: [], category: "language", ...extra }) as unknown as EngineSkill;
 
-describe("Skill Proficiency bars", () => {
-  it("sizes each bar to the engine's real score, clamped, never padded", () => {
-    expect(barWidth(59)).toBe(59);
-    expect(barWidth(0)).toBe(0);
-    expect(barWidth(140)).toBe(100);
-    expect(barWidth(null)).toBeNull();
-    expect(barWidth(Number.NaN)).toBeNull();
-  });
+const count = (html: string, needle: string) => html.split(needle).length - 1;
 
-  it("renders the actual percentage and a fill that ends at it", () => {
-    const html = renderToStaticMarkup(createElement(SkillRow, { skill: skill("TypeScript", 59.4), index: 2 }));
-    expect(html).toContain("width:59.4%");
-    expect(html).toContain(">59%<");
-    expect(html).toContain("Proficient");
-    // Animation only scales in from zero (transform), with a stagger; the final width is the score.
+describe("Skill Proficiency level steps", () => {
+  it("fills steps up to the engine's level and never shows a percentage", () => {
+    expect(filledSteps(skill("A", 30, "Working"))).toBe(2);
+    expect(filledSteps(skill("A", 80, "Advanced"))).toBe(4);
+    expect(filledSteps(skill("A", null, "Not assessed"))).toBe(0);
+    const html = renderToStaticMarkup(createElement(SkillRow, { skill: skill("TypeScript", 59.4, "Proficient", { levelBasis: ["Code that uses it in 3 repositories"] }), index: 2 }));
+    expect(count(html, 'data-testid="skill-step-filled"')).toBe(3);
+    expect(html).not.toMatch(/\d+%/);
+    expect(html).toContain("Code that uses it in 3 repositories");
+    // Animation only scales in from zero (transform), staggered; reduced motion shows the end state.
     expect(html).toContain("skillBarGrow");
-    expect(html).toContain("animation-delay:160ms");
     expect(html).toContain("motion-reduce:animate-none");
   });
 
-  it("shows 'Not assessed' with no bar when there is no score", () => {
-    const html = renderToStaticMarkup(createElement(SkillRow, { skill: skill("Rust", null, "Not assessed"), index: 0 }));
+  it("marks the level the goal expects and says when it's met", () => {
+    const below = renderToStaticMarkup(createElement(SkillRow, { skill: skill("PyTorch", 30, "Working"), index: 0, expectedLevel: "Proficient", met: false }));
+    expect(below).toContain("goal: Proficient");
+    const met = renderToStaticMarkup(createElement(SkillRow, { skill: skill("Python", 60, "Proficient"), index: 0, expectedLevel: "Proficient", met: true }));
+    expect(met).toContain("meets goal");
+  });
+
+  it("shows 'Not assessed' with no filled step, and names the kind of evidence", () => {
+    const html = renderToStaticMarkup(createElement(SkillRow, { skill: skill("Rust", null, "Not assessed", { status: "claimed", evidenceBasis: "claimed" }), index: 0 }));
     expect(html).toContain("Not assessed");
-    expect(html).not.toContain("skill-bar-fill");
+    expect(html).toContain("Listed only");
+    expect(html).not.toContain('data-testid="skill-step-filled"');
+  });
+
+  it("describes a resource's level window from the catalogue", () => {
+    expect(levelWindowText({ start: "none", reach: "Working" })).toBe("From no experience to Working");
+    expect(levelWindowText(undefined)).toBeNull();
   });
 
   it("gives a skill the same colour every render", () => {

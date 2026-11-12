@@ -38,6 +38,12 @@ export type RoadmapStep = {
   evidenceRequired?: string;
   why?: string;
   optional: boolean;
+  /** Engine v4 milestone detail; absent on older documents. */
+  sources?: RoadmapMilestone["sources"];
+  context?: string | null;
+  levelBasis?: string[];
+  nextLevel?: string | null;
+  submissionCheck?: RoadmapMilestone["submissionCheck"];
 };
 
 export type RoadmapProgress = {
@@ -89,6 +95,11 @@ export function roadmapProgress(roadmap: EngineRoadmap, computedAt: string | Dat
         evidenceRequired: m.evidenceRequired,
         why: m.why,
         optional: Boolean(m.optional ?? stage.optional),
+        sources: m.sources,
+        context: m.context,
+        levelBasis: m.levelBasis,
+        nextLevel: m.nextLevel,
+        submissionCheck: m.submissionCheck,
       });
     }
   }

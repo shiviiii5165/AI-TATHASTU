@@ -5,10 +5,9 @@ import Link from "next/link";
 import { useState, type ReactNode } from "react";
 
 import { roleLabel } from "@/components/dashboard/widgets/labels";
+import { EVIDENCE_BASIS, LEVEL_STEPS, basisLine, evidenceBasisOf, levelStep, openRows, primaryAnalysis } from "@/lib/dashboard/intelligence";
 import { expectsText, needsShort, stateText } from "@/lib/dashboard/plain-language";
 import type { EngineSkill, IntelligenceDoc, RoleAnalysis, RoleSkillRow } from "@/lib/dashboard/types";
-
-const STATUS_LABEL = { verified: "Verified", claimed: "Claimed", inferred: "Inferred" } as const;
 const PRIORITY_CLASS = {
   High: "bg-rose-50 text-rose-600 ring-rose-200/70 dark:bg-rose-500/15 dark:text-rose-300 dark:ring-rose-400/30",
   Medium: "bg-amber-50 text-amber-700 ring-amber-200/70 dark:bg-amber-500/15 dark:text-amber-300 dark:ring-amber-400/30",
@@ -112,18 +111,24 @@ export function SkillGaps({ intelligence }: { intelligence?: IntelligenceDoc }) 
 
 // ─── Skill Proficiency ──────────────────────────────────────────────────────
 
-/** Bar width is the engine's score, clamped to 0-100 and never padded. Exported for tests. */
-export function barWidth(proficiency: number | null): number | null {
-  if (proficiency === null || !Number.isFinite(proficiency)) return null;
-  return Math.max(0, Math.min(100, proficiency));
+/**
+ * Filled steps of the four-level bar: the engine's level, never a percentage. The score behind it is a points total with
+ * evidence gates, so showing "70%" would suggest a precision the evidence doesn't have. Exported for tests.
+ */
+export function filledSteps(skill: Pick<EngineSkill, "proficiency" | "level">): number {
+  return skill.proficiency === null || skill.proficiency === undefined ? 0 : levelStep(skill.level);
 }
 
-export function SkillRow({ skill, index }: { skill: EngineSkill; index: number }) {
-  const width = barWidth(skill.proficiency);
+export function SkillRow({ skill, index, expectedLevel, met }: { skill: EngineSkill; index: number; expectedLevel?: string; met?: boolean }) {
+  const filled = filledSteps(skill);
+  const expected = expectedLevel ? levelStep(expectedLevel) : 0;
   const p = paletteFor(skill.name);
+  const basis = evidenceBasisOf(skill);
+  const line = filled ? basisLine(skill) : EVIDENCE_BASIS[basis].label;
+  const label = `${skill.name}: ${filled ? skill.level : "not assessed"}${expected ? `, expected ${expectedLevel}` : ""}. ${EVIDENCE_BASIS[basis].explain}`;
   return (
-    <li className="flex items-center gap-2.5">
-      <span aria-hidden className={`flex size-6 shrink-0 items-center justify-center rounded-md ${p.chip}`}>
+    <li className="flex items-start gap-2.5" data-skill={skill.name}>
+      <span aria-hidden className={`mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md ${p.chip}`}>
         <SkillIcon name={skill.name} className="size-3.5" />
       </span>
       <div className="min-w-0 flex-1">
@@ -131,36 +136,70 @@ export function SkillRow({ skill, index }: { skill: EngineSkill; index: number }
           <span className="min-w-0 truncate font-semibold text-foreground" title={skill.name}>
             {skill.name}
           </span>
-          {width !== null ? (
+          {filled ? (
             <span className="flex shrink-0 items-center gap-1.5">
+              {expected > 0 && (
+                <span className={`text-[10px] font-medium ${met ? "text-emerald-700 dark:text-emerald-300" : "text-muted-foreground"}`}>{met ? "meets goal" : `goal: ${expectedLevel}`}</span>
+              )}
               <span className={`rounded-md px-1.5 py-px text-[10px] font-semibold ${LEVEL_BADGE[skill.level] ?? "bg-muted text-muted-foreground"}`}>{skill.level}</span>
-              <span className="w-8 text-right text-[11px] font-bold tabular-nums text-foreground">{Math.round(width)}%</span>
             </span>
           ) : (
-            <span className="shrink-0 text-[11px] text-muted-foreground">Not assessed</span>
+            <span className="shrink-0 text-[11px] text-muted-foreground">{expected > 0 ? `Not assessed · goal: ${expectedLevel}` : "Not assessed"}</span>
           )}
         </div>
-        {width !== null ? (
-          <div className="mt-1 h-1.5 w-full rounded-full bg-muted/80" role="img" aria-label={`${skill.name}: ${Math.round(width)} of 100, ${STATUS_LABEL[skill.status].toLowerCase()}`}>
-            {/* The fill is sized to the real score; the animation only scales it in from zero, once, on mount. */}
-            <div
-              data-testid="skill-bar-fill"
-              className={`relative h-full origin-left rounded-full bg-gradient-to-r ${p.bar} ${skill.status === "verified" ? "" : "opacity-75"} motion-safe:animate-[skillBarGrow_900ms_cubic-bezier(0.22,1,0.36,1)_both] motion-reduce:animate-none`}
-              style={{ width: `${width}%`, animationDelay: `${index * 80}ms` }}
-            >
-              <span aria-hidden className={`absolute -right-0.5 top-1/2 size-2 -translate-y-1/2 rounded-full ring-2 ring-card ${p.glow}`} />
-            </div>
-          </div>
-        ) : (
-          <div className="mt-1 h-1.5 w-full rounded-full border border-dashed border-border" aria-hidden />
-        )}
+        <div className="mt-1 grid grid-cols-4 gap-1" role="img" aria-label={label}>
+          {LEVEL_STEPS.map((step, i) => {
+            const on = i < filled;
+            const isGoal = expected === i + 1;
+            return (
+              <span
+                key={step}
+                title={step}
+                data-testid={on ? "skill-step-filled" : "skill-step"}
+                className={`relative h-1.5 rounded-full ${on ? "" : filled ? "bg-muted/80" : "border border-dashed border-border"} ${isGoal ? "outline outline-1 outline-offset-1 outline-foreground/40" : ""}`}
+              >
+                {on && (
+                  // Each filled step scales in once, staggered; reduced motion shows the end state at once.
+                  <span
+                    className={`absolute inset-0 origin-left rounded-full bg-gradient-to-r ${p.bar} ${basis === "demonstrated" || basis === "assessed" ? "" : "opacity-60"} motion-safe:animate-[skillBarGrow_500ms_cubic-bezier(0.22,1,0.36,1)_both] motion-reduce:animate-none`}
+                    style={{ animationDelay: `${index * 60 + i * 70}ms` }}
+                  />
+                )}
+              </span>
+            );
+          })}
+        </div>
+        {line && <p className="mt-0.5 truncate text-[10.5px] text-muted-foreground" title={(skill.levelBasis ?? []).join(" · ") || EVIDENCE_BASIS[basis].explain}>{line}</p>}
       </div>
     </li>
   );
 }
 
+/** A role row as a skill for the goal view, using the engine's skill entry when there is one so both views agree. */
+function skillForRow(row: RoleSkillRow, skills: EngineSkill[]): EngineSkill {
+  return (
+    skills.find((s) => s.name === row.skill) ??
+    ({ name: row.skill, category: "other", status: "inferred", proficiency: null, level: "Not assessed", confidence: 0, evidenceCount: 0, evidence: [], lastEvidenceAt: null, evidenceBasis: row.evidenceBasis ?? "not_found" } as EngineSkill)
+  );
+}
+
 function SkillProficiencyCard({ intelligence }: { intelligence?: IntelligenceDoc }) {
   const skills = intelligence?.skills ?? [];
+  const analysis = primaryAnalysis(intelligence);
+  const [view, setView] = useState<"goal" | "all">("goal");
+  const showGoal = view === "goal" && Boolean(analysis);
+  const goalRows = analysis ? [...analysis.skills].sort((a, b) => Number(a.tier === "supporting") - Number(b.tier === "supporting") || levelStep(b.level) - levelStep(a.level)) : [];
+  const required = goalRows.filter((r) => (r.tier ?? "required") === "required");
+  const basisCounts = skills.reduce<Record<string, number>>((acc, s) => ((acc[evidenceBasisOf(s)] = (acc[evidenceBasisOf(s)] ?? 0) + 1), acc), {});
+  const footer = !intelligence || skills.length === 0
+    ? undefined
+    : showGoal
+      ? `${required.filter((r) => r.state === "met").length} of ${required.length} required skills meet the level ${roleLabel(analysis!.role)} expects. The outlined step marks that level.`
+      : [
+          basisCounts.demonstrated || basisCounts.assessed ? `${(basisCounts.demonstrated ?? 0) + (basisCounts.assessed ?? 0)} shown in code or assessed` : null,
+          basisCounts.repository_mention || basisCounts.described ? `${(basisCounts.repository_mention ?? 0) + (basisCounts.described ?? 0)} named or described only` : null,
+          basisCounts.claimed ? `${basisCounts.claimed} listed only (not assessed)` : null,
+        ].filter(Boolean).join(" · ");
   return (
     <Card
       icon={<Sliders aria-hidden className="size-4" />}
@@ -168,18 +207,36 @@ function SkillProficiencyCard({ intelligence }: { intelligence?: IntelligenceDoc
       title="Skill Proficiency"
       href="/skills"
       linkLabel="View all"
-      footer={intelligence && skills.length > 0 ? `${intelligence.counts.verified} verified · ${intelligence.counts.claimed} claimed · ${skills.length - intelligence.counts.assessed} not assessed` : undefined}
+      footer={footer}
     >
       {!intelligence ? (
         <Empty {...UPDATING} />
-      ) : skills.length === 0 ? (
-        <Empty title="No skills to assess yet" body="Scores come from your repositories and projects." href="/connections" action="Connect GitHub" />
+      ) : skills.length === 0 && !analysis ? (
+        <Empty title="No skills to assess yet" body="Levels come from your repositories and projects." href="/connections" action="Connect GitHub" />
       ) : (
-        <ul className="space-y-2.5">
-          {skills.slice(0, 7).map((s, i) => (
-            <SkillRow key={s.name} skill={s} index={i} />
-          ))}
-        </ul>
+        <>
+          {analysis && (
+            <div role="tablist" aria-label="Which skills to show" className="mb-2.5 inline-flex self-start rounded-lg bg-muted/60 p-0.5 text-[11px] font-semibold">
+              {(["goal", "all"] as const).map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  role="tab"
+                  aria-selected={view === v}
+                  onClick={() => setView(v)}
+                  className={`rounded-md px-2 py-0.5 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${view === v ? "bg-card text-foreground shadow-2xs" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  {v === "goal" ? `For ${roleLabel(analysis.role)}` : "All skills"}
+                </button>
+              ))}
+            </div>
+          )}
+          <ul className="space-y-2">
+            {showGoal
+              ? goalRows.slice(0, 7).map((r, i) => <SkillRow key={r.skill} skill={skillForRow(r, skills)} index={i} expectedLevel={r.expectedLevel} met={r.state === "met"} />)
+              : skills.slice(0, 7).map((s, i) => <SkillRow key={s.name} skill={s} index={i} />)}
+          </ul>
+        </>
       )}
     </Card>
   );
@@ -233,19 +290,29 @@ function GapRow({ row }: { row: RoleSkillRow }) {
   );
 }
 
+function gapFooter(role: RoleAnalysis): string {
+  const c = role.categoryCounts;
+  if (!c) {
+    return `${role.counts.met} of ${role.skills.length} meet the expected level · ${role.counts.underdeveloped} need more practice · ${role.counts.unverified + role.counts.inferred + role.counts.missing + role.counts.not_assessed} without work examples yet`;
+  }
+  return [
+    `${c.meets} of ${role.skills.length} meet the expected level`,
+    c.needs_practice ? `${c.needs_practice} need more practice` : null,
+    c.proof_needed ? `${c.proof_needed} need practical proof` : null,
+    c.foundation + c.not_shown ? `${c.foundation + c.not_shown} not shown yet` : null,
+  ].filter(Boolean).join(" · ");
+}
+
 function SkillGapsCard({ intelligence, role, roleIndex, onRole }: { intelligence?: IntelligenceDoc; role?: RoleAnalysis; roleIndex: number; onRole: (i: number) => void }) {
+  const open = role ? openRows(role) : [];
   return (
     <Card
       icon={<Network aria-hidden className="size-4" />}
       iconClass="bg-fuchsia-50 text-fuchsia-600 dark:bg-fuchsia-500/15 dark:text-fuchsia-300"
       title="Skill Gaps"
-      href="/skills"
+      href="/skills#gap-inventory"
       linkLabel="View all"
-      footer={
-        role?.assessed
-          ? `${role.counts.met} of ${role.skills.length} meet the expected level · ${role.counts.underdeveloped} need more practice · ${role.counts.unverified + role.counts.inferred + role.counts.missing + role.counts.not_assessed} without work examples yet`
-          : undefined
-      }
+      footer={role?.assessed ? gapFooter(role) : undefined}
     >
       {!intelligence ? (
         <Empty {...UPDATING} />
@@ -256,7 +323,7 @@ function SkillGapsCard({ intelligence, role, roleIndex, onRole }: { intelligence
           <RolePicker roles={intelligence.roles} index={roleIndex} onChange={onRole} />
           <Empty title="We need more examples of your work" body="Until then we can't tell which requirements you meet. That isn't the same as having gaps. Connect GitHub or confirm a project on your resume." href="/connections" action="Add evidence" />
         </>
-      ) : role.open.length === 0 ? (
+      ) : open.length === 0 ? (
         <>
           <RolePicker roles={intelligence.roles} index={roleIndex} onChange={onRole} />
           <Empty title="Your work meets every requirement for this goal" body="Based on the work examples we have now. Optional skills, if any, are on the roadmap." />
@@ -266,10 +333,15 @@ function SkillGapsCard({ intelligence, role, roleIndex, onRole }: { intelligence
           <RolePicker roles={intelligence.roles} index={roleIndex} onChange={onRole} />
           <p className="mb-2 text-[11px] text-muted-foreground">Requirements your work doesn&apos;t show at the expected level yet, highest priority first. Hover a status for what it means.</p>
           <ul className="grid grid-cols-1 gap-x-4 gap-y-0.5 sm:grid-cols-2 xl:grid-cols-4">
-            {role.open.slice(0, 8).map((row) => (
+            {open.slice(0, 8).map((row) => (
               <GapRow key={row.skill} row={row} />
             ))}
           </ul>
+          {open.length > 8 && (
+            <Link href="/skills#gap-inventory" className="mt-1.5 text-[11px] font-semibold text-primary hover:underline">
+              See all {open.length} for this goal
+            </Link>
+          )}
         </>
       )}
     </Card>
@@ -278,8 +350,16 @@ function SkillGapsCard({ intelligence, role, roleIndex, onRole }: { intelligence
 
 // ─── Learning Paths ─────────────────────────────────────────────────────────
 
+const LEVEL_WORD: Record<string, string> = { none: "no experience", Foundational: "Foundational", Working: "Working", Proficient: "Proficient", Advanced: "Advanced" };
+
+/** "From no experience to Working": the catalogue's level window for a resource. */
+export function levelWindowText(w: { start: string; reach: string } | undefined): string | null {
+  return w ? `From ${LEVEL_WORD[w.start] ?? w.start} to ${LEVEL_WORD[w.reach] ?? w.reach}` : null;
+}
+
 function LearningPathsCard({ intelligence }: { intelligence?: IntelligenceDoc }) {
   const recommendations = intelligence?.recommendations ?? [];
+  const withResource = recommendations.filter((r) => r.resource).length;
   return (
     <Card
       icon={<GraduationCap aria-hidden className="size-4" />}
@@ -287,39 +367,53 @@ function LearningPathsCard({ intelligence }: { intelligence?: IntelligenceDoc })
       title="Learning Paths"
       href="/learning"
       linkLabel="View all"
-      footer={recommendations.length > 0 ? `Picked from your gaps · ${recommendations.length} in total` : undefined}
+      footer={
+        recommendations.length > 0
+          ? `One per gap, matched to your current level · ${withResource} of ${recommendations.length} with a link we've checked${recommendations.length > withResource ? "; the rest are learnt by building" : ""}`
+          : undefined
+      }
     >
       {!intelligence ? (
         <Empty {...UPDATING} />
       ) : recommendations.length === 0 ? (
-        <Empty title="No recommendations yet" body={intelligence.hasEvidenceBase ? "They appear when your evidence shows a gap for your goal." : "Add evidence first, so these fit you."} />
+        <Empty title="No recommendations yet" body={intelligence.hasEvidenceBase ? "They appear when your evidence shows a gap that learning can close. Skills you've listed but not shown need proof, not another course." : "Add evidence first, so these fit you."} />
       ) : (
         <ul className="space-y-2">
-          {recommendations.slice(0, 3).map((r) => {
+          {recommendations.slice(0, 3).map((r, i) => {
             const p = paletteFor(r.skill);
+            const levels = levelWindowText(r.resource?.levelWindow);
             return (
-              <li key={r.skill} className={`flex items-start gap-2.5 rounded-xl p-2.5 transition-shadow duration-150 hover:shadow-sm ${p.tint}`}>
+              <li key={r.skill} className={`flex items-start gap-2.5 rounded-xl p-2.5 transition-shadow duration-150 hover:shadow-sm ${p.tint}`} data-skill={r.skill}>
                 <span aria-hidden className={`flex size-8 shrink-0 items-center justify-center rounded-lg bg-card/80 ${p.chip}`}>
                   {r.resource ? <BookOpen aria-hidden className="size-4" /> : <SkillIcon name={r.skill} className="size-4" />}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-xs font-semibold text-foreground" title={r.skill}>
-                    {r.skill}
+                  <p className="flex items-baseline justify-between gap-2 text-xs">
+                    <span className="truncate font-semibold text-foreground" title={r.why}>{r.skill}</span>
+                    <span className="shrink-0 text-[10px] text-muted-foreground">
+                      {r.currentLevel === "Not assessed" ? "not shown yet" : r.currentLevel} → {r.targetLevel}
+                    </span>
                   </p>
                   {r.resource ? (
-                    <a href={r.resource.url} target="_blank" rel="noopener noreferrer" className="mt-0.5 inline-flex max-w-full items-center gap-1 text-[11px] text-primary hover:underline">
-                      <span className="truncate">{r.resource.title}</span>
-                      <ExternalLink aria-hidden className="size-3 shrink-0" />
-                      <span className="sr-only">(opens in a new tab)</span>
-                    </a>
+                    <>
+                      <a href={r.resource.url} target="_blank" rel="noopener noreferrer" className="mt-0.5 inline-flex max-w-full items-center gap-1 text-[11px] font-medium text-primary hover:underline">
+                        <span className="truncate">{r.resource.title}</span>
+                        <ExternalLink aria-hidden className="size-3 shrink-0" />
+                        <span className="sr-only">(opens in a new tab)</span>
+                      </a>
+                      {/* Only the catalogue's own facts: type, provider and level window. No duration, rating or module count is invented. */}
+                      <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{[r.resource.typeLabel, r.resource.provider, levels].filter(Boolean).join(" · ")}</p>
+                      {r.resource.fitReason && <p className="mt-0.5 line-clamp-2 text-[11px] text-muted-foreground" title={r.resource.fitReason}>{r.resource.fitReason}</p>}
+                    </>
                   ) : (
-                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">Self-directed: learn by building</p>
+                    <p className="mt-0.5 line-clamp-2 text-[11px] text-muted-foreground">{r.noResourceReason ?? "No checked resource yet: learn by building the project below."}</p>
                   )}
-                  {/* Only the catalogue's own facts: provider and duration when it has them. No module counts are invented. */}
-                  {r.resource && (r.resource.provider || r.resource.duration) && (
-                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{[r.resource.provider, r.resource.duration].filter(Boolean).join(" • ")}</p>
+                  {(i === 0 || !r.resource) && r.demonstration && (
+                    <p className="mt-1 line-clamp-2 text-[11px] text-foreground/80" title={r.demonstration}>
+                      <span className="font-semibold">Then show it: </span>
+                      {r.demonstration}
+                    </p>
                   )}
-                  {!r.resource && <p className="mt-0.5 line-clamp-1 text-[11px] text-muted-foreground">{r.why}</p>}
                 </div>
               </li>
             );

@@ -43,7 +43,7 @@ function fakeFetch(routes: Record<string, { status?: number; body?: string; type
 }
 
 async function source(id: string, over: Partial<typeof opportunitySources.$inferInsert> = {}) {
-  await tdb.insert(opportunitySources).values({ id, name: `Source ${id}`, kind: "rss", url: `https://lab-${id}.example.edu/feed.xml`, organization: `Lab ${id}`, termsReviewedAt: NOW, enabled: true, autoVerify: true, ...over });
+  await tdb.insert(opportunitySources).values({ id, name: `Source ${id}`, kind: "rss", url: `https://lab-${id}.example.edu/feed.xml`, organization: `Lab ${id}`, termsReviewedAt: NOW, termsStatus: "approved", enabled: true, autoVerify: true, ...over });
   const [s] = await tdb.select().from(opportunitySources).where(eq(opportunitySources.id, id));
   return s!;
 }
@@ -93,7 +93,9 @@ describe("source verification, provenance and duplicates", () => {
   it("never fetches disabled, unreviewed or too-recent sources", async () => {
     const f = fakeFetch({});
     expect(await refreshSource(db, await source("off", { enabled: false }), { fetchImpl: f.impl, now: NOW })).toEqual({ status: "skipped", reason: "disabled" });
-    expect(await refreshSource(db, { ...(await source("rev", { enabled: false })), enabled: true, termsReviewedAt: null }, { fetchImpl: f.impl, now: NOW })).toEqual({ status: "skipped", reason: "terms_not_reviewed" });
+    // Not approved by the owner (needs human review): never fetched, whatever robots.txt says.
+    expect(await refreshSource(db, { ...(await source("rev", { enabled: false })), enabled: true, termsStatus: "needs_human_review" }, { fetchImpl: f.impl, now: NOW })).toEqual({ status: "skipped", reason: "not_approved" });
+    expect(await refreshSource(db, { ...(await source("rej", { enabled: false })), enabled: true, termsStatus: "rejected" }, { fetchImpl: f.impl, now: NOW })).toEqual({ status: "skipped", reason: "not_approved" });
     expect(await refreshSource(db, await source("recent", { lastFetchedAt: new Date(NOW.getTime() - 60_000) }), { fetchImpl: f.impl, now: NOW })).toEqual({ status: "skipped", reason: "interval" });
     expect(f.calls).toEqual([]);
   });
@@ -113,7 +115,8 @@ describe("source verification, provenance and duplicates", () => {
     expect(cards.find((c) => c.title.startsWith("Research Assistant"))).toMatchObject({ sourceName: "Source a", deadline: null, url: "https://lab-a.example.edu/ra-1?utm_source=feed" });
   });
 
-  it("a re-fetch updates in place (no duplicate) and withdraws entries the source dropped", async () => {
+  it("a re-fetch updates in place (no duplicate) and, for a complete-listing source, withdraws entries it dropped", async () => {
+    await tdb.update(opportunitySources).set({ withdrawOnAbsence: true }).where(eq(opportunitySources.id, "a"));
     const [s] = await tdb.select().from(opportunitySources).where(eq(opportunitySources.id, "a"));
     const later = new Date(NOW.getTime() + 7 * 3600_000);
     const f = fakeFetch({ [s!.url!]: { body: rss([{ guid: "ra-1", title: "Research Assistant, Speech Lab (updated)", link: "https://lab-a.example.edu/ra-1" }]) } });
@@ -150,7 +153,8 @@ describe("source verification, provenance and duplicates", () => {
       [{ [s.url!]: { body: "<html>maintenance</html>" } }, "FEED_UNRECOGNISED"],
     ];
     for (const [routes, code] of cases) {
-      await tdb.update(opportunitySources).set({ lastFetchedAt: null }).where(eq(opportunitySources.id, "d"));
+      // Each case starts clean: no interval, no backoff, no lease left from the previous failure.
+      await tdb.update(opportunitySources).set({ lastFetchedAt: null, nextAttemptAt: null, lockedUntil: null, consecutiveFailures: 0 }).where(eq(opportunitySources.id, "d"));
       const [fresh] = await tdb.select().from(opportunitySources).where(eq(opportunitySources.id, "d"));
       expect(await refreshSource(db, fresh!, { fetchImpl: fakeFetch(routes).impl, now: NOW })).toEqual({ status: "failed", error: code });
       const [kept] = await tdb.select().from(opportunities).where(eq(opportunities.externalId, "k"));
@@ -263,8 +267,10 @@ describe("dashboard rendering and empty states", () => {
     expect(out).toContain("Research Assistant, Speech Lab");
     expect(out).toContain("Source a · verified");
     expect(out).toContain("No deadline published");
-    expect(out).toContain('href="https://lab-a.example.edu/ra-1"');
-    expect(out).toContain("View original");
+    // Links go to the detail page and the Apply hand-off (which redirects to the official source).
+    expect(out).toMatch(/href="\/opportunities\/[0-9a-f-]{36}"/);
+    expect(out).toMatch(/href="\/opportunities\/[0-9a-f-]{36}\/apply"/);
+    expect(out).toContain("Apply on official site");
     expect(out).not.toMatch(/\d+% (skills )?match/);
     const unpersonalised = html({ research: { status: "ok", items: cards, personalised: false }, internships: NOT_CONFIGURED });
     expect(unpersonalised).toContain("Add skills or connect GitHub");

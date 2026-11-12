@@ -17,7 +17,7 @@ import psycopg2
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from db import EXTERNAL_AI_FULL_SCOPE_SINCE  # noqa: E402
-from intelligence import compute  # noqa: E402
+from intelligence import career_engine, compute  # noqa: E402
 from intelligence.collaboration import EMBEDDING_DIM  # noqa: E402
 from jobs import Job, LockLost  # noqa: E402
 
@@ -58,6 +58,12 @@ class ComputeOnPostgres(unittest.TestCase):
                    VALUES (%s, 'github', %s, %s, %s, %s, 0, %s)""",
                 (self.user, f"a/r{i}", f"https://github.com/a/r{i}", json.dumps({"Python": 200000}), self.topics(["machine-learning", "docker"]), NOW - timedelta(days=10)),
             )
+        # What the GitHub connector writes with every sync: the student's profile URL, so repositories under a/ are theirs.
+        self.sql(
+            """INSERT INTO profile_facts (user_id, field_group, field_name, normalized_value, extracted_value, origin, confirmation, extraction_method)
+               VALUES (%s, 'contact', 'github_url', '"https://github.com/a"', '"https://github.com/a"', 'github', 'unconfirmed', 'api:github')""",
+            (self.user,),
+        )
         self.job = Job(id=str(uuid.uuid4()), type="compute_intelligence", user_id=self.user, payload={"trigger": "test"}, attempts=1, max_attempts=3)
 
     def view(self):
@@ -122,7 +128,9 @@ class ComputeOnPostgres(unittest.TestCase):
     def test_engine_v3_output_and_framework_status_are_stored(self):
         compute.process_compute_intelligence(self.conn, self.job)
         intel = self.view()["intelligence"]
-        self.assertEqual(intel["engineVersion"], 3)
+        self.assertEqual(intel["engineVersion"], career_engine.ENGINE_VERSION)
+        self.assertIn("gapInventory", intel)
+        self.assertIn("dataCoverage", intel)
         self.assertEqual(intel["framework"]["status"], "draft_unreviewed")
         self.assertNotIn("_ledger", intel)
         role = intel["roles"][0]
@@ -157,7 +165,9 @@ class ComputeOnPostgres(unittest.TestCase):
         self.assertEqual(skills["AWS"]["credential"], "verified")
         self.assertIsNone(skills["AWS"]["proficiency"], "a certification alone is never proficiency")
         self.assertEqual(skills["Machine Learning"]["coursesCompleted"], 1)
-        self.assertEqual(skills["Machine Learning"]["evidenceState"], "demonstrated")  # the repos' topics, not the course
+        # The repositories only tag it: found and traceable, but not independent evidence of capability; the course adds nothing.
+        self.assertEqual(skills["Machine Learning"]["evidenceBasis"], "repository_mention")
+        self.assertIsNone(skills["Machine Learning"]["credential"])
 
     def test_another_users_learning_records_are_never_read(self):
         other = str(uuid.uuid4())

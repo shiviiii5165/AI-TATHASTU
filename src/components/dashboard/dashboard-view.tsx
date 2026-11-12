@@ -10,6 +10,7 @@ import { JourneyTimeline } from "@/components/dashboard/mockup-sections/journey-
 import { EvidenceAchievementRow } from "@/components/dashboard/mockup-sections/evidence-achievement-row";
 import { GrowthDevelopmentRow, SkillGaps } from "@/components/dashboard/mockup-sections/growth-development-row";
 import { EcosystemOpportunitiesRow } from "@/components/dashboard/mockup-sections/ecosystem-opportunities-row";
+import { ProjectIntentCard } from "@/components/dashboard/mockup-sections/project-intent-card";
 
 // Compact Skills Intelligence; the full interactive skill graph is on /skills.
 import { SkillsOverview } from "@/components/dashboard/mockup-sections/skills-overview";
@@ -119,6 +120,8 @@ export function DashboardView({
       {/* F. Career development: what's missing for the chosen goal, then the roadmap (which ends with the next steps). */}
       <section aria-label="Career development" className="space-y-4">
         <SkillGaps intelligence={intelligence} />
+        {/* What the student wants to build: a first-class input to the gaps and the roadmap (engine v4). */}
+        <ProjectIntentCard intelligence={intelligence} />
         {/* Full width: the journey runs left to right on wide screens. */}
         <CareerRoadmap intelligence={intelligence} submissions={roadmapSubmissions} />
       </section>

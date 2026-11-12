@@ -33,6 +33,7 @@ export const BUILT_MODULES = [
   "skills",
   "projects",
   "achievements",
+  "opportunities",
   "learn",
   "learning",
   "people",

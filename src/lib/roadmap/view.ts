@@ -4,7 +4,7 @@
 // and the UI says so.
 
 import { roleLabel } from "@/components/dashboard/widgets/labels";
-import type { AlignmentState, GapState, IntelligenceDoc, LearningRecommendation, RoleSkillRow } from "@/lib/dashboard/types";
+import type { AlignmentState, EngineRoadmap, GapState, IntelligenceDoc, LearningRecommendation, RoadmapAchievement, RoleSkillRow } from "@/lib/dashboard/types";
 import { ALL_CAREER_ROLES } from "@/lib/onboarding/catalog";
 import { milestoneReason } from "@/lib/roadmap/explain";
 import { roadmapProgress, type MilestoneSubmission, type RoadmapStep } from "@/lib/roadmap/progress";
@@ -31,6 +31,12 @@ export type RoadmapStageView = {
   optional: boolean;
   /** Older documents' planning estimate in weeks; engine v3 gives none and the UI shows none. */
   estimateWeeks: number | null;
+  /** Engine v4: why the stage exists, what it covers, when it's complete and what comes next. Null on older documents. */
+  purpose: string | null;
+  focus: string | null;
+  completionCriteria: string | null;
+  unlocksTitle: string | null;
+  projectSkills: number;
 };
 
 export type SkillBucket = { key: "demonstrated" | "inProgress" | "notYet"; label: string; note: string; rows: RoleSkillRow[] };
@@ -64,6 +70,9 @@ export type RoadmapView =
       skills: SkillBucket[];
       steps: RoadmapStep[];
       assumption: string;
+      /** Engine v4: competencies met from evidence, each with the evidence that met it. Empty on older documents. */
+      achievements: RoadmapAchievement[];
+      project: EngineRoadmap["project"] | null;
     };
 
 /** Student-facing wording for each alignment state (career_engine.ALIGNMENT_RULES decides the state). */
@@ -105,6 +114,11 @@ export function roadmapView(intelligence: IntelligenceDoc | undefined, submissio
       blockedBy: allBlocked ? [...new Set(open.flatMap((s) => s.blockedBy))] : [],
       optional: Boolean(stage.optional),
       estimateWeeks: typeof stage.estimateWeeks === "number" && stage.estimateWeeks > 0 ? stage.estimateWeeks : null,
+      purpose: stage.purpose ?? null,
+      focus: stage.focus ?? null,
+      completionCriteria: stage.completionCriteria ?? null,
+      unlocksTitle: stage.unlocksTitle ?? null,
+      projectSkills: stage.projectSkills ?? 0,
     };
   });
 
@@ -140,5 +154,7 @@ export function roadmapView(intelligence: IntelligenceDoc | undefined, submissio
     steps: progress.steps,
     // Documents from before engine v3 state an hours-a-week assumption for estimates the UI no longer shows.
     assumption: intelligence.engineVersion >= 3 ? roadmap.assumption : ROADMAP_BASIS_FALLBACK,
+    achievements: roadmap.achievements ?? [],
+    project: roadmap.project ?? null,
   };
 }

@@ -31,12 +31,35 @@ export type SkillEvidenceRef = { kind: string; source: string; label: string; re
  */
 export type EvidenceState = "demonstrated" | "unverified" | "claimed" | "inferred" | "missing";
 
+/**
+ * Engine v4: what the strongest evidence for a skill is. assessed (platform or assessment) > demonstrated (code in a
+ * repository: language statistics, a dependency file or structure) > repository_mention (topics, description or README
+ * only) > described (the student's own resume or profile) > claimed (listed only). not_found / inferred for role rows.
+ */
+export type EvidenceBasis = "assessed" | "demonstrated" | "detected" | "repository_mention" | "described" | "claimed" | "inferred" | "not_found";
+
+/** Engine v4: what a skill is. A career role is never a skill. */
+export type SkillKind = "language" | "framework" | "tool" | "platform" | "concept" | "capability" | "unknown";
+
+/** Engine v4 student-facing gap categories (career_engine.CATEGORY). Missing evidence is never called missing ability. */
+export type GapCategory = "meets" | "needs_practice" | "proof_needed" | "foundation" | "not_shown" | "possibly" | "not_assessed";
+
 export type EngineSkill = {
   name: string;
   category: string;
   status: SkillStatus;
   /** Absent on documents from engine versions before 3. */
   evidenceState?: EvidenceState;
+  /** Engine v4 fields; absent on older documents. */
+  kind?: SkillKind;
+  evidenceBasis?: EvidenceBasis;
+  /** The evidence behind the level, in words ("Code that uses it in 3 repositories"). */
+  levelBasis?: string[];
+  /** Why the level can't go higher yet, when an evidence gate is what stops it. */
+  levelCap?: string | null;
+  /** What would raise the level. */
+  nextLevel?: string | null;
+  codeRepositories?: number;
   credential?: "verified" | "claimed" | null;
   coursesCompleted?: number;
   /** 0-100, or null for "Not assessed". */
@@ -55,8 +78,21 @@ export type GapType = "completed" | "missing_competency" | "insufficient_profici
 
 export type RoleSkillRow = {
   skill: string;
-  /** Engine v3+: required competencies decide the goal; supporting ones are optional. */
-  tier?: "required" | "supporting";
+  /** Engine v3+: required competencies decide the goal; supporting ones are optional. v4 adds specialisation rows (separate list). */
+  tier?: "required" | "supporting" | "specialisation";
+  /** Engine v4 fields; absent on older documents. */
+  kind?: SkillKind;
+  category?: GapCategory;
+  categoryLabel?: string;
+  /** Why this role needs it (role framework rationale). */
+  rationale?: string;
+  /** Behavioural description of the expected level for this skill, and of the current one. */
+  expectedCriterion?: string | null;
+  currentCriterion?: string | null;
+  evidenceBasis?: EvidenceBasis;
+  levelBasis?: string[];
+  nextLevel?: string | null;
+  unblocks?: string[];
   evidenceRequirement?: "independent" | "described";
   evidenceState?: EvidenceState;
   gapType?: GapType;
@@ -112,18 +148,59 @@ export type AlignmentScore = {
   counts: { evidenced: number; described: number; none: number };
 };
 
+export type FrameworkReference = { title: string; publisher: string; kind: string; url: string; checkedAt: string };
+
+export type SpecialisationTrack = { track: string; description?: string; skills?: RoleSkillRow[]; met: number; total: number };
+
 export type RoleAnalysis = {
   role: string;
   label?: string;
-  framework?: FrameworkMeta & { responsibilities: string[]; completionCriteria: string };
+  framework?: FrameworkMeta & {
+    responsibilities: string[];
+    completionCriteria: string;
+    summary?: string;
+    distinguishingFocus?: string;
+    practicalCapabilities?: string[];
+    projectContext?: string | null;
+    references?: FrameworkReference[];
+  };
   alignment?: RoleAlignment;
   alignmentScore?: AlignmentScore | null;
   /** Internal weighted share of competencies met. Not for display: the dashboard shows `alignment`. */
   coverage: number;
   assessed: boolean;
   skills: RoleSkillRow[];
+  /** Empty when `compact` (secondary goals): derive with openRows() from lib/dashboard/intelligence. */
   open: RoleSkillRow[];
   counts: Record<GapState, number>;
+  /** Engine v4: secondary goals are stored without per-row explanations, and with `open` left empty. */
+  compact?: boolean;
+  specialisations?: SpecialisationTrack[];
+  categoryCounts?: Record<GapCategory, number>;
+};
+
+export type LearningResource = {
+  title: string;
+  provider: string | null;
+  url: string;
+  description: string | null;
+  difficulty: string;
+  duration: string | null;
+  linkCheckedOn: string;
+  linkStale: boolean;
+  /** Engine v4 fields: from the curated, link-checked catalogue (worker/intelligence/learning_catalogue.json). */
+  id?: string;
+  type?: string;
+  typeLabel?: string;
+  focus?: "practical" | "theory" | "mixed";
+  levelWindow?: { start: string; reach: string };
+  outcome?: string;
+  /** Why this resource fits this student, in words. */
+  fitReason?: string;
+  /** True when it starts above the student's current level (used only when nothing else fits). */
+  stretch?: boolean;
+  unmetPrerequisites?: string[];
+  alsoCovers?: string[];
 };
 
 export type LearningRecommendation = {
@@ -137,12 +214,79 @@ export type LearningRecommendation = {
   currentEvidence: string[];
   roles: string[];
   prerequisites: { skill: string; met: boolean }[];
-  resource: { title: string; provider: string | null; url: string; description: string | null; difficulty: string; duration: string | null; linkCheckedOn: string; linkStale: boolean } | null;
+  resource: LearningResource | null;
   demonstration: string;
   status: "not_started" | "in_progress";
-  tier?: "required" | "supporting";
+  tier?: "required" | "supporting" | "specialisation" | "project" | "prerequisite" | null;
   gapType?: GapType;
   courseStatus?: "recommended" | "started" | "completed" | null;
+  /** Engine v4 fields. */
+  sources?: GapSource[];
+  projectImportance?: "core" | "supporting" | null;
+  category?: GapCategory;
+  inventoryRank?: number;
+  alternative?: LearningResource | null;
+  /** Why there's no resource, when there isn't one. */
+  noResourceReason?: string | null;
+  outcome?: string | null;
+  evidenceToShow?: string;
+};
+
+export type GapSource = "career" | "project" | "prerequisite";
+
+/** Engine v4: one row per relevant skill, from the career framework, the student's project and their prerequisites. */
+export type GapInventoryRow = RoleSkillRow & {
+  sources: GapSource[];
+  roleTier: "required" | "supporting" | "specialisation" | null;
+  projectImportance: "core" | "supporting" | null;
+  projectWhy?: string;
+  triggers?: string[];
+  prerequisiteOf?: string[];
+  inventoryReason: string;
+  inventoryRank?: number;
+  priorityGroup: number;
+  priorityGroupLabel: string;
+};
+
+export type ProjectRequirementRow = RoleSkillRow & { importance: "core" | "supporting"; why: string; triggers: string[]; careerTier: string | null };
+
+/** Engine v4: what the student said they want to build, and what that project needs. */
+export type ProjectAnalysis = {
+  version: number;
+  status: "none" | "too_vague" | "analysed";
+  text: string | null;
+  source: "profile" | "onboarding_other" | null;
+  method: string;
+  prompts: string[];
+  reason?: string;
+  matched: { rule: string; label: string; phrases: string[] }[];
+  /** Not stored from engine v4 on (the rows and the gap inventory carry it). */
+  requirements?: { skill: string; importance: "core" | "supporting"; why: string; triggers: string[] }[];
+  rows: ProjectRequirementRow[];
+  /** Engine v4 intent v2: readings from a single ambiguous word. Never in the plan; shown with `questions` to confirm. */
+  possible?: { skill: string; importance: "core" | "supporting"; why: string; triggers: string[]; certainty: "possible" }[];
+  questions?: string[];
+  summary: { core: number; coreReady: number; supporting: number } | null;
+  overlap: string[];
+  projectOnly: string[];
+  careerOnly: string[];
+  closestRoles: { role: string; label: string; overlap: string[]; coreCovered: number; core: number; requiredOverlap: number }[];
+};
+
+export type DataCoverageSource = { id: string; label: string; status: "used" | "missing"; detail: string; limits: string[] };
+export type DataCoverage = { sources: DataCoverageSource[]; repositoriesRead: number; repositories: number; limitations: string[] };
+
+export type RoadmapAchievement = {
+  id: string;
+  skill: string;
+  tier: string | null;
+  level: string;
+  expectedLevel: string;
+  title: string;
+  evidence: string | null;
+  evidenceAt: string | null;
+  basis: EvidenceBasis | null;
+  forProject: boolean;
 };
 
 /** `id` is "<role>:<skill-slug>" from engine version 2; older documents lack it (see roadmap/progress.ts). */
@@ -163,10 +307,36 @@ export type RoadmapMilestone = {
   why?: string;
   practicalTask?: string;
   evidenceRequired?: string;
-  recommendedResource?: { title: string; url: string } | null;
+  recommendedResource?: { title: string; url: string; provider?: string; fitReason?: string } | null;
   priorityReason?: string | null;
+  /** Engine v4 fields. */
+  category?: GapCategory;
+  sources?: GapSource[];
+  projectImportance?: "core" | "supporting" | null;
+  /** The project this work fits into (the role's or the student's own). Shown apart from the task. */
+  context?: string | null;
+  levelBasis?: string[];
+  nextLevel?: string | null;
+  /** What the engine could do with evidence the student submitted for this milestone. */
+  submissionCheck?: { url: string; status: "read" | "not_readable"; repository?: string; message: string } | null;
 };
-export type RoadmapStage = { key: string; title: string; optional?: boolean; milestones: RoadmapMilestone[]; estimateWeeks: number | null };
+export type RoadmapStage = {
+  key: string;
+  title: string;
+  optional?: boolean;
+  milestones: RoadmapMilestone[];
+  estimateWeeks: number | null;
+  /** Engine v4: why the stage exists, what it covers, how it completes and what it unlocks. */
+  purpose?: string;
+  focus?: string | null;
+  skills?: string[];
+  buildsOn?: string[];
+  requiresStages?: string[];
+  unlocks?: string | null;
+  unlocksTitle?: string | null;
+  projectSkills?: number;
+  completionCriteria?: string;
+};
 export type EngineRoadmap = {
   role: string;
   currentPosition: string | null;
@@ -179,12 +349,16 @@ export type EngineRoadmap = {
   requirementsMet?: boolean;
   provisional?: boolean;
   framework?: FrameworkMeta;
+  /** Engine v4: competencies met from evidence, each with the evidence that met it. */
+  achievements?: RoadmapAchievement[];
+  project?: { text: string; status: string; core: number | null; coreReady: number | null } | null;
 };
 
 export type SkillGraphNode = {
   id: string;
   name: string;
   category: string;
+  kind?: SkillKind;
   status: SkillStatus;
   level: string;
   proficiency: number | null;
@@ -218,7 +392,11 @@ export type IntelligenceDoc = {
   recommendations: LearningRecommendation[];
   roadmap: EngineRoadmap | null;
   graph: SkillGraphData;
-  counts: { verified: number; claimed: number; inferred: number; assessed: number };
+  counts: { verified: number; claimed: number; inferred: number; assessed: number; roleSkills?: number };
+  /** Engine v4 fields; absent on older documents. */
+  project?: ProjectAnalysis;
+  gapInventory?: GapInventoryRow[];
+  dataCoverage?: DataCoverage;
 };
 
 export type ProfileViewDoc = {

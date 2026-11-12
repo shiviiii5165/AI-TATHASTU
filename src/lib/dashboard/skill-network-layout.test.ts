@@ -61,7 +61,7 @@ describe("skill network layout", () => {
 describe("dashboard links", () => {
   it("treats only unbuilt modules as placeholders", async () => {
     const { isPlaceholderPath } = await import("./nav");
-    for (const href of ["/eris", "/mentor", "/meet", "/avasar", "/collaborate", "/opportunities?x=1"]) expect(isPlaceholderPath(href), href).toBe(true);
-    for (const href of ["/skills", "/learn", "/projects", "/profile", "/connections", "#career-roadmap", "https://course.fast.ai/"]) expect(isPlaceholderPath(href), href).toBe(false);
+    for (const href of ["/eris", "/mentor", "/meet", "/avasar", "/collaborate"]) expect(isPlaceholderPath(href), href).toBe(true);
+    for (const href of ["/skills", "/learn", "/projects", "/profile", "/connections", "/opportunities?section=all", "#career-roadmap", "https://course.fast.ai/"]) expect(isPlaceholderPath(href), href).toBe(false);
   });
 });

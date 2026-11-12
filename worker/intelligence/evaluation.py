@@ -94,7 +94,9 @@ RANKING = ["none", "listed", "beginner", "intermediate", "experienced"]
 
 
 def run(facts: List[Dict[str, Any]], repos: List[Dict[str, Any]], roles: Tuple[str, ...] = ("ml_engineer",)) -> Dict[str, Any]:
-    return engine.compute(user={}, roles=list(roles), facts=facts, repos=repos, resources=[], canonical=_canonical, lexicon_scan=_lexicon, categories=_CATEGORIES, now=NOW)
+    # Every case models the student's own repositories (a/...); the GitHub connector writes their profile URL with each sync.
+    login = [_fact("contact", "github_url", "https://github.com/a", origin="github")] if repos else []
+    return engine.compute(user={}, roles=list(roles), facts=list(facts) + login, repos=repos, resources=[], canonical=_canonical, lexicon_scan=_lexicon, categories=_CATEGORIES, now=NOW)
 
 
 def evaluate() -> Dict[str, Any]:

@@ -1,5 +1,7 @@
 # Skill scoring model
 
+> Engine v4 replaces the proficiency points, caps and levels below with evidence gates and code signals. See [CAREER_INTELLIGENCE_ENGINE_V4.md](CAREER_INTELLIGENCE_ENGINE_V4.md). The rest of this document describes engine v3.
+
 Written for engineers and reviewers who need to understand or challenge a score. The code is `worker/intelligence/career_engine.py` (`ENGINE_VERSION = 1`) and `worker/intelligence/eris.py`.
 
 **This model is not empirically calibrated.** No hiring or assessment outcomes are behind any weight, threshold or level. The scores are a consistent, explainable summary of evidence, not a measurement of ability. Don't describe them as accurate or validated.

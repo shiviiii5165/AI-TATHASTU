@@ -15,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import provider_router  # noqa: E402
 from intelligence import career_engine as engine  # noqa: E402
+from intelligence import learning  # noqa: E402
 from intelligence.config import ROLE_SKILLS  # noqa: E402
 from intelligence.roadmap import generate_next_best_actions  # noqa: E402
 from intelligence.skill_graph import SKILL_ONTOLOGY  # noqa: E402
@@ -48,12 +49,35 @@ def fact(group, field, value, origin="resume", record=None, **extra):
             "extracted_value": extra.pop("extracted", value), "origin": origin, "confirmation": "confirmed", "source_evidence": extra.pop("evidence", None), "created_at": RECENT}
 
 
-def repo(name, languages=None, topics=None, description=None, pushed=RECENT):
-    return {"id": name, "repo_name": name, "url": f"https://github.com/{name}", "description": description, "languages": languages or {}, "topics": topics or [], "stars": 0, "last_commit_at": pushed}
+def repo(name, languages=None, topics=None, description=None, pushed=RECENT, signals=None):
+    return {"id": name, "repo_name": name, "url": f"https://github.com/{name}", "description": description, "languages": languages or {}, "topics": topics or [],
+            "stars": 0, "last_commit_at": pushed, "code_signals": signals}
+
+
+def with_login(facts, repos):
+    """What the GitHub connector writes with every sync: the student's profile URL, so owned repositories can be told apart
+    from collaborator ones. Fixtures model the student's own repositories, named <login>/<repo>."""
+    owners = {str(r["repo_name"]).split("/")[0] for r in repos}
+    if not owners or any(f.get("field_name") == "github_url" for f in facts):
+        return list(facts)
+    login = sorted(owners)[0]
+    return list(facts) + [fact("contact", "github_url", f"https://github.com/{login}", origin="github")]
+
+
+def code_repo(name, languages=None, packages=(), tests=False, ci=False, dockerfile=False, readme=(), topics=None, pushed=RECENT, manifest="requirements.txt",
+              commits=(10, 10)):
+    """A repository whose files were read (migration 0031 code_signals): dependency file, structure, README skills and the
+    student's share of commits (default: all of them)."""
+    return repo(name, languages if languages is not None else {"Python": 50_000}, topics, pushed=pushed, signals={
+        "version": 2, "contribution": {"login": name.split("/")[0], "commits": commits[0], "total": commits[1]} if commits else None,
+        "manifests": {manifest: list(packages)} if packages else {},
+        "structure": {"tests": tests, "ci": ci, "dockerfile": dockerfile, "kubernetes": False, "terraform": False, "notebooks": 0},
+        "readme": {"present": bool(readme), "chars": 1000, "skills": list(readme)},
+    })
 
 
 def run(facts=(), repos=(), roles=("ml_engineer",), user=None):
-    return engine.compute(user=user or {}, roles=list(roles), facts=list(facts), repos=list(repos), resources=RESOURCES,
+    return engine.compute(user=user or {}, roles=list(roles), facts=with_login(facts, repos), repos=list(repos), resources=RESOURCES,
                           canonical=canonical, lexicon_scan=lexicon, categories=CATEGORIES, now=NOW)
 
 
@@ -89,7 +113,8 @@ class ResumeOnly(unittest.TestCase):
         row = role_row(run(RESUME_ONLY), "ml_engineer", "PyTorch")
         self.assertEqual(row["state"], "unverified")
         self.assertTrue(row["insufficientEvidence"])
-        self.assertIn("need proof of practical use", row["action"])
+        self.assertIn("need to see it in practice", row["action"])
+        self.assertEqual(row["category"], "proof_needed")
         self.assertEqual(row["gapType"], "claimed_unverified")
 
     def test_a_certification_alone_earns_no_proficiency(self):
@@ -102,7 +127,9 @@ class GithubOnly(unittest.TestCase):
         s = skill(run(repos=GITHUB_ONLY), "Python")
         self.assertEqual(s["status"], "verified")
         self.assertGreater(s["proficiency"], 50)
-        self.assertEqual(s["scoreParts"]["repositories"], 40)
+        self.assertEqual(s["scoreParts"]["codeRepositories"], 40)
+        self.assertEqual(s["evidenceBasis"], "demonstrated")
+        self.assertIn("Code that uses it in 5 of your repositories", s["levelBasis"])
         self.assertTrue(all(e["ref"].startswith("https://github.com/") for e in s["evidence"]))
         self.assertEqual(s["evidence"][0]["at"], RECENT.isoformat())
 
@@ -178,12 +205,44 @@ class Roles(unittest.TestCase):
 
 class StrongProfile(unittest.TestCase):
     def setUp(self):
-        repos = [repo(f"a/r{i}", {"Python": 900_000, "SQL": 90_000}, ["pytorch", "scikit-learn", "docker", "machine-learning", "mlflow", "aws", "statistics", "git"]) for i in range(8)]
+        repos = [code_repo(f"a/r{i}", {"Python": 900_000, "SQL": 90_000}, ["torch", "scikit-learn", "mlflow", "boto3", "pandas", "statsmodels", "fastapi"],
+                           tests=True, ci=True, dockerfile=True, readme=["Model Evaluation", "Data Preparation", "Model Deployment"], topics=["machine-learning", "git"])
+                 for i in range(8)]
         self.repos = repos
         self.out = run(repos=repos)
 
     def test_hyphenated_github_topics_match_the_catalogue(self):
-        self.assertEqual(skill(self.out, "Machine Learning")["status"], "verified")
+        out = run(repos=[repo("a/r", {"Python": 1000}, ["machine-learning"])])
+        # A tag is found and traceable, but it is not independent evidence of the student's capability.
+        self.assertEqual(skill(out, "Machine Learning")["evidenceBasis"], "repository_mention")
+        self.assertEqual(skill(out, "Machine Learning")["status"], "claimed")
+
+    def test_a_topic_tag_alone_stops_at_working(self):
+        """Tagging repositories isn't using a library in code: without code evidence, a skill can't pass Working."""
+        out = run(repos=[repo(f"a/r{i}", {"Python": 100_000}, ["kubernetes", "pytorch"]) for i in range(8)])
+        for name in ("Kubernetes", "PyTorch"):
+            s = skill(out, name)
+            self.assertLessEqual(s["proficiency"], engine.UNVERIFIED_CAP, name)
+            self.assertIn("Working", s["levelCap"] or s["nextLevel"])
+
+    def test_a_dependency_file_is_code_evidence(self):
+        s = skill(run(repos=[code_repo("a/x", packages=["torch>=2.1"])]), "PyTorch")
+        self.assertEqual(s["evidenceBasis"], "demonstrated")
+        self.assertIn("uses torch (requirements.txt)", s["evidence"][0]["label"])
+        self.assertEqual(s["level"], "Working")  # one repository: capped until a second repository, tests or CI
+        self.assertIn("second repository", s["nextLevel"])
+
+    def test_tests_or_ci_lift_the_proficient_gate_for_one_repository(self):
+        one = skill(run(repos=[code_repo("a/x", {"Python": 900_000})]), "Python")
+        tested = skill(run(repos=[code_repo("a/x", {"Python": 900_000}, tests=True)]), "Python")
+        self.assertEqual(one["levelCap"], "Code in one of your repositories so far, so it stops at Working.")
+        self.assertGreater(tested["proficiency"], one["proficiency"])
+        self.assertIsNone(tested["levelCap"])
+
+    def test_a_capability_documented_next_to_code_counts_but_a_named_tool_does_not(self):
+        out = run(repos=[code_repo("a/x", readme=["Model Evaluation", "Kubernetes"])])
+        self.assertEqual(skill(out, "Model Evaluation")["evidenceBasis"], "demonstrated")
+        self.assertEqual(skill(out, "Kubernetes")["evidenceBasis"], "repository_mention")
 
     def test_a_free_form_topic_is_not_a_skill(self):
         out = run(repos=[repo("a/r", {"Python": 1000}, ["awesome-list", "hacktoberfest"])])
@@ -192,9 +251,11 @@ class StrongProfile(unittest.TestCase):
     def test_reaches_high_coverage(self):
         self.assertGreater(self.out["roles"][0]["coverage"], 0.9)
 
-    def test_repository_metadata_alone_stops_at_proficient(self):
-        # We read metadata, not code, so it can't by itself show the top level.
+    def test_repository_evidence_alone_stops_short_of_advanced(self):
+        # We read dependency files and structure, not code, so repositories alone don't show the top level.
         self.assertEqual(skill(self.out, "Python")["level"], "Proficient")
+        self.assertEqual(skill(run(repos=[repo(f"a/r{i}", {"Python": 900_000}) for i in range(8)]), "Python")["levelCap"],
+                         "Advanced needs sustained, attributable use with engineering quality, so it stops at Proficient.")
 
     def test_advanced_takes_repositories_and_described_work_together(self):
         facts = [fact("projects", "technologies", ["Python"], record=f"p{i}") for i in range(3)]
@@ -236,55 +297,69 @@ class Recommendations(unittest.TestCase):
     def setUp(self):
         self.out = run(RESUME_ONLY, GITHUB_ONLY, roles=("ml_engineer", "data_scientist"))
 
-    def test_only_real_catalogue_courses_with_their_stored_url(self):
-        catalogue = {r["title"]: r["url"] for r in RESOURCES}
+    def test_only_link_checked_catalogue_resources_with_their_stored_url(self):
+        catalogue = {r["id"]: r for r in learning.RESOURCES}
         with_course = [r for r in self.out["recommendations"] if r["resource"]]
         self.assertTrue(with_course)
-        self.assertTrue(all(engine.RESOURCE_CHECKS[r["resource"]["title"]]["status"] == "ok" for r in with_course))
         for r in with_course:
-            self.assertEqual(catalogue[r["resource"]["title"]], r["resource"]["url"])
+            entry = catalogue[r["resource"]["id"]]
+            self.assertEqual(entry["url"], r["resource"]["url"])
+            self.assertTrue(learning.usable(entry))
+            self.assertIn(r["skill"], entry["skills"], "a resource must teach the skill it's recommended for")
             self.assertIsNone(r["resource"]["duration"])  # never invented
+            self.assertTrue(r["resource"]["fitReason"] and r["outcome"])
 
-    def test_every_curated_course_exists_and_has_a_specific_page(self):
-        catalogue = {r["title"]: r["url"] for r in RESOURCES}
-        homepages = {"https://www.coursera.org/", "https://www.datacamp.com/", "https://www.turing.ac.uk/", "https://realpython.com/"}
-        for skill_name, courses in engine.COURSES.items():
-            for title, _difficulty in courses:
-                self.assertIn(title, catalogue, skill_name)
-                self.assertNotIn(catalogue[title], homepages)
+    def test_every_catalogue_resource_is_specific_and_checked(self):
+        for entry in learning.RESOURCES:
+            with self.subTest(resource=entry["id"]):
+                self.assertTrue(entry["url"].startswith("https://"))
+                self.assertIn(entry["start"], learning.LEVEL_INDEX)
+                self.assertGreater(learning.LEVEL_INDEX[entry["reach"]], learning.LEVEL_INDEX[entry["start"]])
+                self.assertIn(entry["focus"], ("practical", "theory", "mixed"))
+                self.assertTrue(entry["outcome"] and entry["skills"])
+                self.assertIn(entry["id"], learning.CHECKS, "every resource has a recorded link check")
 
-    def test_a_course_that_stopped_checking_out_is_not_offered(self):
-        title = "Machine Learning Specialization"
+    def test_a_resource_that_stopped_checking_out_is_not_offered(self):
+        rid = "pytorch-basics"
         for broken in ({"status": "dead"}, {"url": "https://example.com/moved"}):
-            record = {**engine.RESOURCE_CHECKS[title], **broken}
-            with mock.patch.dict(engine.RESOURCE_CHECKS, {title: record}):
-                out = run(RESUME_ONLY, roles=("ml_engineer",))
-            self.assertNotIn(title, {(r["resource"] or {}).get("title") for r in out["recommendations"]})
+            with mock.patch.dict(learning.CHECKS, {rid: {**learning.CHECKS[rid], **broken}}):
+                out = run(repos=[repo("a/x", {"Python": 100_000})], roles=("deep_learning_engineer",))
+            self.assertNotIn(rid, {(r["resource"] or {}).get("id") for r in out["recommendations"]})
 
     def test_an_old_check_is_flagged_rather_than_trusted_silently(self):
-        title = "Machine Learning Specialization"
-        record = {**engine.RESOURCE_CHECKS[title], "checkedAt": "2026-01-01"}
-        with mock.patch.dict(engine.RESOURCE_CHECKS, {title: record}):
+        out = run(repos=[repo("a/x", {"Python": 100_000})], roles=("deep_learning_engineer",))
+        chosen = next(r["resource"] for r in out["recommendations"] if r["skill"] == "PyTorch")
+        with mock.patch.dict(learning.CHECKS, {chosen["id"]: {**learning.CHECKS[chosen["id"]], "checkedAt": "2026-01-01"}}):
+            out = run(repos=[repo("a/x", {"Python": 100_000})], roles=("deep_learning_engineer",))
+        flagged = next(r["resource"] for r in out["recommendations"] if r["skill"] == "PyTorch")
+        self.assertTrue(flagged["linkStale"])
+
+    def test_a_skill_with_no_checked_resource_says_none_rather_than_inventing_one(self):
+        out = run(repos=[repo("a/x", {"Python": 10})], roles=("robotics_ai_engineer",))
+        control = next(r for r in out["recommendations"] if r["skill"] == "Control Systems")
+        self.assertIsNone(control["resource"])
+        self.assertIn("don't have a checked resource", control["noResourceReason"])
+        self.assertIn("controller", control["demonstration"])
+
+    def test_an_empty_catalogue_means_no_resource(self):
+        with mock.patch.object(learning, "RESOURCES", []):
             out = run(RESUME_ONLY, roles=("ml_engineer",))
-        flagged = [r["resource"] for r in out["recommendations"] if r["resource"] and r["resource"]["title"] == title]
-        self.assertTrue(flagged and flagged[0]["linkStale"])
-
-    def test_a_skill_with_no_course_says_none_rather_than_inventing_one(self):
-        out = run(repos=[repo("a/x", {"Python": 10})], roles=("mlops_engineer",))
-        docker = next(r for r in out["recommendations"] if r["skill"] == "Docker")
-        self.assertIsNone(docker["resource"])
-        self.assertIn("Docker", docker["demonstration"])
-
-    def test_missing_catalogue_row_means_no_resource(self):
-        out = engine.compute(user={}, roles=["ml_engineer"], facts=RESUME_ONLY, repos=[], resources=[], canonical=canonical, lexicon_scan=lexicon, categories=CATEGORIES, now=NOW)
         self.assertTrue(out["recommendations"])
-        self.assertTrue(all(r["resource"] is None for r in out["recommendations"]))
+        self.assertTrue(all(r["resource"] is None and r["noResourceReason"] for r in out["recommendations"]))
 
-    def test_no_duplicates_and_a_shared_skill_names_both_roles(self):
+    def test_no_duplicates_and_recommendations_follow_the_primary_goal(self):
         names = [r["skill"] for r in self.out["recommendations"]]
         self.assertEqual(len(names), len(set(names)))
-        shared = [r for r in self.out["recommendations"] if len(r["roles"]) == 2]
-        self.assertTrue(shared)
+        inventory = {r["skill"] for r in self.out["gapInventory"] if r["category"] != "meets"}
+        self.assertTrue(set(names) <= inventory, "every recommendation answers a gap in the inventory")
+
+    def test_a_started_course_is_preferred_over_a_new_one(self):
+        started = [{"id": "l1", "kind": "course", "title": "Practical Deep Learning for Coders", "status": "started", "verification": "unverified", "skills": [], "source": "roadmap"}]
+        out = engine.compute(user={}, roles=["deep_learning_engineer"], facts=[], repos=[repo("a/x", {"Python": 100_000})], canonical=canonical,
+                             lexicon_scan=lexicon, categories=CATEGORIES, now=NOW, learning=started)
+        dl = next(r for r in out["recommendations"] if r["skill"] == "Deep Learning")
+        self.assertEqual(dl["resource"]["title"], "Practical Deep Learning for Coders")
+        self.assertIn("already started", dl["resource"]["fitReason"])
 
     def test_claimed_skills_need_proof_not_a_course(self):
         self.assertNotIn("PyTorch", {r["skill"] for r in run(RESUME_ONLY)["recommendations"]})
@@ -292,7 +367,7 @@ class Recommendations(unittest.TestCase):
     def test_prerequisites_are_reported_with_their_real_state(self):
         out = run(repos=[repo("a/x", {"Python": 100_000})], roles=("deep_learning_engineer",))
         deep = next(r for r in out["recommendations"] if r["skill"] == "Deep Learning")
-        self.assertEqual(deep["prerequisites"], [{"skill": "Linear Algebra", "met": False}])
+        self.assertEqual(deep["prerequisites"], [{"skill": "Machine Learning", "met": False}, {"skill": "Linear Algebra", "met": False}])
 
     def test_ranking_prefers_important_gaps(self):
         priorities = [r["priority"] for r in self.out["recommendations"]]
@@ -419,3 +494,78 @@ class Performance(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Attribution(unittest.TestCase):
+    """Technology detected in a repository is not the student's capability until the work is attributable to them."""
+
+    def test_a_collaborator_repository_is_detected_not_demonstrated(self):
+        out = run(repos=[code_repo("bigorg/platform", {"Python": 900_000}, ["torch"], tests=True, ci=True, dockerfile=True, commits=None)],
+                  facts=[fact("contact", "github_url", "https://github.com/me", origin="github")])
+        for name in ("PyTorch", "Python", "Docker", "CI/CD", "Software Testing"):
+            s = skill(out, name)
+            self.assertEqual(s["evidenceBasis"], "detected", name)
+            self.assertLessEqual(s["proficiency"], engine.UNVERIFIED_CAP, name)
+            self.assertIn("can't attribute to you", s["levelCap"] or s["levelBasis"][0], name)
+        self.assertNotEqual(next(r for r in out["roles"][0]["skills"] if r["skill"] == "Python")["state"], "met",
+                            "a required skill needs evidence of the student's own work")
+
+    def test_maturity_signals_in_someone_elses_repository_lift_nothing(self):
+        mine = code_repo("me/a", {"Python": 300_000})
+        theirs = code_repo("org/b", {"Python": 300_000}, tests=True, ci=True, commits=(1, 200))
+        s = skill(run(repos=[mine, theirs]), "Python")
+        self.assertEqual(s["codeRepositories"], 1)
+        self.assertNotIn("engineeringSignals", s["scoreParts"])
+        self.assertEqual(s["levelCap"], "Code in one of your repositories so far, so it stops at Working.")
+
+    def test_commit_counts_showing_others_did_the_work_override_ownership(self):
+        s = skill(run(repos=[code_repo("me/fork-like", {"Python": 300_000}, ["torch"], commits=(2, 300))]), "PyTorch")
+        self.assertEqual(s["evidenceBasis"], "detected")
+
+    def test_advanced_needs_at_least_one_confirmed_repository(self):
+        owned_only = [repo(f"me/r{i}", {"Python": 900_000}, signals={"version": 2, "structure": {"tests": True, "ci": True}, "manifests": {}, "readme": {}}) for i in range(4)]
+        described = [fact("projects", "technologies", ["Python"], record=f"p{i}") for i in range(3)]
+        s = skill(run(described, owned_only), "Python")
+        self.assertEqual(s["level"], "Proficient")
+        self.assertIn("most commits are yours", s["nextLevel"])
+        confirmed = owned_only[:3] + [code_repo("me/main", {"Python": 900_000}, tests=True)]
+        self.assertEqual(skill(run(described, confirmed), "Python")["level"], "Advanced")
+
+
+class PracticeAndReadmeSignals(unittest.TestCase):
+    def test_practice_files_alone_stop_at_working(self):
+        repos = [code_repo(f"me/r{i}", packages=["pytest"], tests=True, ci=True, dockerfile=True) for i in range(4)]
+        out = run(repos=repos)
+        for name in ("Software Testing", "CI/CD", "Docker"):
+            s = skill(out, name)
+            self.assertEqual(s["level"], "Working", name)
+            self.assertIn("isn't something we can read from files", s["levelCap"])
+
+    def test_a_readme_mentioning_evaluation_is_not_an_engineering_signal(self):
+        s = skill(run(repos=[code_repo("me/x", packages=["scikit-learn"], readme=["Model Evaluation"])]), "scikit-learn")
+        self.assertNotIn("engineeringSignals", s["scoreParts"])
+        self.assertEqual(s["levelCap"], "Code in one of your repositories so far, so it stops at Working.")
+
+
+class AlignmentCountsOnlyAttributableEvidence(unittest.TestCase):
+    def test_detected_or_described_levels_do_not_make_alignment_developing(self):
+        detected = run(repos=[code_repo("bigco/platform", {"Python": 900_000}, ["mlflow", "kubernetes"], tests=True, ci=True, dockerfile=True, commits=(3, 600))],
+                       roles=("mlops_engineer",), facts=[fact("contact", "github_url", "https://github.com/ravi", origin="github")])
+        self.assertEqual(detected["roles"][0]["alignment"]["state"], "early")
+        described = run([fact("projects", "technologies", ["Python", "Docker", "Kubernetes", "CI/CD"], record=f"p{i}") for i in range(3)], roles=("mlops_engineer",))
+        self.assertEqual(described["roles"][0]["alignment"]["state"], "early")
+
+
+class OwnedRepositoryWithUnlinkedCommits(unittest.TestCase):
+    def test_zero_linked_commits_on_an_own_repository_stays_owned(self):
+        s = skill(run(repos=[code_repo("me/thesis", {"Python": 300_000}, ["torch"], commits=(0, 140))]), "PyTorch")
+        self.assertEqual(s["evidenceBasis"], "demonstrated")
+
+    def test_a_small_share_on_an_own_repository_is_unconfirmed(self):
+        s = skill(run(repos=[code_repo("me/forked-course", {"Python": 300_000}, ["torch"], commits=(3, 140))]), "PyTorch")
+        self.assertEqual(s["evidenceBasis"], "detected")
+
+    def test_detected_skills_say_why_they_need_proof(self):
+        out = run(repos=[code_repo("org/x", {"Python": 300_000}, commits=(1, 300))], facts=[fact("contact", "github_url", "https://github.com/me", origin="github")])
+        row = next(r for r in out["roles"][0]["skills"] if r["skill"] == "Python")
+        self.assertIn("can't attribute to you", row["action"])

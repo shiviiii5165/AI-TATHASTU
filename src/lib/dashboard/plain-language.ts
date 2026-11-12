@@ -3,7 +3,7 @@
 // Wording only: the states themselves come from the engine (career_engine.analyze_role). Missing evidence is never
 // described as missing ability.
 
-import type { GapState, RoleSkillRow } from "@/lib/dashboard/types";
+import type { GapCategory, GapState, RoleSkillRow } from "@/lib/dashboard/types";
 
 export type Tone = "green" | "blue" | "orange" | "grey";
 
@@ -20,14 +20,26 @@ const TEXT: Record<GapState | "described", StateText> = {
   not_assessed: { label: "Not assessed yet", sentence: "We don't have enough information to assess this skill yet.", tone: "grey" },
 };
 
-/** The engine's state in plain words. An "unverified" row with a score rests on the student's own descriptions. */
-export function stateText(row: Pick<RoleSkillRow, "state" | "proficiency">): StateText {
+/** Engine v4 categories (career_engine.CATEGORY), one wording for every card. */
+const CATEGORY_TEXT: Record<GapCategory, StateText> = {
+  meets: TEXT.met,
+  needs_practice: TEXT.underdeveloped,
+  proof_needed: { label: "Practical proof needed", sentence: "Your profile mentions this skill, but we haven't found work we can check that shows it, such as a public repository.", tone: "orange" },
+  foundation: { label: "Foundation to build first", sentence: "Other skills for your goal build on this one, and we haven't seen it in your work yet, so it's a good place to start.", tone: "orange" },
+  not_shown: { label: "Not shown yet", sentence: "We haven't found this skill in the work we can see. That isn't the same as not knowing it.", tone: "orange" },
+  possibly: TEXT.inferred,
+  not_assessed: TEXT.not_assessed,
+};
+
+/** The engine's state in plain words: its v4 category when present, else the v3 state. */
+export function stateText(row: Pick<RoleSkillRow, "state" | "proficiency" | "category">): StateText {
+  if (row.category && CATEGORY_TEXT[row.category]) return CATEGORY_TEXT[row.category];
   const scored = row.proficiency !== null && row.proficiency !== undefined;
   if (row.state === "unverified" && scored) return TEXT.described;
   return TEXT[row.state] ?? TEXT.not_assessed;
 }
 
-export const gapNoteText = (row: Pick<RoleSkillRow, "state" | "proficiency">) => stateText(row).label;
+export const gapNoteText = (row: Pick<RoleSkillRow, "state" | "proficiency" | "category">) => stateText(row).label;
 
 /** What each of the four levels asks for, in a phrase that completes "expects you to …". */
 const LEVEL_EXPECTS: Record<string, string> = {

@@ -6,11 +6,13 @@ import { Suspense } from "react";
 
 import { SkillsOverview } from "@/components/dashboard/mockup-sections/skills-overview";
 import { SkillCollection } from "@/components/skills/skill-collection";
+import { DataCoveragePanel, FrameworkNotes, GapInventory } from "@/components/skills/gap-inventory";
 import { roleLabel } from "@/components/dashboard/widgets/labels";
 import { db } from "@/db";
 import { profileViews } from "@/db/schema";
 import { requireOnboardedUser } from "@/lib/dal";
-import type { GapState, ProfileViewDoc, RoleAnalysis } from "@/lib/dashboard/types";
+import { stateText } from "@/lib/dashboard/plain-language";
+import type { ProfileViewDoc, RoleAnalysis } from "@/lib/dashboard/types";
 
 export const metadata: Metadata = {
   title: "Skills | AI Tathastu",
@@ -32,15 +34,6 @@ function SkillsSkeleton() {
     </div>
   );
 }
-
-const STATE_LABEL: Record<GapState, string> = {
-  met: "At level",
-  underdeveloped: "Below expected",
-  unverified: "Not shown yet",
-  inferred: "Only suggested",
-  missing: "No evidence",
-  not_assessed: "Not assessed",
-};
 
 async function SkillsContent() {
   const { user } = await requireOnboardedUser();
@@ -76,10 +69,12 @@ async function SkillsContent() {
       ) : (
         <>
           <SkillsOverview skillGraph={intelligence.graph} maxNodes={Number.POSITIVE_INFINITY} fullView />
+          <GapInventory intelligence={intelligence} />
           <SkillCollection skills={intelligence.skills} inferred={intelligence.inferred} />
           {intelligence.roles.map((role) => (
             <RoleTable key={role.role} role={role} />
           ))}
+          <DataCoveragePanel coverage={intelligence.dataCoverage} />
         </>
       )}
     </div>
@@ -95,6 +90,7 @@ function RoleTable({ role }: { role: RoleAnalysis }) {
           ? `${role.alignment.label}: ${role.alignment.requiredMet} of ${role.alignment.required} required skills shown at the expected level.`
           : "Not enough evidence to assess this role. That isn't the same as having gaps."}
       </p>
+      <FrameworkNotes role={role} />
       {/* Phones: one stacked row per skill (no sideways scrolling). Same data as the table. */}
       <ul className="mt-3 divide-y divide-border sm:hidden">
         {role.skills.map((row) => (
@@ -104,7 +100,7 @@ function RoleTable({ role }: { role: RoleAnalysis }) {
               <span className="shrink-0 text-[11px] font-semibold text-muted-foreground">{row.priority}</span>
             </div>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              {STATE_LABEL[row.state]} · now {row.level} · needs {row.expectedLevel}
+              {stateText(row).label} · now {row.level} · needs {row.expectedLevel}
             </p>
           </li>
         ))}
@@ -127,7 +123,7 @@ function RoleTable({ role }: { role: RoleAnalysis }) {
                 <td className="py-2 pr-3 text-muted-foreground">{row.priority}</td>
                 <td className="py-2 pr-3 text-muted-foreground">{row.expectedLevel}</td>
                 <td className="py-2 pr-3 text-muted-foreground">{row.level}</td>
-                <td className="py-2 text-foreground">{STATE_LABEL[row.state]}</td>
+                <td className="py-2 text-foreground">{stateText(row).label}</td>
               </tr>
             ))}
           </tbody>

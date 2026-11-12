@@ -1,5 +1,6 @@
-import { desc, eq, ilike, or, sql } from "drizzle-orm";
-import { recommendableWhere } from "@/lib/opportunities/recommend";
+import { eq, ilike, or, sql } from "drizzle-orm";
+import { browseOpportunities, loadStudentSignals } from "@/lib/opportunities/browse";
+import type { OppDb } from "@/lib/opportunities/ingest";
 import { crossSiteRefusal } from "@/lib/same-origin";
 import { connection, NextResponse } from "next/server";
 import { auth } from "@/auth";
@@ -7,8 +8,7 @@ import { db } from "@/db";
 import { similarPeople } from "@/lib/people";
 import { hitRateLimit } from "@/lib/rate-limit";
 import {
-  learningResources,
-  opportunities,
+  learningResources,
   profileViews,
   roadmaps,
   skillEvidence,
@@ -138,21 +138,23 @@ export async function POST(req: Request) {
         // Verified, active research listings only (the 0014 seed rows were fabricated and never qualify).
         // Internships are fetched from Avsar for the dashboard card; they are not quoted here.
         // Before migration 0028 the provenance columns don't exist: answer "none" rather than fail.
-        const opps = await db
-          .select({ title: opportunities.title, organization: opportunities.organization })
-          .from(opportunities)
-          .where(recommendableWhere(new Date()))
-          .orderBy(desc(opportunities.lastVerifiedAt))
-          .limit(3)
-          .catch((err: unknown) => {
-            console.error("[yora] opportunities unavailable:", err instanceof Error ? err.message : err);
-            return [] as { title: string; organization: string }[];
-          });
+        // Same authoritative service as the dashboard and /opportunities pages (lib/opportunities/browse.ts).
+        type Pick3 = { id: string; title: string; organization: string; deadline: string | null; fit: { state: string } };
+        let opps: Pick3[] = [];
+        try {
+          const d = db as unknown as OppDb;
+          const student = await loadStudentSignals(d, userId);
+          const recommended = (await browseOpportunities(d, userId, student, { section: "recommended" })).items;
+          opps = (recommended.length ? recommended : (await browseOpportunities(d, userId, student, { section: "all" })).items).slice(0, 3);
+        } catch (err) {
+          console.error("[yora] opportunities unavailable:", err instanceof Error ? err.message : err);
+        }
         if (opps.length > 0) {
+          const fitWord: Record<string, string> = { strong_fit: "strong fit", potential_fit: "potential fit", insufficient_information: "fit not yet assessable", not_eligible: "not eligible" };
           const listStr = opps
-            .map((o) => `"${o.title}" at ${o.organization}`)
-            .join(", ");
-          reply = `Here are some verified research opportunities: ${listStr}. See the Research opportunities card on your dashboard for how each fits you and a link to the original listing.`;
+            .map((o) => `"${o.title}" at ${o.organization} (${o.deadline ? `deadline ${o.deadline}` : "no deadline published"}; ${fitWord[o.fit.state] ?? "fit unknown"}) /opportunities/${o.id}`)
+            .join("; ");
+          reply = `Here are some verified research opportunities: ${listStr}. Open one to see why it fits, what's required and how to apply on the official site.`;
         } else {
           reply = "There are no verified research opportunities listed right now. Internships are published on Avsar, which you can open from your dashboard.";
         }

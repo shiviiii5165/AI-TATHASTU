@@ -27,12 +27,21 @@ def seed(cur: Any) -> None:
         [(name, cat) for name, cat, _a, _amb in CATALOG],
     )
     ids = {r["canonical_name"]: r["id"] for r in fetch_all(cur, "SELECT id, canonical_name FROM skills")}
-    pairs = []
+    # First mapping wins, as in skills_catalog.alias_map; one row per alias (ON CONFLICT DO UPDATE can't touch a row twice).
+    by_alias: Dict[str, str] = {}
     for name, _cat, aliases, _amb in CATALOG:
-        for a in {alias_key(name), *(alias_key(x) for x in aliases)}:
-            pairs.append((a, ids[name]))
+        by_alias.setdefault(alias_key(name), ids[name])
+    for name, _cat, aliases, _amb in CATALOG:
+        for a in aliases:
+            by_alias.setdefault(alias_key(a), ids[name])
+    pairs = list(by_alias.items())
+    # The catalogue is authoritative for its own aliases. An alias first seen as an unknown mention (GitHub's
+    # "Dockerfile" language, say) was auto-created as its own skill; once the catalogue maps it, the alias moves
+    # to the catalogue skill instead of staying stuck on the accidental one.
     psycopg2.extras.execute_values(
-        cur, "INSERT INTO skill_aliases (alias, skill_id) VALUES %s ON CONFLICT (alias) DO NOTHING", pairs
+        cur,
+        "INSERT INTO skill_aliases (alias, skill_id) VALUES %s ON CONFLICT (alias) DO UPDATE SET skill_id = EXCLUDED.skill_id",
+        pairs,
     )
     _seeded = True
 

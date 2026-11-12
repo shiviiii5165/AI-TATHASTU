@@ -6,15 +6,23 @@ origin = 'github', extraction_method = 'api:github':
   projects          one entry per repo (record_key = repo full name)
   skills            one per language, with evidence naming the repos
 
-Not yet: README, contributors, 90-day commits and PRs from the plan, and
-raw_snapshots (that table doesn't exist yet).
+Code signals (migration 0031, code_repositories.code_signals): for the most recently pushed repositories, the
+dependency files at the root (requirements.txt, pyproject.toml, package.json...), the root structure (tests,
+CI workflows, Dockerfile, Kubernetes, Terraform) and the skills the README names. Only parsed results are
+stored: package names, flags, and README skill names, never README text. A repository whose last push hasn't
+changed keeps its stored signals, so a re-sync costs no extra requests. If the column doesn't exist yet, the
+sync behaves exactly as before.
+
+Not yet: contributors, 90-day commits and PRs from the plan, and raw_snapshots (that table doesn't exist yet).
 """
 
 from __future__ import annotations
 
+import base64
 import json
 import logging
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
@@ -24,7 +32,8 @@ import psycopg2.extras
 from connectors import github_contributions as contributions
 from connectors.common import still_connected
 from crypto_box import open_credential
-from db import enqueue_compute_intelligence, fetch_one, jsonb
+from db import enqueue_compute_intelligence, fetch_all, fetch_one, jsonb
+from intelligence import code_signals
 from jobs import Job, NeedsReview, assert_still_owner
 
 log = logging.getLogger("worker.github")
@@ -34,6 +43,9 @@ API = "https://api.github.com"
 # through an organisation. Visibility is still limited by the token's scope.
 MAX_REPOS = 100
 LANGUAGE_LOOKUPS = 50
+# Repositories whose files are (re)read per sync; unchanged ones reuse stored signals and cost nothing.
+SIGNAL_LOOKUPS = 30
+MAX_MANIFEST_FETCHES = 4
 STALE_AFTER = timedelta(days=7)
 
 
@@ -114,6 +126,11 @@ def sync_github(conn: Any, job: Job, client_factory=GithubClient) -> None:
             log.info("connection %s gone (disconnected); nothing to sync", connection_id)
             return
         cur.execute("UPDATE connections SET status = 'syncing' WHERE id = %s", (connection_id,))
+        has_signals = signals_column_exists(cur)
+        previous_signals = {
+            r["repo_name"]: r["code_signals"]
+            for r in fetch_all(cur, "SELECT repo_name, code_signals FROM code_repositories WHERE user_id = %s AND source = 'github' AND code_signals IS NOT NULL", (job.user_id,))
+        } if has_signals else {}
 
     credential = open_credential(connection["token_enc"], job.user_id, "github")
     client = client_factory(credential["access_token"])
@@ -134,6 +151,7 @@ def sync_github(conn: Any, job: Job, client_factory=GithubClient) -> None:
             except urllib.error.HTTPError as exc:
                 if exc.code != 404:  # renamed/deleted since listing: keep its primary language, sync the rest
                     raise
+        signals = collect_signals(client, repos, previous_signals, profile.get("login")) if has_signals else {}
     except GithubAuthError as exc:
         with conn, conn.cursor() as cur:
             cur.execute("UPDATE connections SET status = 'reauth_needed' WHERE id = %s", (connection_id,))
@@ -148,7 +166,10 @@ def sync_github(conn: Any, job: Job, client_factory=GithubClient) -> None:
         if not still_connected(cur, connection_id, job.user_id):
             log.info("github connection %s was disconnected mid-sync; results discarded", connection_id)
             return
-        _write(cur, job.user_id, profile, repos, languages)
+        if has_signals:
+            _write(cur, job.user_id, profile, repos, languages, signals)
+        else:
+            _write(cur, job.user_id, profile, repos, languages)
         now = datetime.now(timezone.utc)
         cur.execute(
             "UPDATE connections SET status = 'connected', last_sync_at = %s, stale_after = %s WHERE id = %s",
@@ -206,14 +227,165 @@ def _sync_contributions(conn: Any, job: Job, connection_id: Any, client: Any) ->
             log.warning("github contributions for %s: failure not recorded either (%s)", job.user_id, type(exc2).__name__)
 
 
-def _write(cur: Any, user_id: str, profile: Dict[str, Any], repos: List[Dict[str, Any]], languages: Dict[str, Dict[str, int]]) -> None:
+_signals_column: Optional[bool] = None
+
+
+def signals_column_exists(cur: Any) -> bool:
+    """Whether migration 0031 (code_repositories.code_signals) has been applied. Checked once per process, so a worker
+    started before the migration needs a restart to begin reading repository files."""
+    global _signals_column
+    if _signals_column is None:
+        row = fetch_one(cur, """SELECT EXISTS (SELECT 1 FROM information_schema.columns
+                                  WHERE table_schema = 'public' AND table_name = 'code_repositories' AND column_name = 'code_signals') AS present""")
+        _signals_column = bool(row) and row.get("present") is True
+    return _signals_column
+
+
+def _content(client: Any, full_name: str, path: str) -> Optional[Tuple[str, int]]:
+    """A file's text via the contents API (base64), or None if it isn't there. Other HTTP errors propagate."""
+    try:
+        data, _ = client.get(f"/repos/{full_name}/contents/{urllib.parse.quote(path)}")
+    except urllib.error.HTTPError as exc:
+        if exc.code == 404:
+            return None
+        raise
+    if not isinstance(data, dict) or data.get("encoding") != "base64":
+        return None
+    raw = base64.b64decode(data.get("content") or "")
+    return raw.decode("utf-8", "replace"), int(data.get("size") or len(raw))
+
+
+def _contribution(client: Any, full_name: str, login: str) -> Optional[Dict[str, Any]]:
+    """The student's commits against all commits, from GitHub's contributors API (first 100 contributors). None when
+    GitHub can't say (empty or very large repository): the engine then treats contribution as unconfirmed."""
+    try:
+        people, _ = client.get(f"/repos/{full_name}/contributors?per_page=100")
+    except urllib.error.HTTPError as exc:
+        if exc.code in (204, 403, 404, 409):
+            return None
+        raise
+    if not isinstance(people, list) or not people:
+        return None
+    total = sum(int(p.get("contributions") or 0) for p in people if isinstance(p, dict))
+    mine = sum(int(p.get("contributions") or 0) for p in people if isinstance(p, dict) and str(p.get("login", "")).lower() == login.lower())
+    return {"login": login, "commits": mine, "total": total, "contributors": len(people), "truncated": len(people) >= 100} if total else None
+
+
+def fetch_code_signals(client: Any, repo: Dict[str, Any], readme_skills: Any, login: Optional[str] = None) -> Dict[str, Any]:
+    """Root listing, up to MAX_MANIFEST_FETCHES dependency files, the workflows folder and the README of one repository."""
+    full = repo["full_name"]
+    base = {"version": code_signals.SIGNALS_VERSION, "pushedAt": repo.get("pushed_at"), "private": bool(repo.get("private")),
+            "fetchedAt": datetime.now(timezone.utc).isoformat()}
+    try:
+        listing, _ = client.get(f"/repos/{full}/contents/")
+    except urllib.error.HTTPError as exc:
+        if exc.code in (404, 409):  # empty repository
+            return {**base, "unavailable": "empty repository"}
+        raise
+    if not isinstance(listing, list):
+        return {**base, "unavailable": "unexpected listing"}
+    by_name = {item.get("name"): item for item in listing if isinstance(item, dict)}
+    workflows = 0
+    if ".github" in by_name:
+        try:
+            wf, _ = client.get(f"/repos/{full}/contents/.github/workflows")
+            workflows = sum(1 for f in wf if isinstance(f, dict) and str(f.get("name", "")).endswith((".yml", ".yaml"))) if isinstance(wf, list) else 0
+        except urllib.error.HTTPError as exc:
+            if exc.code != 404:
+                raise
+    manifests: Dict[str, List[str]] = {}
+    skipped: List[str] = []
+    for name in code_signals.MANIFESTS:
+        item = by_name.get(name)
+        if not item or item.get("type") != "file":
+            continue
+        if int(item.get("size") or 0) > code_signals.MAX_MANIFEST_BYTES or len(manifests) >= MAX_MANIFEST_FETCHES:
+            skipped.append(name)
+            continue
+        got = _content(client, full, name)
+        if got:
+            manifests[name] = code_signals.parse_manifest(name, got[0])
+    readme: Dict[str, Any] = {"present": False, "chars": 0, "skills": []}
+    try:
+        data, _ = client.get(f"/repos/{full}/readme")
+        if isinstance(data, dict) and data.get("encoding") == "base64" and int(data.get("size") or 0) <= code_signals.MAX_README_BYTES * 4:
+            text = base64.b64decode(data.get("content") or "").decode("utf-8", "replace")[: code_signals.MAX_README_BYTES]
+            readme = {"present": True, "chars": len(text), "skills": readme_skills(text)}
+    except urllib.error.HTTPError as exc:
+        if exc.code != 404:
+            raise
+    out = {**base, "manifests": manifests, "structure": code_signals.structure_from_listing(by_name.keys(), workflows), "readme": readme}
+    if login:
+        out["contribution"] = _contribution(client, full, login)
+    if skipped:
+        out["skipped"] = skipped
+    return out
+
+
+def collect_signals(client: Any, repos: List[Dict[str, Any]], previous: Dict[str, Any], login: Optional[str] = None) -> Dict[str, Dict[str, Any]]:
+    """Signals per repository: reused when the last push hasn't changed, fetched for up to SIGNAL_LOOKUPS others.
+    Optional by design: a rate limit or transient error stops fetching more, and the sync still succeeds."""
+    from resume.deterministic import _PATTERNS  # local: the resume lexicon is the one skill vocabulary
+
+    def readme_skills(text: str) -> List[str]:
+        return sorted({canonical for canonical, pattern, section_only in _PATTERNS if not section_only and pattern.search(text)})
+
+    out: Dict[str, Dict[str, Any]] = {}
+    fetched = 0
+    stopped: Optional[str] = None
+    for repo in repos:
+        name = repo["full_name"]
+        old = previous.get(name)
+        if isinstance(old, dict) and old.get("version") == code_signals.SIGNALS_VERSION and old.get("pushedAt") == repo.get("pushed_at"):
+            out[name] = old
+            continue
+        if stopped or fetched >= SIGNAL_LOOKUPS:
+            if isinstance(old, dict):
+                out[name] = old  # older signals beat none; their pushedAt shows they're older
+            continue
+        try:
+            out[name] = fetch_code_signals(client, repo, readme_skills, login)
+            fetched += 1
+        except GithubAuthError:
+            raise
+        except Exception as exc:  # noqa: BLE001 - signals are optional; the repository sync must still succeed
+            stopped = type(exc).__name__
+            log.warning("github code signals stopped after %d repositories: %s", fetched, stopped)
+            if isinstance(old, dict):
+                out[name] = old
+    return out
+
+
+def _write(cur: Any, user_id: str, profile: Dict[str, Any], repos: List[Dict[str, Any]], languages: Dict[str, Dict[str, int]],
+           signals: Optional[Dict[str, Dict[str, Any]]] = None) -> None:
     # code_repositories: upsert current repos, drop ones that disappeared.
     names = [r["full_name"] for r in repos]
     cur.execute(
         "DELETE FROM code_repositories WHERE user_id = %s AND source = 'github' AND NOT (repo_name = ANY(%s))",
         (user_id, names),
     )
-    if repos:
+    if repos and signals is not None:
+        psycopg2.extras.execute_values(
+            cur,
+            """INSERT INTO code_repositories
+                 (user_id, source, repo_name, description, url, languages, topics, stars, forks, last_commit_at, code_signals)
+               VALUES %s
+               ON CONFLICT (user_id, source, repo_name) DO UPDATE SET
+                 description = EXCLUDED.description, url = EXCLUDED.url, languages = EXCLUDED.languages,
+                 topics = EXCLUDED.topics, stars = EXCLUDED.stars, forks = EXCLUDED.forks,
+                 last_commit_at = EXCLUDED.last_commit_at,
+                 code_signals = COALESCE(EXCLUDED.code_signals, code_repositories.code_signals)""",
+            [
+                (
+                    user_id, "github", r["full_name"], r.get("description"), r.get("html_url"),
+                    jsonb(languages.get(r["full_name"], {})), r.get("topics") or [],
+                    r.get("stargazers_count") or 0, r.get("forks_count") or 0, r.get("pushed_at"),
+                    jsonb(signals[r["full_name"]]) if r["full_name"] in signals else None,
+                )
+                for r in repos
+            ],
+        )
+    elif repos:
         psycopg2.extras.execute_values(
             cur,
             """INSERT INTO code_repositories

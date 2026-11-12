@@ -39,9 +39,11 @@ beforeAll(async () => {
 });
 
 describe("migrations", () => {
-  it("all apply on real Postgres with pgvector, with no error tolerated", () => {
-    expect(applied.at(-1)).toBe("0025_roadmap_milestone_submissions.sql");
-    expect(applied).toHaveLength(26);
+  it("all apply on real Postgres with pgvector, with no error tolerated", async () => {
+    // The whole journal, in order: a hard-coded last file went stale every time a migration was added.
+    const { readFileSync } = await import("node:fs");
+    const journal = JSON.parse(readFileSync(new URL("../db/migrations/meta/_journal.json", import.meta.url), "utf8")) as { entries: { tag: string }[] };
+    expect(applied).toEqual(journal.entries.map((e) => `${e.tag}.sql`));
   });
 });
 
