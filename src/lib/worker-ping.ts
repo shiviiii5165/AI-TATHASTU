@@ -14,13 +14,27 @@ const TIMEOUT_MS = 10_000;
  * failed ping only delays processing until the next one. No-op without
  * WORKER_WAKE_URL. Call only from Server Actions / Route Handlers.
  */
+/**
+ * The worker only leaves its deep idle (which lets the database suspend) for an explicit wake:
+ * "?wake=1" on the configured URL. A plain health check must not wake it.
+ */
+export function wakeUrl(raw: string): string {
+  try {
+    const u = new URL(raw);
+    u.searchParams.set("wake", "1");
+    return u.toString();
+  } catch {
+    return raw;
+  }
+}
+
 export function wakeWorker(reason: string) {
   const url = process.env.WORKER_WAKE_URL;
   if (!url) return;
   after(async () => {
     try {
       // We only need the request to reach Render; don't wait out a cold start.
-      await fetch(url, { method: "GET", cache: "no-store", signal: AbortSignal.timeout(TIMEOUT_MS) });
+      await fetch(wakeUrl(url), { method: "GET", cache: "no-store", signal: AbortSignal.timeout(TIMEOUT_MS) });
     } catch (error) {
       if (!(error instanceof Error && error.name === "TimeoutError")) {
         console.warn(`worker wake-up ping failed (${reason}):`, error);

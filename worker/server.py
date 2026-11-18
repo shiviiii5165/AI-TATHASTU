@@ -32,7 +32,7 @@ if __name__ == "__main__":
     load_dotenv(Path(__file__).resolve().parent.parent / ".env.local")
 
 from resume.sandbox import block_environ_reads  # noqa: E402
-from worker import HANDLERS, WORKER_ID, Worker, configure_logging, database_url
+from worker import HANDLERS, WORKER_ID, Worker, configure_logging, database_url, wake
 
 log = logging.getLogger("worker.server")
 
@@ -40,7 +40,12 @@ log = logging.getLogger("worker.server")
 def make_handler(queue_threads: List[threading.Thread]):
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self) -> None:  # noqa: N802 (http.server naming)
-            if self.path.split("?")[0] not in ("/health", "/"):
+            path, _, query = self.path.partition("?")
+            # A wake ping (the web app, after queueing a job) ends the queue's deep idle. A plain
+            # /health never does, so platform health checks can't keep the database awake.
+            if path == "/wake" or (path in ("/health", "/") and "wake=1" in query.split("&")):
+                wake()
+            if path not in ("/health", "/", "/wake"):
                 self._send(404, {"error": "not found"})
             elif any(t.is_alive() for t in queue_threads):
                 self._send(200, {"status": "healthy"})

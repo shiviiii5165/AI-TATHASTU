@@ -19,13 +19,23 @@ import { assertTestIsolation, assertWriteAllowed } from "./lib/db-target.mjs";
 type Row = Record<string, unknown>;
 
 async function connect(url: string) {
-  if (/@(localhost|127\.0\.0\.1)[:/]/.test(url)) {
-    const { default: pg } = await import("pg");
-    const pool = new pg.Pool({ connectionString: url, max: 1 });
-    return { query: async (t: string, p: unknown[] = []) => (await pool.query(t, p)).rows as Row[], close: () => pool.end() };
+  const host = new URL(url).hostname;
+  if (/\.neon\.tech$/i.test(host)) {
+    const sql = neon(url);
+    return { query: (t: string, p: unknown[] = []) => sql.query(t, p) as Promise<Row[]>, close: async () => {} };
   }
-  const sql = neon(url);
-  return { query: (t: string, p: unknown[] = []) => sql.query(t, p) as Promise<Row[]>, close: async () => {} };
+  // Local Postgres or Supabase (verified against Supabase's root CA; never unverified TLS).
+  const { default: pg } = await import("pg");
+  const { SUPABASE_ROOT_CA } = await import("../src/db/supabase-ca");
+  const local = /^(localhost|127\.0\.0\.1)$/.test(host);
+  const u = new URL(url);
+  u.searchParams.delete("sslmode");
+  const pool = new pg.Pool({
+    connectionString: u.toString(),
+    max: 1,
+    ssl: local ? false : { rejectUnauthorized: true, servername: host, ...(/\.supabase\.(com|co)$/i.test(host) ? { ca: SUPABASE_ROOT_CA } : {}) },
+  });
+  return { query: async (t: string, p: unknown[] = []) => (await pool.query(t, p)).rows as Row[], close: () => pool.end() };
 }
 
 const REPORT = `

@@ -56,6 +56,26 @@ LOCK_SECONDS = int(os.environ.get("WORKER_LOCK_SECONDS", "300"))
 JOB_MAX_SECONDS = int(os.environ.get("WORKER_JOB_MAX_SECONDS", "1800"))
 IDLE_POLL_MIN_S = 1.0
 IDLE_POLL_MAX_S = 10.0
+# Neon bills compute while it's awake and suspends it after ~5 idle minutes. Polling every 10 s
+# kept it awake around the clock (≈180 compute-hours a month, over the free plan's ~100, which
+# then locked the database). So once the queue has been empty this long, a queue thread closes its
+# connection and waits until the app's wake ping (/wake), the next scheduled job, or DEEP_IDLE_S.
+DEEP_IDLE_AFTER_S = float(os.environ.get("WORKER_DEEP_IDLE_AFTER_S", "120"))
+DEEP_IDLE_S = float(os.environ.get("WORKER_DEEP_IDLE_S", "1800"))
+
+NEXT_DUE_SQL = "SELECT EXTRACT(EPOCH FROM (min(run_at) - now())) AS seconds FROM jobs WHERE status = 'queued'"
+
+# Woken by server.py on /wake (the web app pings it after queueing a job). A generation counter, so
+# every queue thread sees one ping even if another thread reacted to it first.
+_wake = threading.Condition()
+_wake_generation = 0
+
+
+def wake() -> None:
+    global _wake_generation
+    with _wake:
+        _wake_generation += 1
+        _wake.notify_all()
 RETRY_BASE_S = 30
 
 def process_generate_roadmap(conn: Any, job: Job) -> None:
@@ -323,14 +343,21 @@ class Worker:
 
     def run_forever(self) -> None:
         idle = IDLE_POLL_MIN_S
+        idle_since = time.monotonic()
         while not self.stopping:
             try:
                 job = self.claim()
                 if job is None:
+                    if time.monotonic() - idle_since >= DEEP_IDLE_AFTER_S:
+                        self.deep_idle()
+                        idle = IDLE_POLL_MIN_S  # woken: poll quickly again for a while
+                        idle_since = time.monotonic()
+                        continue
                     self.sleep(idle)
                     idle = min(idle * 2, IDLE_POLL_MAX_S)  # back off while the queue is empty
                     continue
                 idle = IDLE_POLL_MIN_S
+                idle_since = time.monotonic()
                 self.run_one(job)
             except Exception:  # noqa: BLE001 - the outermost boundary of this thread
                 # Neon closes idle connections, so this also fires while recording a
@@ -340,6 +367,29 @@ class Worker:
                 self.conn = None
                 self.sleep(IDLE_POLL_MAX_S)
         log.info("stopped")
+
+    def deep_idle(self) -> float:
+        """Lets the database suspend: closes this thread's connection, then waits until a wake ping,
+        the next scheduled job (a retry or postponed job), or DEEP_IDLE_S. Returns the wait chosen."""
+        wait = DEEP_IDLE_S
+        row = self.execute(NEXT_DUE_SQL, fetch=True)
+        if row and row.get("seconds") is not None:
+            wait = min(wait, max(IDLE_POLL_MAX_S, float(row["seconds"])))
+        if self.conn is not None and not self.conn.closed:
+            self.conn.close()
+        self.conn = None
+        self.wait_for_wake(wait)
+        return wait
+
+    def wait_for_wake(self, seconds: float) -> None:
+        end = time.monotonic() + seconds
+        with _wake:
+            seen = _wake_generation
+            while not self.stopping and _wake_generation == seen:
+                left = end - time.monotonic()
+                if left <= 0:
+                    return
+                _wake.wait(min(1.0, left))  # wakes for stop() too, within a second
 
     def sleep(self, seconds: float) -> None:
         end = time.monotonic() + seconds
