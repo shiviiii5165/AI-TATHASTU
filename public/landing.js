@@ -1953,96 +1953,132 @@ function initReviewShuffle() {
   const wrapper = document.getElementById('storiesCoverflowWrap');
   if (!stage) return;
 
+  // Real testimonials collected from AI Tathastu students and mentors. No photos
+  // were supplied, so each avatar is an initials badge in the card's accent colour
+  // (same <img> element and size as before) rather than a stand-in face.
+  const initialsAvatar = (name, color) => {
+    const initials = name.replace(/^Dr\.\s*/, '').split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160"><rect width="160" height="160" fill="${color}"/><text x="80" y="80" dy=".35em" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,sans-serif" font-size="64" font-weight="700" fill="#FFFFFF">${initials}</text></svg>`;
+    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  };
+
+  const lpuChip = {
+    campus: 'LPU',
+    logo: '/img/logos/lpu.webp',
+    bg: '#FFF1F2',
+    border: 'rgba(244, 63, 94, 0.22)',
+    color: '#E11D48'
+  };
+
   const stories = [
     {
-      chip: {
-        campus: 'IIT Delhi',
-        logo: '/img/logos/iitd.webp',
-        bg: '#FFF1F2',
-        border: 'rgba(244, 63, 94, 0.22)',
-        color: '#E11D48'
-      },
-      tag: null,
+      chip: null,
+      tag: '✦ CGPA 5.0 → 8.0',
+      tagBg: '#F5F3FF',
+      tagColor: '#7C3AED',
+      tagBorder: '#DDD6FE',
       borderColor: '#8B5CF6',
       glowColor: 'rgba(139, 92, 246, 0.40)',
-      title: 'From Hostel Project to',
-      body: 'Turned a weekend project in guidance and opportunity with verified code reviews and global community feedback.',
-      authorName: 'Arjun M.',
-      authorMeta: 'CSE · IIT Delhi',
-      avatar: '/img/avatar_arjun-160.webp',
+      title: 'From Academic Struggles to a CGPA of 8.0',
+      body: "Missing the fundamentals made every new concept harder to understand. With structured learning and Python guidance through AI Tathastu, Mandeep worked toward rebuilding his understanding and improving his academic performance.",
+      authorName: 'Mandeep Kumar',
+      authorMeta: 'AI/ML Student',
+      avatar: initialsAvatar('Mandeep Kumar', '#8B5CF6'),
       hasProof: false
     },
     {
-      chip: {
-        campus: 'NIT Trichy',
-        logo: '/img/logos/nitt.webp',
-        bg: '#FFF1F2',
-        border: 'rgba(244, 63, 94, 0.22)',
-        color: '#FF385C'
-      },
-      tag: '✦ Alumni Mentorship',
+      chip: lpuChip,
+      tag: '✦ Technical Discovery',
       tagBg: '#ECFDF5',
       tagColor: '#059669',
       tagBorder: '#A7F3D0',
       borderColor: '#FF385C',
       glowColor: 'rgba(255, 56, 92, 0.50)',
-      title: 'Solved Campus Bus Tracking Bottleneck',
-      body: 'Received live code review in Meet room from a senior alumnus at Google who helped optimize our real-time graph traversal algorithm.',
-      authorName: 'Divya R.',
-      authorMeta: 'ECE Senior · NIT Trichy',
-      avatar: '/img/avatar_divya-160.webp',
-      hasProof: true,
-      proofText: '15-Min Live Guidance',
-      proofColor: '#FF385C'
+      title: 'Great Ideas Need the Right People',
+      body: "Winning hackathons was not the only challenge. Finding the right people for the next big idea was. AI Tathastu helped Dama explore structured technical profiles and discover potential collaborators.",
+      authorName: 'Dama Sri Ram',
+      authorMeta: 'Lovely Professional University',
+      avatar: initialsAvatar('Dama Sri Ram', '#FF385C'),
+      hasProof: false
     },
     {
-      chip: null,
-      tag: '✦ Research Opportunity',
+      chip: lpuChip,
+      tag: '✦ Mentor',
       tagBg: '#FEF3C7',
       tagColor: '#D97706',
       tagBorder: '#FDE68A',
       borderColor: '#F59E0B',
       glowColor: 'rgba(245, 158, 11, 0.42)',
-      title: 'Got into a Research Lab',
-      body: 'My research idea from a paper I uploaded got noticed by a professor in our university.',
-      authorName: 'Karan S.',
-      authorMeta: 'BTech · IIT Bombay',
-      avatar: '/img/avatar_karan-160.webp',
+      title: 'Discovering Potential Beyond the Resume',
+      body: "Identifying talent requires more than looking at names and qualifications. Dr. Mohit Arora uses AI Tathastu to explore student rankings, review structured profiles, and discover opportunities for mentorship, research, and collaboration.",
+      authorName: 'Dr. Mohit Arora',
+      authorMeta: 'Head of Machine Learning',
+      avatar: initialsAvatar('Dr. Mohit Arora', '#F59E0B'),
       hasProof: false
     },
     {
       chip: null,
-      tag: '✦ Early Internship',
+      tag: '✦ Patent Mentorship',
       tagBg: '#ECFDF5',
       tagColor: '#059669',
       tagBorder: '#A7F3D0',
       borderColor: '#10B981',
       glowColor: 'rgba(16, 185, 129, 0.35)',
-      title: 'Fast-Tracked ML Fellowship',
-      body: 'Turned a late-night PyTorch repo into an accepted corporate research fellowship.',
-      authorName: 'Rohan M.',
-      authorMeta: 'Dual Degree AI · IIT Madras',
-      avatar: '/img/avatar_rohan-160.webp',
+      title: 'Every Innovation Needs the Right Guidance',
+      body: "An idea can be exciting, but understanding the patent journey can be challenging. Abhay turned to AI Tathastu to access mentors who could guide him through his patent-related work.",
+      authorName: 'Abhay Pratap Singh',
+      authorMeta: 'B.Tech CSE (AI & ML)',
+      avatar: initialsAvatar('Abhay Pratap Singh', '#10B981'),
       hasProof: false
     },
     {
       chip: null,
-      tag: '✦ Hackathon Winner',
+      tag: '✦ Project Collaboration',
       tagBg: '#FDF2F8',
       tagColor: '#DB2777',
       tagBorder: '#FBCFE8',
       borderColor: '#EC4899',
       glowColor: 'rgba(236, 72, 153, 0.35)',
-      title: 'Found 3 Teammates in 10 Minutes',
-      body: 'Paired my ML model with a frontend designer and data pitch specialist from Collaborate room.',
-      authorName: 'Ananya S.',
-      authorMeta: 'BTech · BITS Pilani',
-      avatar: '/img/avatar_ananya-160.webp',
+      title: 'From Searching for Teammates to Finding Collaboration',
+      body: "A project needs more than an idea; it needs people willing to build it together. Komal explored AI Tathastu to find suitable teammates for her academic project requirements.",
+      authorName: 'Komal Gupta',
+      authorMeta: 'Student',
+      avatar: initialsAvatar('Komal Gupta', '#EC4899'),
+      hasProof: false
+    },
+    {
+      chip: null,
+      tag: '✦ CGPA Above 8.5',
+      tagBg: '#F5F3FF',
+      tagColor: '#7C3AED',
+      tagBorder: '#DDD6FE',
+      borderColor: '#8B5CF6',
+      glowColor: 'rgba(139, 92, 246, 0.40)',
+      title: 'Consistency That Keeps Academic Goals Within Reach',
+      body: "Maintaining strong academic performance takes more than hard work. Through structured learning, mentorship, and guidance from AI Tathastu, Prakrati reported maintaining a CGPA above 8.5.",
+      authorName: 'Prakrati Singh',
+      authorMeta: 'Student',
+      avatar: initialsAvatar('Prakrati Singh', '#8B5CF6'),
+      hasProof: false
+    },
+    {
+      chip: null,
+      tag: '✦ Profile Building',
+      tagBg: '#FEF3C7',
+      tagColor: '#D97706',
+      tagBorder: '#FDE68A',
+      borderColor: '#F59E0B',
+      glowColor: 'rgba(245, 158, 11, 0.42)',
+      title: 'Your Potential Deserves to Be Seen',
+      body: "Shyma wanted to build a professional profile, connect with people, and explore opportunities beyond the classroom. AI Tathastu gave her a platform to start working toward those goals.",
+      authorName: 'Shyma Thakur',
+      authorMeta: 'Student',
+      avatar: initialsAvatar('Shyma Thakur', '#F59E0B'),
       hasProof: false
     }
   ];
 
-  let currentIdx = 1; // Divya R. (NIT Trichy) at center initially, matching screenshot
+  let currentIdx = 1; // second card centred initially, as before
   let autoTimer = null;
   let isHovered = false;
 

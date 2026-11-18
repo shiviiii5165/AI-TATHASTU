@@ -1,0 +1,54 @@
+/* Student Intelligence: chart palette, scoped to .si-root so no existing admin page is affected.
+   Categorical slots are the validated reference palette (dataviz skill), assigned in fixed order, never cycled.
+   Dark steps are their own validated values, not an automatic flip. */
+.si-root {
+  --si-1: #2a78d6; /* blue */
+  --si-2: #eb6834; /* orange */
+  --si-3: #1baf7a; /* aqua */
+  --si-4: #eda100; /* yellow */
+  --si-5: #e87ba4; /* magenta */
+  --si-6: #008300; /* green */
+  --si-7: #6250d6; /* violet */
+  --si-8: #e34948; /* red */
+  --si-grid: color-mix(in oklab, currentColor 12%, transparent);
+  --si-track: color-mix(in oklab, currentColor 8%, transparent);
+  --si-good: #1a7f37;
+  --si-warn: #b35900;
+  --si-bad: #c62828;
+}
+.dark .si-root,
+[data-theme="dark"] .si-root {
+  --si-1: #3987e5;
+  --si-2: #d95926;
+  --si-3: #199e70;
+  --si-4: #c98500;
+  --si-5: #d55181;
+  --si-6: #008300;
+  --si-7: #9085e9;
+  --si-8: #e66767;
+  --si-good: #3fb950;
+  --si-warn: #e3a008;
+  --si-bad: #f47067;
+}
+
+/* Hover layer: the hovered mark stays, its siblings recede. */
+.si-root .si-marks:hover .si-mark { opacity: 0.45; }
+.si-root .si-marks .si-mark:hover { opacity: 1; }
+.si-root .si-mark { transition: opacity 120ms ease-out; }
+
+/* Sequential (one hue, light → dark) for heatmaps. */
+.si-root .si-seq-0 { fill: var(--si-track); }
+.si-root .si-seq-1 { fill: color-mix(in oklab, var(--si-3) 30%, transparent); }
+.si-root .si-seq-2 { fill: color-mix(in oklab, var(--si-3) 55%, transparent); }
+.si-root .si-seq-3 { fill: color-mix(in oklab, var(--si-3) 78%, transparent); }
+.si-root .si-seq-4 { fill: var(--si-3); }
+
+/* Range sliders (the global reset removes the native track). */
+.si-root input[type="range"] { -webkit-appearance: none; appearance: none; height: 6px; border-radius: 9999px; background: var(--si-track); cursor: pointer; }
+.si-root input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 9999px; background: currentColor; border: 2px solid var(--card); box-shadow: 0 0 0 1px var(--si-grid); }
+.si-root input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 9999px; background: currentColor; border: 2px solid var(--card); }
+.si-root input[type="range"]:focus-visible { outline: 2px solid var(--si-1); outline-offset: 3px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .si-root .si-mark { transition: none; }
+}

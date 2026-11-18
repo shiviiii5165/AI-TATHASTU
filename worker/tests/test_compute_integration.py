@@ -90,6 +90,55 @@ class ComputeOnPostgres(unittest.TestCase):
         self.assertEqual((python["proficiency"], python["verificationStatus"]), (engine_python["proficiency"], "verified"))
         self.assertEqual(view["sources"]["repositories"], 3)
 
+    def add_resume(self, confirmation):
+        rows = [
+            ("skills", "skill", "s1", "Retrieval-Augmented Generation"),
+            ("projects", "title", "p1", "RAG Document Pipeline"),
+            ("certifications", "name", "c1", "Cloud Practitioner"),
+            # A skill no catalogue knows: resolving it registers a new skill through the read transaction's cursor.
+            ("skills", "skill", "s2", f"Quantum Origami {uuid.uuid4().hex[:6]}"),
+        ]
+        for group, field, key, value in rows:
+            self.sql(
+                """INSERT INTO profile_facts (user_id, field_group, field_name, record_key, normalized_value, extracted_value, origin, confirmation, extraction_method)
+                   VALUES (%s, %s, %s, %s, %s, %s, 'resume', %s, 'deterministic')""",
+                (self.user, group, field, key, json.dumps(value), json.dumps(value), confirmation),
+            )
+
+    def test_unreviewed_resume_facts_reach_only_the_admin_view(self):
+        self.add_resume("unconfirmed")
+        self.sql(
+            """INSERT INTO code_repositories (user_id, source, repo_name, url, languages, topics, stars, last_commit_at)
+               VALUES (%s, 'github', 'a/rag-document-pipeline', 'https://github.com/a/rag-document-pipeline', '{"Python": 5000}', '{}', 0, %s)""",
+            (self.user, NOW),
+        )
+        compute.process_compute_intelligence(self.conn, self.job)
+        view = self.view()
+        student_skills = {s["name"] for s in view["intelligence"]["skills"]}
+        admin = view["admin"]
+        admin_skills = {s["name"]: s for s in admin["intelligence"]["skills"]}
+        self.assertNotIn("Retrieval-Augmented Generation", student_skills)  # the student's own result is unchanged
+        self.assertIn("Retrieval-Augmented Generation", admin_skills)
+        self.assertNotIn(admin_skills["Retrieval-Augmented Generation"].get("evidenceBasis"), ("demonstrated", "assessed"))  # a resume line is never proof
+        self.assertEqual((admin["basis"], admin["unreviewedFacts"], admin["onboardingComplete"]), ("includes_unreviewed", 4, True))
+        self.assertEqual(admin["projects"]["matched"], 1)  # "RAG Document Pipeline" ↔ a/rag-document-pipeline by name alone
+        # Nothing student-facing or shared was built from the unreviewed facts.
+        projects_rows = self.sql("SELECT canonical_title, status FROM unified_projects WHERE user_id = %s", (self.user,), fetch=True)
+        self.assertNotIn("matched", [r[1] for r in projects_rows])
+
+    def test_rejected_facts_count_nowhere_and_reviewed_only_needs_no_admin_copy(self):
+        self.add_resume("rejected")
+        compute.process_compute_intelligence(self.conn, self.job)
+        admin = self.view()["admin"]
+        self.assertEqual((admin["basis"], admin["unreviewedFacts"]), ("reviewed", 0))
+        self.assertNotIn("intelligence", admin)
+
+    def test_computes_before_onboarding_is_finished(self):
+        self.sql("UPDATE onboarding_state SET current_step = 'resume' WHERE user_id = %s", (self.user,))
+        self.add_resume("unconfirmed")
+        compute.process_compute_intelligence(self.conn, self.job)
+        self.assertFalse(self.view()["admin"]["onboardingComplete"])
+
     def test_running_twice_gives_the_same_rows(self):
         compute.process_compute_intelligence(self.conn, self.job)
         first = self.counts()

@@ -24,6 +24,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     label: "People & Security",
     items: [
       { title: "Student Directory", href: "/admin/students", iconName: "Users" },
+      { title: "Student Intelligence", href: "/admin/intelligence", iconName: "Brain", permission: "intelligence.read" },
       { title: "Admin Team & Roles", href: "/admin/team", iconName: "ShieldCheck" },
       { title: "Security Audit Logs", href: "/admin/logs", iconName: "FileText" },
     ],

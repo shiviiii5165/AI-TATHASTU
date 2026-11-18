@@ -32,6 +32,7 @@ const emails = await import("@/app/admin/emails/actions");
 const aiOps = await import("@/app/admin/ai-ops/actions");
 const flags = await import("@/app/admin/flags/actions");
 const inst = await import("@/app/admin/institutions/actions");
+const intel = await import("@/app/admin/intelligence/actions");
 
 const UUID = "00000000-0000-4000-8000-00000000abcd";
 type Permission = (typeof rbac.ALL_ADMIN_PERMISSIONS)[number];
@@ -53,6 +54,12 @@ const ACTIONS: [string, Permission, () => Promise<unknown>][] = [
   ["approveInstitution", "institutions.manage", () => inst.approveInstitution("not-a-uuid")],
   ["mergeInstitution", "institutions.manage", () => inst.mergeInstitution("not-a-uuid", "x")],
   ["rejectInstitution", "institutions.manage", () => inst.rejectInstitution("not-a-uuid")],
+  ["previewRankingAction", "intelligence.read", () => intel.previewRankingAction({ schema: 1, categories: [], cohort: {}, eligibility: { minCoverage: 0, requiredBenchmarks: [] }, evidencePolicy: "any", missingPolicy: "renormalize" })],
+  ["saveRankingDraftAction", "intelligence.manage", () => intel.saveRankingDraftAction({ name: " ", definition: { schema: 1, categories: [], cohort: {}, eligibility: { minCoverage: 0, requiredBenchmarks: [] }, evidencePolicy: "any", missingPolicy: "renormalize" } })],
+  ["publishRankingAction", "intelligence.manage", () => intel.publishRankingAction("not-a-uuid")],
+  ["duplicateRankingAction", "intelligence.manage", () => intel.duplicateRankingAction("not-a-uuid")],
+  ["setRankingArchivedAction", "intelligence.manage", () => intel.setRankingArchivedAction("not-a-uuid", true)],
+  ["takeSnapshotAction", "intelligence.manage", () => intel.takeSnapshotAction("not-a-uuid", {})],
 ];
 
 const isDenied = (error: unknown) => String((error as { digest?: string }).digest ?? "").includes("HTTP_ERROR_FALLBACK;404");
@@ -113,6 +120,10 @@ describe("the role-permission matrix", () => {
       "institutions.manage": ["super_admin", "support_admin"],
       "audit.read": ["super_admin", "finance_admin", "security_auditor"],
       "ai.budgets.manage": ["super_admin", "ai_ops", "finance_admin"],
+      // Student Intelligence exposes cross-student performance data: super_admin only unless granted explicitly.
+      "intelligence.read": ["super_admin"],
+      "intelligence.manage": ["super_admin"],
+      "intelligence.export": ["super_admin"],
     };
     for (const [permission, roles] of Object.entries(sensitive)) {
       const holders = ADMIN_ROLES.filter((r) => (rbac.ROLE_PERMISSIONS[r] as readonly string[]).includes(permission));

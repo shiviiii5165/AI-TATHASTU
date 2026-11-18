@@ -131,6 +131,59 @@ class _StageTimer:
         self.last = now
 
 
+ADMIN_ROLE_KEYS = ("role", "label", "framework", "alignment", "alignmentScore", "coverage", "assessed", "counts", "categoryCounts")
+
+
+def admin_assessment(*, admin_facts, facts, repos, user, state, resources, index, categories, learning, connections,
+                     submissions, now, onboarding_done: bool) -> Dict[str, Any]:
+    """
+    The admin view of a student: the same engine over every fact the student hasn't rejected, so resume facts awaiting
+    review still count (as described / self-reported evidence; the engine never treats a resume line as proof).
+    Only computed when there are unreviewed facts; otherwise the student's own result is already the full picture.
+    """
+    reviewed_ids = {f["id"] for f in facts}
+    unreviewed = [f for f in admin_facts if f["id"] not in reviewed_ids]
+    base = {"onboardingComplete": onboarding_done, "unreviewedFacts": len(unreviewed), "basis": "reviewed"}
+    if not unreviewed:
+        return base
+
+    def canonical(mention: str) -> Optional[str]:
+        sid = index.resolve(mention)
+        return index.names.get(sid) if sid else None
+
+    intel = career_engine.compute(
+        user=user, roles=roles_of(state), facts=admin_facts, repos=repos, resources=resources,
+        canonical=index.canonical, lexicon_scan=lexicon_scan,
+        categories={index.names[sid]: cat for sid, cat in categories.items() if sid in index.names}, now=now,
+        learning=learning, intent_text=state["career_role_other"],
+        context={"githubConnected": any(c["source_id"] == "github" for c in connections), "submissions": submissions},
+    )
+    intel.pop("_ledger", None)
+    unified = projects.unify(projects.records_from(admin_facts, repos, canonical))
+    problem_solving = eris.problem_solving_score(admin_facts)
+    eris_by_role = {}
+    for analysis in intel["roles"]:
+        result = eris.score_role(analysis, [u.technologies for u in unified], problem_solving)
+        if result:
+            eris_by_role[analysis["role"]] = result["score"]
+    return {
+        **base,
+        "basis": "includes_unreviewed",
+        "intelligence": {
+            "engineVersion": intel.get("engineVersion"),
+            "computedAt": intel.get("computedAt"),
+            "framework": intel.get("framework"),
+            "hasEvidenceBase": intel.get("hasEvidenceBase"),
+            "skills": intel.get("skills", []),
+            "gapInventory": intel.get("gapInventory", []),
+            "counts": intel.get("counts"),
+            "roles": [{k: r.get(k) for k in ADMIN_ROLE_KEYS if k in r} | {"skills": [], "open": []} for r in intel.get("roles", [])],
+        },
+        "eris": eris_by_role,
+        "projects": {"total": len(unified), "matched": sum(u.status == "matched" for u in unified)},
+    }
+
+
 def process_compute_intelligence(conn: Any, job: Job) -> None:
     user_id = job.user_id
     now = datetime.now(timezone.utc)
@@ -164,6 +217,17 @@ def process_compute_intelligence(conn: Any, job: Job) -> None:
                        OR (origin = ANY(%s) AND confirmation <> 'rejected'))""",
             (user_id, list(API_ORIGINS)),
         )
+        # Admin-only basis: everything the student hasn't rejected, including resume facts they haven't reviewed yet.
+        # Never used for the student's own dashboard, ERIS rows or anything shared with linked apps.
+        admin_facts = fetch_all(
+            cur,
+            """SELECT id, field_group, field_name, record_key, normalized_value, extracted_value, origin, confirmation,
+                      source_evidence, created_at
+                 FROM profile_facts
+                WHERE user_id = %s AND superseded_by IS NULL AND confirmation <> 'rejected'""",
+            (user_id,),
+        )
+        onboarding = fetch_one(cur, "SELECT current_step = 'done' AS done FROM onboarding_state WHERE user_id = %s", (user_id,))
         # code_signals arrives with migration 0031; until then every repository reads as "files not read yet".
         signals_col = "code_signals" if signals_column_exists(cur) else "NULL::jsonb AS code_signals"
         repos = fetch_all(
@@ -197,6 +261,13 @@ def process_compute_intelligence(conn: Any, job: Job) -> None:
         to_score = repos_needing_scores(cur, user_id, allow_external_ai=ai_ok)
         previous = fetch_one(cur, "SELECT view->>'embeddingFingerprint' AS fingerprint FROM profile_views WHERE user_id = %s", (user_id,))
         has_embedding = fetch_one(cur, "SELECT 1 AS yes FROM collaboration_embeddings WHERE user_id = %s", (user_id,)) is not None
+        # Inside this block: the skill index resolves (and registers) unseen skill names through `cur`, and unreviewed
+        # resume facts are where new names turn up.
+        admin = admin_assessment(
+            admin_facts=admin_facts, facts=facts, repos=repos, user=user, state=state, resources=resources, index=index,
+            categories=categories, learning=learning, connections=connections, submissions=submissions, now=now,
+            onboarding_done=bool(onboarding and onboarding["done"]),
+        )
     timer.mark("read", facts=len(facts), repos=len(repos), external_ai=ai_ok)
 
     # ── Pure computation ────────────────────────────────────────────────────
@@ -363,6 +434,11 @@ def process_compute_intelligence(conn: Any, job: Job) -> None:
             "profileComplete": completeness,
         },
         "widgets": widget_list,
+        # Admin-only (Student Intelligence). Student pages and the integration projection never read this key.
+        "admin": {
+            **admin,
+            "projects": admin.get("projects") or {"total": len(unified), "matched": sum(u.status == "matched" for u in unified)},
+        },
     }
 
     # ── 3. Write all outputs atomically (short) ─────────────────────────────

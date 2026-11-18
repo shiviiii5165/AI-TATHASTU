@@ -57,8 +57,17 @@ def signals(cv: ProjectRecord, repo: ProjectRecord) -> List[str]:
     found: List[str] = []
     a, b = tokens(cv.title), tokens(repo.title)
     compact = lambda t: re.sub(r"[^a-z0-9]", "", (t or "").lower())  # noqa: E731
-    if (a and b and len(a & b) / min(len(a), len(b)) >= 0.6) or (compact(cv.title) and compact(cv.title) == compact(repo.title)):
+    shared = len(a & b)
+    exact = bool(compact(cv.title)) and len(compact(cv.title)) >= 6 and compact(cv.title) == compact(repo.title)
+    if (a and b and shared / min(len(a), len(b)) >= 0.6) or exact:
         found.append("name")
+        # Resume projects carry no URL and rarely technologies, so a second signal almost never exists and nothing
+        # matched. The repositories here are the student's own, so a specific name match (an exact multi-character
+        # name, or two or more meaningful shared words) is itself strong evidence: it counts as a second signal.
+        # Never against contradicting evidence: both list technologies and none are shared → probably different work.
+        contradicts = bool(cv.technologies) and bool(repo.technologies) and not (cv.technologies & repo.technologies)
+        if (exact or shared >= 2) and not contradicts:
+            found.append("name_specific")
     if _repo_path(cv.url) and _repo_path(cv.url) == (repo.repo_name or "").lower():
         found += ["repo_url", "explicit_link"]
     if len(cv.technologies & repo.technologies) >= 2:

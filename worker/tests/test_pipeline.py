@@ -730,7 +730,18 @@ class ProjectMatchingTests(unittest.TestCase):
     def test_compact_name_matches_camel_case(self) -> None:
         cv = projects.ProjectRecord("cv", "PaperQA Lite", None, set(), ["f1"])
         repo = projects.ProjectRecord("repo", "paperqa-lite", None, set(), ["g1"], repo_name="a/paperqa-lite")
-        self.assertEqual(projects.signals(cv, repo), ["name"])
+        # An exact name on the student's own repository is specific enough to count twice.
+        self.assertEqual(projects.signals(cv, repo), ["name", "name_specific"])
+
+    def test_specific_name_alone_matches_a_resume_project_without_urls_or_technologies(self) -> None:
+        cv = projects.ProjectRecord("cv", "Movie Recommendation System", None, set(), ["f1"])
+        repo = projects.ProjectRecord("repo", "movie-recommendation", None, {"Python"}, ["g1"], repo_name="a/movie-recommendation")
+        self.assertEqual(projects.unify([cv, repo])[0].status, "matched")
+
+    def test_one_generic_shared_word_is_not_enough(self) -> None:
+        cv = projects.ProjectRecord("cv", "Portfolio", None, set(), ["f1"])
+        repo = projects.ProjectRecord("repo", "portfolio-v2-site", None, set(), ["g1"], repo_name="a/portfolio-v2-site")
+        self.assertTrue(all(u.status == "standalone" for u in projects.unify([cv, repo])))
 
     def test_one_signal_is_not_enough(self) -> None:
         cv = projects.ProjectRecord("cv", "Chess Engine", None, {"C++"}, ["f1"])

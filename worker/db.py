@@ -74,8 +74,10 @@ def enqueue_compute_matches(cur: Any, user_id: str, trigger: str) -> None:
 def enqueue_compute_intelligence(cur: Any, user_id: str, trigger: str) -> None:
     """
     Queues a recompute unless one is already waiting (a waiting job will read
-    the latest data anyway). Skipped until onboarding is done: the
-    "Generate my profile" button queues the first one.
+    the latest data anyway). Runs before onboarding is finished too, so admins'
+    Student Intelligence covers every student with data; the student's own
+    dashboard stays behind onboarding, and linked apps aren't notified until it's
+    done (/api/internal/profile-updated). Deleted accounts are never queued.
 
     Past the limit (shared with src/lib/jobs-queue.ts) it's postponed, not dropped: the
     data did change, and while it waits later requests collapse into it.
@@ -87,7 +89,8 @@ def enqueue_compute_intelligence(cur: Any, user_id: str, trigger: str) -> None:
                now() + make_interval(secs => GREATEST(
                  hit_sliding_limit('paid:recompute:' || %(user)s, 30, 3600),
                  hit_sliding_limit('paid_global:recompute', 5000, 3600)))
-         WHERE EXISTS (SELECT 1 FROM onboarding_state WHERE user_id = %(user)s AND current_step = 'done')
+         WHERE EXISTS (SELECT 1 FROM onboarding_state os JOIN users u ON u.id = os.user_id
+                        WHERE os.user_id = %(user)s AND u.deleted_at IS NULL)
            AND NOT EXISTS (SELECT 1 FROM jobs WHERE user_id = %(user)s
                              AND type = 'compute_intelligence' AND status = 'queued')
         ON CONFLICT (idempotency_key) DO NOTHING

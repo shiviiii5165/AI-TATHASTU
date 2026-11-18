@@ -59,6 +59,12 @@ export const ALL_ADMIN_PERMISSIONS = [
   // Academic catalogue
   "institutions.manage",
 
+  // Student Intelligence (rankings, Student 360°). Granted to super_admin only by default;
+  // grant to others explicitly via custom permissions. Every 360° view is audit-logged.
+  "intelligence.read",
+  "intelligence.manage",
+  "intelligence.export",
+
   // System & Platform
   "flags.manage",
   "system.manage",

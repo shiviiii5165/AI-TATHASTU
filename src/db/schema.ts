@@ -1057,3 +1057,6 @@ export const rateLimits = pgTable("rate_limits", {
 
 // ─── ADMIN OPERATING SYSTEM & PLATFORM MANAGEMENT ───────────────────────────
 export * from "./schema-admin";
+
+// ─── STUDENT INTELLIGENCE (admin rankings, migration 0032) ──────────────────
+export * from "./schema-intelligence";
