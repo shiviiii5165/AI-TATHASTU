@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { accountDeletions, integrationAuthCodes, rateLimits, users, verificationTokens, webhookOutbox } from "@/db/schema";
 import { processDueDeletions } from "@/lib/account-deletion";
 import { purgeOldAiUsage } from "@/lib/admin/ai-ops";
+import { reconcileProfileSyncs } from "@/lib/integrations/reconcile";
 import { dispatchWebhooks } from "@/lib/integrations/webhooks";
 import { isCronCall } from "@/lib/internal-auth";
 
@@ -17,6 +18,8 @@ async function handle(request: Request) {
   if (!isCronCall(request)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   // First, so the integration.revoked rows it queues go out in this same run.
   const deletions = await processDueDeletions();
+  // Profiles recomputed since Collaborate last heard (the worker's own notification can fail silently).
+  const reconciled = await reconcileProfileSyncs("collaborate");
   const result = await dispatchWebhooks(100);
   // Codes live 60 seconds; keep a day for debugging, then drop them.
   const purged = await db
@@ -34,7 +37,7 @@ async function handle(request: Request) {
     db.delete(accountDeletions).where(and(eq(accountDeletions.status, "completed"), lt(accountDeletions.completedAt, new Date(Date.now() - 30 * 24 * 3600_000)))),
     db.delete(webhookOutbox).where(and(inArray(webhookOutbox.status, ["delivered", "failed"]), lt(webhookOutbox.createdAt, new Date(Date.now() - 30 * 24 * 3600_000)), notInArray(webhookOutbox.userId, db.select({ id: users.id }).from(users)))),
   ]);
-  return NextResponse.json({ ...result, deletions, purgedCodes: purged.length, purgedRateLimits: counters.length, purgedTokens: tokens.length });
+  return NextResponse.json({ ...result, deletions, reconciled: { queued: reconciled.queued, byCause: reconciled.byCause }, purgedCodes: purged.length, purgedRateLimits: counters.length, purgedTokens: tokens.length });
 }
 
 export const GET = handle;
