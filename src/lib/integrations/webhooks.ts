@@ -2,7 +2,7 @@ import "server-only";
 
 import { createHmac } from "node:crypto";
 
-import { and, eq, isNotNull, isNull, ne, sql } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull, ne, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import {
@@ -200,6 +200,138 @@ async function finish(id: string, status: "delivered" | "failed", lastError: str
     .update(webhookOutbox)
     .set({ status, lastError, lockedUntil: null, deliveredAt: status === "delivered" ? new Date() : null })
     .where(eq(webhookOutbox.id, id));
+}
+
+// ─── Operator: deliver profile.updated for explicitly selected users only ───────────────────────
+//
+// For a controlled backfill. Unlike dispatchWebhooks(), it never touches another user's row or any
+// other event, and (like dispatchWebhooks) it never runs account deletions or cleanup: those live in
+// the cron route only. Each row still goes through deliver(): flag check, consent re-check at send
+// time, signing, retries with backoff, failure recorded on the row.
+
+export const SELECTED_DISPATCH_MAX = 50;
+
+export type SelectedPlanRow = { id: string; userId: string; attempts: number };
+export type SelectedSkip = { userId: string; reason: string };
+
+/**
+ * Which pending profile.updated rows for these users may be sent right now. A user is eligible
+ * only if the account is active, onboarding is done and the link to the app is active (linked, not
+ * revoked). Every other user, event and status is left alone.
+ */
+export async function planSelectedDispatch(clientId: IntegrationClientId, userIds: string[]) {
+  const ids = [...new Set(userIds)];
+  if (!ids.length) return { plan: [] as SelectedPlanRow[], skipped: [] as SelectedSkip[] };
+  const idList = sql.join(ids.map((id) => sql`${id}::uuid`), sql`, `);
+  const status = await db.execute(sql`
+    SELECT x.id::text AS user_id,
+           u.id IS NOT NULL AS exists_, u.deleted_at IS NULL AS active,
+           coalesce(o.current_step = 'done', false) AS onboarded,
+           coalesce(ic.linked_at IS NOT NULL AND ic.revoked_at IS NULL, false) AS linked,
+           (SELECT count(*) FROM webhook_outbox w
+             WHERE w.user_id = x.id AND w.client_id = ${clientId} AND w.event = 'profile.updated' AND w.status = 'pending')::int AS pending,
+           (SELECT count(*) FROM webhook_outbox w
+             WHERE w.user_id = x.id AND w.client_id = ${clientId} AND w.event = 'profile.updated' AND w.status = 'sending'
+               AND w.locked_until >= now())::int AS in_flight
+      FROM (SELECT unnest(ARRAY[${idList}]) AS id) x
+      LEFT JOIN users u ON u.id = x.id
+      LEFT JOIN onboarding_state o ON o.user_id = x.id
+      LEFT JOIN integration_consents ic ON ic.user_id = x.id AND ic.client_id = ${clientId}`);
+
+  const skipped: SelectedSkip[] = [];
+  const eligible: string[] = [];
+  for (const r of status.rows as Record<string, unknown>[]) {
+    const userId = String(r.user_id);
+    const reason = !r.exists_
+      ? "unknown user"
+      : !r.active
+        ? "account deleted"
+        : !r.onboarded
+          ? "onboarding incomplete"
+          : !r.linked
+            ? "not linked (or revoked)"
+            : Number(r.in_flight) > 0
+              ? "delivery already in flight"
+              : Number(r.pending) === 0
+                ? "no pending profile.updated"
+                : null;
+    if (reason) skipped.push({ userId, reason });
+    else eligible.push(userId);
+  }
+  if (!eligible.length) return { plan: [] as SelectedPlanRow[], skipped };
+
+  const rows = await db
+    .select({ id: webhookOutbox.id, userId: webhookOutbox.userId, attempts: webhookOutbox.attempts })
+    .from(webhookOutbox)
+    .where(
+      and(
+        eq(webhookOutbox.clientId, clientId),
+        eq(webhookOutbox.event, "profile.updated"),
+        eq(webhookOutbox.status, "pending"),
+        inArray(webhookOutbox.userId, eligible),
+      ),
+    );
+  return { plan: rows, skipped };
+}
+
+export type SelectedDispatchResult = {
+  dryRun: boolean;
+  plan: SelectedPlanRow[];
+  skipped: SelectedSkip[];
+  results: { id: string; userId: string; outcome: "delivered" | "retrying" | "failed" | "not_claimed" }[];
+};
+
+/**
+ * Sends the planned rows (apply=true) or only reports them (apply=false). Rows are claimed one by
+ * one with the same conditions as the plan, so a row that changed in between (sent by another
+ * dispatcher, consent revoked, account deleted) is not sent twice or sent at all.
+ */
+export async function dispatchSelectedProfileUpdates(
+  clientId: IntegrationClientId,
+  userIds: string[],
+  { apply = false }: { apply?: boolean } = {},
+): Promise<SelectedDispatchResult> {
+  if (userIds.length > SELECTED_DISPATCH_MAX) throw new Error(`at most ${SELECTED_DISPATCH_MAX} users per call`);
+  const { plan, skipped } = await planSelectedDispatch(clientId, userIds);
+  const results: SelectedDispatchResult["results"] = [];
+  if (!apply) return { dryRun: true, plan, skipped, results };
+
+  for (const p of plan) {
+    const claimed = await db.execute(sql`
+      UPDATE webhook_outbox w
+         SET status = 'sending', attempts = w.attempts + 1,
+             locked_until = now() + make_interval(secs => ${LOCK_SECONDS})
+        FROM users u, onboarding_state o, integration_consents ic
+       WHERE w.id = ${p.id}::uuid AND w.status = 'pending'
+         AND w.client_id = ${clientId} AND w.event = 'profile.updated'
+         AND u.id = w.user_id AND u.deleted_at IS NULL
+         AND o.user_id = w.user_id AND o.current_step = 'done'
+         AND ic.user_id = w.user_id AND ic.client_id = w.client_id
+         AND ic.linked_at IS NOT NULL AND ic.revoked_at IS NULL
+   RETURNING w.id, w.client_id, w.user_id, w.event, w.reason, w.attempts`);
+    const r = (claimed.rows as Record<string, unknown>[])[0];
+    if (!r) {
+      results.push({ id: p.id, userId: p.userId, outcome: "not_claimed" });
+      continue;
+    }
+    const row = {
+      id: String(r.id),
+      clientId: r.client_id as IntegrationClientId,
+      userId: String(r.user_id),
+      event: r.event as WebhookEvent,
+      reason: (r.reason as string | null) ?? null,
+      attempts: Number(r.attempts),
+    } as WebhookOutboxRow;
+    const outcome = await deliver(row);
+    results.push({ id: row.id, userId: row.userId, outcome });
+  }
+  // Audit trail (ids masked): the outbox rows themselves keep status, attempts and last_error.
+  console.info(
+    `[webhooks] selected dispatch ${clientId}: ` +
+      results.map((x) => `${x.userId.slice(0, 8)}=${x.outcome}`).join(", ") +
+      (skipped.length ? `; skipped ${skipped.map((s) => `${s.userId.slice(0, 8)} (${s.reason})`).join(", ")}` : ""),
+  );
+  return { dryRun: false, plan, skipped, results };
 }
 
 export async function dispatchWebhooks(limit = 25): Promise<DispatchResult> {
