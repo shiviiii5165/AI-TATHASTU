@@ -74,8 +74,11 @@ test("dashboard: people preview hands off to Collaborate; removed widgets gone; 
 
   // Kept: GitHub work, research and internship previews, journey, skills, roadmap; the profile metric still reads completeness.
   await expect(page.getByRole("heading", { name: "Recent GitHub work" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Research opportunities" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Internships" })).toBeVisible();
+  // Research and internships are one AVSAR section; the old standalone cards are gone.
+  await expect(page.getByTestId("avsar-dashboard")).toHaveCount(1);
+  await expect(page.getByRole("heading", { name: "Discover Opportunities for Your Timeline." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Research opportunities", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Internships", exact: true })).toHaveCount(0);
   for (const id of ["journey-timeline", "skills-overview", "career-roadmap"]) await expect(page.getByTestId(id)).toBeVisible();
   await expect(page.getByRole("link", { name: /Profile Complete/ })).toBeVisible();
   await context.close();

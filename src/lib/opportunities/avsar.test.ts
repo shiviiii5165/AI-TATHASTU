@@ -175,27 +175,33 @@ describe("recommendation explanations (fit.ts; no percentages)", () => {
 describe("dashboard card and Apply hand-off", () => {
   const html = (internships: InternshipFeed) => renderToStaticMarkup(createElement(EcosystemOpportunitiesRow, { research: { status: "ok", items: [], personalised: true }, internships }));
 
-  it("renders real Avsar data with View details and Apply on Avsar links to Avsar's own pages", async () => {
-    const feed = await getAvsarInternships(student(["Python", "PyTorch"]), opts(fakeAvsar(() => json(page([item("1", { title: "Machine Learning Intern", stipend: { min: 15000, max: 20000, currency: "INR", period: "month", note: "Plus travel" } })], 1, false))).impl));
+  it("renders real Avsar data in the AVSAR section; the card opens that exact listing on Avsar", async () => {
+    const feed = await getAvsarInternships(student(["Python", "PyTorch"]), opts(fakeAvsar(() => json(page([item("1", { title: "Machine Learning Intern", durationWeeks: 12 })], 1, false))).impl));
     const out = html(feed);
+    expect(out).toContain("Discover Opportunities for Your Timeline.");
     expect(out).toContain("Machine Learning Intern");
-    expect(out).toContain("Acme Robotics · Pune · Hybrid");
+    expect(out).toContain("Acme Robotics");
+    expect(out).toContain("Pune");
+    expect(out).toContain("Hybrid");
+    expect(out).toContain("12 weeks");
     expect(out).toContain('href="https://avsar.test/opportunities/s-1"');
-    expect(out).toContain('href="https://avsar.test/app/apply/s-1"');
-    expect(out).toContain("Apply on Avsar");
     expect(out).toContain("Apply by");
-    expect(out).toContain("₹15,000–₹20,000 / month · Plus travel");
+    expect(out).toContain(`href="${AVSAR_HANDOFF_URL}"`);
+    expect(out).toContain("Explore all opportunities on AVSAR");
+    // The old standalone cards are gone.
+    expect(out).not.toContain("Browse internships on Avsar");
+    expect(out).not.toContain(">Research opportunities<");
     expect(out).not.toMatch(/\d+% (skills )?match|days left/);
   });
 
   it("not configured, unavailable, empty and stale states are truthful, with a working Avsar link", async () => {
-    expect(html({ status: "not_configured", handoffUrl: AVSAR_HANDOFF_URL })).toContain("aren&#x27;t connected yet");
+    expect(html({ status: "not_configured", handoffUrl: AVSAR_HANDOFF_URL })).toContain("once the Avsar connection is switched on");
     const down = html({ status: "unavailable", reason: "timeout", handoffUrl: AVSAR_HANDOFF_URL });
-    expect(down).toContain("Avsar is temporarily unavailable");
+    expect(down).toContain("Avsar internships couldn&#x27;t be loaded");
     expect(down).toContain(`href="${AVSAR_HANDOFF_URL}"`);
     const empty = html({ status: "ok", items: [], fetchedAt: new Date(NOW).toISOString(), stale: false, personalised: true, browseUrl: AVSAR_HANDOFF_URL });
-    expect(empty).toContain("No active internships on Avsar right now");
-    expect(empty).toContain("Browse internships on Avsar");
+    expect(empty).toContain("No matching opportunities right now.");
+    expect(empty).not.toContain("couldn&#x27;t be loaded");
     const feed = await getAvsarInternships(student(["Python"]), opts(fakeAvsar(() => json(page([item("1")], 1, false))).impl));
     if (feed.status !== "ok") throw new Error(feed.status);
     expect(html({ ...feed, stale: true })).toContain("Couldn&#x27;t refresh from Avsar");

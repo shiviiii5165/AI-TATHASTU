@@ -24,16 +24,16 @@ test("discover, read requirements and reach the official application destination
   await signIn(context, user, { onboarded: true });
 
   // 1. Discover: the listing page shows real, verified opportunities (no demo cards).
-  await page.goto("/opportunities?section=all");
-  await expect(page.getByRole("heading", { name: "Research opportunities" })).toBeVisible();
-  const list = page.getByRole("list", { name: "All opportunities" });
+  await page.goto("/opportunities?cat=research&section=all");
+  await expect(page.getByRole("heading", { name: "Discover Opportunities for Your Timeline." })).toBeVisible();
+  const list = page.getByRole("list", { name: "Research opportunities" });
   await expect(list.getByRole("listitem").first()).toBeVisible();
   const cards = await list.getByRole("listitem").count();
   expect(cards).toBeGreaterThan(0);
   await expect(page.getByText(/sample|lorem|demo listing/i)).toHaveCount(0);
 
   // Sections and filters are backed by the catalogue.
-  await page.goto("/opportunities?section=jrf_srf");
+  await page.goto("/opportunities?cat=research&section=jrf_srf");
   await expect(page.getByRole("link", { name: "JRF / SRF" })).toHaveAttribute("aria-current", "page");
 
   // 2. View details for a real listing.

@@ -10,7 +10,8 @@ import { browseOpportunities, loadStudentSignals, SECTIONS, type BrowseFilters, 
 import type { FitState } from "@/lib/opportunities/fit";
 import type { OppDb } from "@/lib/opportunities/ingest";
 
-import { AvsarBriefcase, RetryButton } from "./avsar-ui";
+import { AvsarBriefcase, RetryButton } from "@/components/avsar/avsar-ui";
+import { monogram } from "@/components/avsar/monogram";
 import { FitBadge, KIND_LABEL, fmtDate } from "./ui";
 
 export const metadata: Metadata = { title: "AVSAR · Opportunities | AI Tathastu" };
@@ -441,15 +442,6 @@ const CARD_ACCENT: Record<Listing["category"], { bar: string; logo: string; tag:
   research: { bar: "bg-[#0F9F8A]", logo: "bg-[#E8FAF4] text-[#0E7C66]", tag: "text-[#0E7C66]", label: "Research" },
   collaborations: { bar: "bg-[#D97706]", logo: "bg-[#FFF4E5] text-[#9A5B00]", tag: "text-[#9A5B00]", label: "Collaboration" },
 };
-
-/** Organisation monogram: neither source publishes logos, so none is invented. */
-const monogram = (org: string) =>
-  org
-    .split(/\s+/)
-    .filter((w) => /^[A-Za-z0-9]/.test(w))
-    .slice(0, 2)
-    .map((w) => w[0]!.toUpperCase())
-    .join("") || "·";
 
 function ListingCard({ l }: { l: Listing }) {
   const a = CARD_ACCENT[l.category];

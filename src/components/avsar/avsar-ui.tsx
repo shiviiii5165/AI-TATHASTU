@@ -1,7 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useId, useTransition } from "react";
+import { useId, useState } from "react";
 import { RotateCw } from "lucide-react";
 
 import s from "./avsar.module.css";
@@ -39,7 +38,7 @@ export function AvsarBriefcase({ size = 220, decorative = true }: { size?: numbe
       </defs>
 
       <circle cx="120" cy="118" r="104" fill={`url(#${glow})`} className={s.glow} />
-      <ellipse cx="120" cy="206" rx="62" ry="7" fill="#1E2A4A" className={s.shadow} />
+      <ellipse cx="120" cy="206" rx="62" ry="7" fill="#3B3F8F" fillOpacity="0.22" className={s.shadow} />
 
       {/* Small opportunity accents: teal check, amber star, coral dot */}
       <g className={s.chip}>
@@ -72,14 +71,26 @@ export function AvsarBriefcase({ size = 220, decorative = true }: { size?: numbe
   );
 }
 
-/** Re-runs the server fetch for this page without a full reload. */
+/** Soft light behind the briefcase, falling off towards the content side. Pulses with the briefcase (static under reduced motion). */
+export function AvsarSideGlow({ className = "" }: { className?: string }) {
+  return (
+    <div
+      aria-hidden
+      className={`pointer-events-none absolute rounded-full bg-[radial-gradient(closest-side,rgba(124,77,219,0.42),rgba(59,111,224,0.22)_45%,rgba(15,159,138,0.10)_70%,transparent)] blur-xl ${s.glow} ${className}`}
+    />
+  );
+}
+
+/** Reloads the page so every server fetch runs again (works wherever it is rendered, router or not). */
 export function RetryButton({ label = "Try again" }: { label?: string }) {
-  const router = useRouter();
-  const [pending, start] = useTransition();
+  const [pending, setPending] = useState(false);
   return (
     <button
       type="button"
-      onClick={() => start(() => router.refresh())}
+      onClick={() => {
+        setPending(true);
+        window.location.reload();
+      }}
       disabled={pending}
       className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-[#E7EAF3] bg-white px-3.5 py-2 text-xs font-semibold text-[#11182B] transition-colors hover:border-[#1D5FC4]/40 hover:text-[#1D5FC4] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1D5FC4] active:bg-[#F4F6F9] disabled:cursor-wait disabled:opacity-60"
     >

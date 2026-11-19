@@ -253,24 +253,25 @@ describe("dashboard rendering and empty states", () => {
 
   it("renders truthful empty, unavailable and Avsar states (sections never hidden)", () => {
     const empty = html({ research: { status: "ok", items: [], personalised: true }, internships: NOT_CONFIGURED });
-    expect(empty).toContain("No verified research opportunities right now");
-    expect(empty).toContain("Browse internships on Avsar");
+    expect(empty).toContain("No matching opportunities right now.");
+    expect(empty).toContain("Explore all opportunities on AVSAR");
     expect(empty).toContain('href="/integrations/launch/avasar"');
-    expect(html({ research: { status: "unavailable" }, internships: NOT_CONFIGURED })).toContain("temporarily unavailable");
+    // Both sources down is an error, never an empty list.
+    const down = html({ research: { status: "unavailable" }, internships: NOT_CONFIGURED });
+    expect(down).toContain("Opportunities couldn&#x27;t be loaded");
+    expect(down).not.toContain("No matching opportunities");
   });
 
-  it("a card shows source, verification date, published deadline, fit reason and the original link; no percentages", async () => {
+  it("a research preview shows the fit rating and reason and opens its verified detail page; no percentages", async () => {
     // Re-verified at the source (the lifecycle test above demoted it as stale).
     await tdb.update(opportunities).set({ status: "active", lastVerifiedAt: NOW }).where(eq(opportunities.externalId, "ra-1"));
     const cards = await researchForStudent(db, student(["Python"]), NOW);
     const out = html({ research: { status: "ok", items: cards, personalised: true }, internships: NOT_CONFIGURED });
     expect(out).toContain("Research Assistant, Speech Lab");
-    expect(out).toContain("Source a · verified");
-    expect(out).toContain("No deadline published");
-    // Links go to the detail page and the Apply hand-off (which redirects to the official source).
+    expect(out).toContain("Research · Verified");
+    expect(out).toContain(cards[0]!.fit.summary.replace(/'/g, "&#x27;"));
+    // Research isn't published on Avsar: it opens its verified detail page, never a guessed Avsar URL.
     expect(out).toMatch(/href="\/opportunities\/[0-9a-f-]{36}"/);
-    expect(out).toMatch(/href="\/opportunities\/[0-9a-f-]{36}\/apply"/);
-    expect(out).toContain("Apply on official site");
     expect(out).not.toMatch(/\d+% (skills )?match/);
     const unpersonalised = html({ research: { status: "ok", items: cards, personalised: false }, internships: NOT_CONFIGURED });
     expect(unpersonalised).toContain("Add skills or connect GitHub");
