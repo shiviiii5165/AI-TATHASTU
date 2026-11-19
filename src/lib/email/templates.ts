@@ -83,24 +83,6 @@ Questions? Reply to this email or write to <a href="mailto:${SUPPORT_ADDRESS}" s
 
 // ─── Templates ──────────────────────────────────────────────────────────────
 
-/** Auth: the magic sign-in link (sent by Auth.js via sendVerificationRequest). */
-export function magicLinkEmail({ url }: { url: string }): Email {
-  return {
-    subject: "Sign in to AI Tathastu",
-    ...layout({
-      preheader: "Your sign-in link. It works once and expires in 30 minutes.",
-      title: "Sign in to AI Tathastu",
-      blocks: [
-        p("Use the button below to sign in. The link works once and expires in 30 minutes."),
-        button("Sign in", url),
-        small("If the button doesn't work, copy this link into your browser:"),
-        small(url),
-      ],
-      footer: "You're receiving this because someone asked to sign in with this address. If it wasn't you, ignore this email; nothing happens without the link.",
-    }),
-  };
-}
-
 /** System: an operator's second factor changed. Also sent to the other root operators, since a stolen mailbox can hide it from its owner. */
 export function adminSecurityNoticeEmail({ account, event }: { account: string; event: string }): Email {
   return {

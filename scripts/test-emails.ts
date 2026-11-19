@@ -16,7 +16,6 @@ async function main() {
 
   const to = process.argv[2] ?? "720anant@gmail.com";
   const previews = [
-    { profile: "auth", email: t.magicLinkEmail({ url: t.appUrl("/api/auth/callback/nodemailer?token=preview-not-a-real-token") }) },
     { profile: "system", email: t.welcomeEmail({ firstName: "Anant" }) },
     {
       profile: "system",

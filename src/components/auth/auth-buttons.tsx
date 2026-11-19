@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useFormStatus } from "react-dom";
 
 import { LinkedInIcon } from "@/components/auth/provider-icons";
@@ -29,24 +29,26 @@ export function GoogleColorIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
+// Google and LinkedIn are the only sign-in methods, so both are full-width, large and identical in
+// size: 56px tall (well above the 44px touch target), 16px text, 20px icons. The shared Button
+// supplies the visible keyboard focus ring. The Button's default size sets sm:h-8/sm:min-h-8, which a
+// plain h-14 doesn't override at >=640px, so the sm: heights are restated here.
+const PROVIDER_BUTTON =
+  "h-14 min-h-14 sm:h-14 sm:min-h-14 w-full gap-3 rounded-2xl border-slate-200 bg-white px-6 text-base font-semibold text-slate-700 shadow-2xs transition-all duration-150 hover:border-slate-300 hover:bg-slate-50/80 hover:text-slate-900 active:scale-[0.99] disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer";
+
 export function GoogleSignInButton() {
   const { pending } = useFormStatus();
 
   return (
-    <Button
-      type="submit"
-      variant="outline"
-      disabled={pending}
-      className="h-12 w-full gap-3 rounded-2xl border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-2xs transition-all duration-150 hover:border-slate-300 hover:bg-slate-50/80 hover:text-slate-900 active:scale-[0.99] disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
-    >
+    <Button type="submit" variant="outline" disabled={pending} className={PROVIDER_BUTTON}>
       {pending ? (
         <>
-          <Loader2 className="size-4 animate-spin text-slate-500" />
+          <Loader2 className="size-5 animate-spin text-slate-500" />
           <span>Connecting to Google...</span>
         </>
       ) : (
         <>
-          <GoogleColorIcon className="size-4 shrink-0" />
+          <GoogleColorIcon className="size-5 shrink-0" />
           <span>Continue with Google</span>
         </>
       )}
@@ -54,48 +56,19 @@ export function GoogleSignInButton() {
   );
 }
 
-export function EmailSignInButton() {
-  const { pending } = useFormStatus();
-
-  return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-bold text-white shadow-md shadow-[#FF2A85]/25 transition-all duration-150 hover:opacity-95 hover:shadow-lg hover:shadow-[#FF2A85]/35 active:scale-[0.99] disabled:opacity-75 disabled:cursor-not-allowed select-none cursor-pointer bg-gradient-to-r from-[#FF2A85] via-[#FF5A36] to-[#FF6B4A]"
-    >
-      {pending ? (
-        <>
-          <Loader2 className="size-4 animate-spin" />
-          <span>Sending sign-in link...</span>
-        </>
-      ) : (
-        <>
-          <span>Email me a sign-in link</span>
-          <ArrowRight className="size-4" />
-        </>
-      )}
-    </button>
-  );
-}
-
 export function LinkedInSignInButton() {
   const { pending } = useFormStatus();
 
   return (
-    <Button
-      type="submit"
-      variant="outline"
-      disabled={pending}
-      className="h-11 w-full gap-2.5 rounded-xl border-slate-200 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 disabled:opacity-70"
-    >
+    <Button type="submit" variant="outline" disabled={pending} className={PROVIDER_BUTTON}>
       {pending ? (
         <>
-          <Loader2 className="size-3.5 animate-spin" />
+          <Loader2 className="size-5 animate-spin text-slate-500" />
           <span>Connecting to LinkedIn...</span>
         </>
       ) : (
         <>
-          <LinkedInIcon className="size-4 shrink-0" />
+          <LinkedInIcon className="size-5 shrink-0" />
           <span>Continue with LinkedIn</span>
         </>
       )}

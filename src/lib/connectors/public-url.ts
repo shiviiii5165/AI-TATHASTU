@@ -1,6 +1,8 @@
 import { lookup } from "node:dns/promises";
 import { BlockList, isIP } from "node:net";
 
+import { canonicalPublicUrl } from "./canonical";
+
 const PRIVATE = new BlockList();
 for (const [net, bits] of [
   ["0.0.0.0", 8], ["10.0.0.0", 8], ["100.64.0.0", 10], ["127.0.0.0", 8], ["169.254.0.0", 16],
@@ -38,5 +40,6 @@ export async function publicUrl(raw: string, resolve: Resolve = resolveAll): Pro
   } catch {
     return null; // Doesn't resolve: nothing to fetch.
   }
-  return u.toString();
+  // Stored and compared in canonical form (no tracking parameters, fragment or trailing slash).
+  return canonicalPublicUrl(u.toString());
 }

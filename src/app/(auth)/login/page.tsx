@@ -1,4 +1,4 @@
-import { ArrowLeft, CircleAlert, Mail, ShieldCheck, Users, Zap } from "lucide-react";
+import { ArrowLeft, CircleAlert, ShieldCheck, Users, Zap } from "lucide-react";
 import type { Metadata } from "next";
 import { Caveat } from "next/font/google";
 import Link from "next/link";
@@ -8,11 +8,9 @@ import { Suspense } from "react";
 
 import { signInWithProvider } from "@/app/(auth)/login/actions";
 import { auth } from "@/auth";
-import { EmailSignInButton, GoogleSignInButton, LinkedInSignInButton } from "@/components/auth/auth-buttons";
+import { GoogleSignInButton, LinkedInSignInButton } from "@/components/auth/auth-buttons";
 import { BrandLogo } from "@/components/brand-logo";
 import { ThemeToggleButton } from "@/components/theme-toggle-button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { resolvePostAuthDestination } from "@/lib/auth/destination";
 import { configuredProviders } from "@/lib/auth-providers";
 import { toLocalPath } from "@/lib/safe-redirect";
@@ -30,17 +28,18 @@ export const metadata: Metadata = {
 
 const ERRORS: Record<string, string> = {
   OAuthAccountNotLinked:
-    "An account with this email already exists using a different sign-in method. Please sign in the way you did the first time (such as Google or Email Magic Link).",
-  Verification:
-    "That sign-in link has expired or has already been used. Please request a fresh link below.",
+    "An account with this email already exists. Continue with Google using that same email address, or the provider you used before.",
   Configuration:
     "Sign-in is temporarily unavailable. Please try again in a few moments.",
   AccessDenied:
     "Sign-in was cancelled or denied. Please try again.",
-  InvalidEmail:
-    "Please enter a valid email address.",
+  TooManyAttempts:
+    "Too many sign-in attempts from this network. Wait a few minutes and try again.",
+  // Old bookmarked/emailed links from the retired email sign-in land here.
+  Verification:
+    "Email sign-in links are no longer used. Continue with Google or LinkedIn.",
   EmailSignInError:
-    "We couldn't send your sign-in link. If you've asked for several, wait 15 minutes and try again.",
+    "Email sign-in links are no longer used. Continue with Google or LinkedIn.",
 };
 
 export default function LoginPage({ searchParams }: PageProps<"/login">) {
@@ -313,9 +312,9 @@ function SignInOptions({ redirectTo, message }: { redirectTo: string; message?: 
         </div>
       )}
 
-      {/* LinkedIn OAuth fallback if configured in environment */}
+      {/* LinkedIn OAuth */}
       {enabled.linkedin && (
-        <div className="mt-2.5">
+        <div className={enabled.google ? "mt-3.5" : undefined}>
           <form action={signInWithProvider}>
             <input type="hidden" name="provider" value="linkedin" />
             <input type="hidden" name="redirectTo" value={redirectTo} />
@@ -324,47 +323,9 @@ function SignInOptions({ redirectTo, message }: { redirectTo: string; message?: 
         </div>
       )}
 
-      {/* OR Divider */}
-      {enabled.google && enabled.email && (
-        <div className="my-5 flex items-center gap-3 text-xs font-bold text-slate-400 uppercase tracking-wider" aria-hidden="true">
-          <span className="h-px flex-1 bg-slate-200/90" />
-          OR
-          <span className="h-px flex-1 bg-slate-200/90" />
-        </div>
-      )}
-
-      {/* Email Magic Link Form */}
-      {enabled.email && (
-        <form action={signInWithProvider} className={enabled.google ? undefined : "mt-2"}>
-          <input type="hidden" name="provider" value="email" />
-          <input type="hidden" name="redirectTo" value={redirectTo} />
-          <div>
-            <Label htmlFor="email" className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-              EMAIL ADDRESS
-            </Label>
-            <div className="relative mt-1.5">
-              <Mail className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-slate-400" />
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                required
-                autoComplete="email"
-                placeholder="you@university.edu"
-                className="h-12 rounded-2xl border-slate-200 bg-white pl-10! text-base md:text-sm text-[#0F172A] shadow-2xs transition-colors placeholder:text-slate-400 focus-visible:border-[#FF2A85] focus-visible:ring-2 focus-visible:ring-[#FF2A85]/20"
-              />
-            </div>
-          </div>
-          <EmailSignInButton />
-          <p className="mt-2.5 text-center text-xs text-slate-400 font-normal">
-            We&apos;ll send you a secure sign-in link.
-          </p>
-        </form>
-      )}
-
-      {!enabled.email && !enabled.google && (
+      {!enabled.google && !enabled.linkedin && (
         <div role="alert" className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-          No sign-in method is currently configured. Please configure OAuth or SMTP in your environment.
+          No sign-in method is currently configured. Configure Google or LinkedIn OAuth in the environment.
         </div>
       )}
     </>

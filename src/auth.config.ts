@@ -13,7 +13,6 @@ const isAppPath = (p: string) => APP_PREFIXES.some((prefix) => p === prefix || p
 export const authConfig = {
   pages: {
     signIn: "/login",
-    verifyRequest: "/login/check-email",
     error: "/login",
   },
   session: { strategy: "jwt" },

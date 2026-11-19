@@ -34,7 +34,6 @@ const ALL_ROUTES: RouteSpec[] = [
   { path: "/about", category: "public", captureScreenshots: true },
   { path: "/contact", category: "public", captureScreenshots: true },
   { path: "/login", category: "public", captureScreenshots: true },
-  { path: "/login/check-email", category: "public", captureScreenshots: true },
 
   // 2. Student Onboarding flow
   { path: "/onboarding/role", category: "student_onboarding", captureScreenshots: true },

@@ -213,45 +213,6 @@ describe("hitRateLimit", () => {
     expect(results.filter((r) => r.ok)).toHaveLength(4);
   });
 
-  it("magic links: limits per address without storing raw email", async () => {
-    const { assertMagicLinkAllowed } = await import("./magic-link-limit");
-    const req = new Request("https://app.test/");
-    for (let i = 0; i < 5; i++) await assertMagicLinkAllowed("Victim@Example.test", req);
-    // Same person however the address is typed.
-    await expect(assertMagicLinkAllowed(" victim@example.test ", req)).rejects.toThrow(/Too many/);
-    await expect(assertMagicLinkAllowed("someone-else@example.test", req)).resolves.toBeUndefined();
-    const { sql } = await import("drizzle-orm");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { rows } = await (state.db as any).execute(sql`select key from rate_limits where key like 'magic_%'`);
-    expect(JSON.stringify(rows)).not.toContain("example.test");
-  });
-
-  it("magic links: enforces IP limit when verified client IP is present", async () => {
-    vi.stubEnv("VERCEL", "1");
-    const { assertMagicLinkAllowed } = await import("./magic-link-limit");
-    const req = request({ "x-vercel-forwarded-for": "198.51.100.99" });
-
-    // Under the 60-req IP limit, different emails succeed
-    for (let i = 0; i < 10; i++) {
-      await expect(assertMagicLinkAllowed(`user${i}@example.test`, req)).resolves.toBeUndefined();
-    }
-  });
-
-  it("magic links: fails safely in production when client identity cannot be established", async () => {
-    vi.stubEnv("NODE_ENV", "production");
-    const { assertMagicLinkAllowed } = await import("./magic-link-limit");
-    // Direct request off-Vercel without proxy
-    const directReq = new Request("https://app.test/");
-    await expect(assertMagicLinkAllowed("test@example.com", directReq)).rejects.toThrow(/Unable to verify request origin/);
-  });
-
-  it("magic links: refused while the database is down", async () => {
-    vi.spyOn(console, "error").mockImplementation(() => {});
-    const { assertMagicLinkAllowed } = await import("./magic-link-limit");
-    state.down = true;
-    await expect(assertMagicLinkAllowed("anyone@example.test", new Request("https://app.test/"))).rejects.toThrow(/Too many/);
-  });
-
   it("a stalled database costs the limiter its short deadline, not the query's", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     vi.useFakeTimers();

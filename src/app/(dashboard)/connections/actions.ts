@@ -5,13 +5,17 @@
 
 import { randomUUID } from "node:crypto";
 
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { redirect } from "next/navigation";
 
 import type { SaveResult } from "@/app/onboarding/actions";
+import { db } from "@/db";
+import { connections } from "@/db/schema";
 import { configuredProviders } from "@/lib/auth-providers";
 import { appendConsent } from "@/lib/consent/store";
+import { credentialIdentity, identityFingerprint } from "@/lib/connectors/canonical";
 import { connectSource, disconnectSource, openCredential } from "@/lib/connectors/connections";
 import { isConnectorCryptoConfigured } from "@/lib/connectors/crypto";
 import { revokeGithubGrant } from "@/lib/connectors/github";
@@ -59,9 +63,10 @@ export async function connectWithForm(sourceId: FormSource, values: Record<strin
   const schema = forms[sourceId];
   if (!schema) return { ok: false, error: "Unknown source." };
 
-  // Each save queues a sync that spends third-party quota.
+  // Every submission counts against the per-user form limit (abuse), but only a real change spends
+  // the paid sync allowance (below, after the duplicate check).
   const limited = await hitRateLimit(`connect_form:${user.id}`, { limit: 20, windowSeconds: 3600, onDbError: "deny" });
-  if (!limited.ok || !(await allowPaidWork(user.id, "connector_sync")).ok) return { ok: false, error: "Too many attempts. Try again later." };
+  if (!limited.ok) return { ok: false, error: "Too many attempts. Try again later." };
 
   const parsed = schema.safeParse(values);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the details and try again." };
@@ -89,15 +94,42 @@ export async function connectWithForm(sourceId: FormSource, values: Record<strin
     credential = { url };
   }
 
+  // The same resource again (same canonical identity) while its connection is healthy: nothing new to
+  // fetch, so no new sync and no paid allowance spent. A failed/stale/reauth connection, or a
+  // different identity, is a real update and goes through. Only this student's own connection is
+  // compared; other students submitting the same public URL are unaffected.
+  const identity = credentialIdentity(sourceId, credential);
+  const [existing] = await db
+    .select({ tokenEnc: connections.tokenEnc, status: connections.status })
+    .from(connections)
+    .where(and(eq(connections.userId, user.id), eq(connections.sourceId, sourceId)));
+  if (existing && identity && HEALTHY.has(existing.status)) {
+    const previous = openCredential<Record<string, unknown>>(user.id, sourceId, existing.tokenEnc);
+    if (credentialIdentity(sourceId, previous) === identity) return { ok: true };
+  }
+
+  if (!(await allowPaidWork(user.id, "connector_sync")).ok) return { ok: false, error: "Too many attempts. Try again later." };
+
+  // Concurrent identical submissions converge on one sync job: the job key is a keyed fingerprint of
+  // the identity per day. Retrying a failed connection gets a fresh key so the retry really runs.
+  const retrying = existing && !HEALTHY.has(existing.status);
+  const syncKey =
+    identity && !retrying
+      ? `form:${identityFingerprint(identity)}:${new Date().toISOString().slice(0, 10)}`
+      : randomUUID();
+
   await connectSource({
     userId: user.id,
     sourceId,
     accessMethod: sourceById(sourceId)!.accessMethod,
     credential,
-    syncKey: randomUUID(),
+    syncKey,
   });
   return { ok: true };
 }
+
+// A healthy connection already holds (or is fetching) this data.
+const HEALTHY = new Set(["connected", "syncing"]);
 
 export async function disconnect(sourceId: string): Promise<SaveResult> {
   const { user, state } = await requireConnectorUser();
