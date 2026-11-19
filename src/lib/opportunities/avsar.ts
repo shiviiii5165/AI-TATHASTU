@@ -81,6 +81,8 @@ export interface InternshipCard {
   /** Readable stipend exactly as Avsar states it; null when not stated. */
   stipend: string | null;
   unpaid: boolean;
+  /** Duration as Avsar publishes it; null when not stated. */
+  durationWeeks: number | null;
   url: string;
   applyUrl: string;
   fit: FitExplanation;
@@ -255,6 +257,7 @@ export function toInternshipCards(items: AvsarInternship[], student: StudentSign
         deadline: i.deadline,
         stipend: stipendText(i),
         unpaid: i.unpaid,
+        durationWeeks: i.durationWeeks,
         url: i.url,
         applyUrl: i.applyUrl,
         fit,

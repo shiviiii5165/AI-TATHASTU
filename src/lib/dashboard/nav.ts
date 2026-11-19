@@ -6,7 +6,8 @@ export const NAV_ITEMS = [
   { slug: "skills", label: "Skills" },
   { slug: "projects", label: "Projects" },
   { slug: "achievements", label: "Achievements" },
-  { slug: "opportunities", label: "Opportunities" },
+  // Displayed as the AVSAR product brand; slug and route stay "opportunities".
+  { slug: "opportunities", label: "AVSAR" },
   { slug: "internships", label: "Internships" },
   { slug: "learn", label: "Learning" },
   { slug: "people", label: "People & Network" },

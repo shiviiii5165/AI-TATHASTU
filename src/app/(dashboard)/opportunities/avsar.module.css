@@ -1,0 +1,62 @@
+/* AVSAR page-only motion. Transform/opacity only; disabled under prefers-reduced-motion. */
+
+.float {
+  animation: avsar-float 6s ease-in-out infinite;
+  transform-origin: 50% 60%;
+  will-change: transform;
+}
+
+.glow {
+  animation: avsar-glow 6s ease-in-out infinite;
+}
+
+.shadow {
+  animation: avsar-shadow 6s ease-in-out infinite;
+  transform-origin: 50% 50%;
+  transform-box: fill-box;
+}
+
+.chip {
+  animation: avsar-chip 7s ease-in-out infinite;
+}
+
+.chipDelay {
+  animation-delay: -3.5s;
+}
+
+.latch {
+  animation: avsar-latch 6s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: 50% 0%;
+}
+
+@keyframes avsar-float {
+  0%, 100% { transform: translateY(0) rotate(-1.5deg); }
+  50% { transform: translateY(-8px) rotate(0.5deg); }
+}
+
+@keyframes avsar-glow {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 0.9; }
+}
+
+@keyframes avsar-shadow {
+  0%, 100% { transform: scaleX(1); opacity: 0.35; }
+  50% { transform: scaleX(0.86); opacity: 0.22; }
+}
+
+@keyframes avsar-chip {
+  0%, 100% { transform: translateY(0); opacity: 0.85; }
+  50% { transform: translateY(-6px); opacity: 1; }
+}
+
+@keyframes avsar-latch {
+  0%, 88%, 100% { transform: scaleY(1); }
+  92% { transform: scaleY(0.82); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .float, .glow, .shadow, .chip, .latch {
+    animation: none;
+  }
+}

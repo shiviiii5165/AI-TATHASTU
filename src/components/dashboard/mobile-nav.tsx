@@ -67,7 +67,7 @@ export function MobileNav({ user, onSignOut }: MobileNavProps) {
     { href: "/dashboard", label: "Home", icon: Home },
     { href: "/skills", label: "Skills", icon: Sparkles },
     { href: "/projects", label: "Projects", icon: FolderGit2 },
-    { href: "/opportunities", label: "Opportunities", icon: Briefcase },
+    { href: "/opportunities", label: "AVSAR", icon: Briefcase },
   ];
 
   const isMoreActive =
@@ -243,7 +243,7 @@ export function MobileNav({ user, onSignOut }: MobileNavProps) {
               </p>
               <div className="space-y-0.5">
                 {[
-                  { href: "/opportunities", label: "Opportunities", icon: Briefcase },
+                  { href: "/opportunities", label: "AVSAR", icon: Briefcase },
                   { href: "/learn", label: "Learning Paths", icon: BookOpen },
                   { href: "/cv-builder", label: "CV Builder", icon: FileText },
                 ].map((item) => {

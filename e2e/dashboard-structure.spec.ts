@@ -31,7 +31,7 @@ test("desktop sidebar: removed entries gone, Collaborate exactly once via the au
   await expect(collaborate).toHaveAttribute("href", "/integrations/launch/collaborate");
   // Unaffected items keep their order; Privacy, Integrations and Sign out stay.
   const labels = await sidebar.getByRole("navigation", { name: "Main" }).getByRole("link").allTextContents();
-  expect(labels.slice(0, 6)).toEqual(["Home", "My Profile", "Skills", "Projects", "Achievements", "Opportunities"]);
+  expect(labels.slice(0, 6)).toEqual(["Home", "My Profile", "Skills", "Projects", "Achievements", "AVSAR"]);
   for (const kept of ["Privacy", "Integrations"]) await expect(sidebar.getByRole("link", { name: kept })).toBeVisible();
   await expect(sidebar.getByRole("button", { name: "Sign out" })).toBeVisible();
 
