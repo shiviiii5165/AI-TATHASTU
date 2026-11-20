@@ -5,14 +5,12 @@ import type { ComponentType, ReactNode } from "react";
 
 import type { PublicPost } from "@/lib/collaborations/public";
 
-import s from "./collaborate.module.css";
+import { s } from "./styles";
 
 export const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(" ");
 
-/** Collaborate's dark palette, through the app's `dark:` variant. Pair with the module's `.root` (light tokens). */
-export const DARK_TOKENS =
-  "dark:[--c-ink:#e6f6f8] dark:[--c-text:#dcedf0] dark:[--c-muted:#9ebcc4] dark:[--c-surface:#0e1d23] dark:[--c-surface-2:#12262d] dark:[--c-border:#1f3c45] dark:[--c-border-strong:#2b5260] dark:[--c-accent:#3cc6d2] dark:[--c-accent-strong:#66d7e0] dark:[--c-accent-soft:#123a42] dark:[--c-cyan:#48d1e2] dark:[--c-mint:#4fd6a6] dark:[--c-warn:#f2b45c] dark:[--c-warn-soft:#3a2a10] dark:[--c-danger:#ff8fa6] dark:[--c-danger-soft:#3b1520] dark:[--c-focus:#66d7e0] dark:[--c-hero-a:#061a20] dark:[--c-hero-b:#0b3640]";
-export const themed = (root: string) => `${root} ${DARK_TOKENS}`;
+/** The Collaborate token scope (light and dark tokens both live in collaborate.css). */
+export const themed = (root: string) => root;
 
 const focus = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--c-focus)]";
 

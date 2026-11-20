@@ -7,7 +7,7 @@ import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/
 import type { PublicPost } from "@/lib/collaborations/public";
 
 import { API, call } from "./api";
-import s from "./collaborate.module.css";
+import { s } from "./styles";
 import { Banner, btn, CATEGORY_ICON, cx, FieldError, fmtDay, Initials, inputCls, MODE_LABEL, Seats, Spinner, STAGE_LABEL, StateBox, themed } from "./ui";
 
 type Viewer = { isOwner: boolean; membership: "owner" | "member" | null; application: { id: string; status: string } | null; enquiryThreadId: string | null; teamThreadId: string | null; canApply: boolean; blocked: boolean };

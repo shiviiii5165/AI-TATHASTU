@@ -3,7 +3,10 @@
 import { useId, useState } from "react";
 import { RotateCw } from "lucide-react";
 
-import s from "./avsar.module.css";
+import "./avsar.css";
+
+// Plain global CSS with avsar- prefixed names (see components/collaborate/styles.ts for why not a CSS module).
+const s = { float: "avsar-float", glow: "avsar-glow", shadow: "avsar-shadow", chip: "avsar-chip", chipDelay: "avsar-chipDelay", latch: "avsar-latch" } as const;
 
 /** AVSAR's signature briefcase. Pure SVG + CSS; fixed box so it never shifts layout. */
 export function AvsarBriefcase({ size = 220, decorative = true }: { size?: number; decorative?: boolean }) {

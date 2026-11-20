@@ -1,9 +1,9 @@
 /*
  * Collaborate's own identity inside AVSAR: deep ink with teal/cyan accents, a connected-node motif.
- * Tokens live here (light and dark); components use them through var(--…). Motion is transform/opacity only
+ * Plain global CSS with collab- prefixed names: next.config's Turbopack *.css rule makes *.module.css global, so bare names like .grid leaked onto Tailwind's grid utility. Motion is transform/opacity only
  * and stops under prefers-reduced-motion.
  */
-.root {
+.collab-root {
   --c-ink: #0b2530;
   --c-text: #12303b;
   --c-muted: #4a6470;
@@ -26,54 +26,76 @@
   color: var(--c-text);
 }
 
-/* Dark tokens: applied with the app's own `dark:` variant (DARK_TOKENS in ui.tsx), so they follow the theme toggle. */
+/* Dark tokens, on the same selectors the app's theme uses (globals.css: .dark and [data-theme="dark"]). */
+.dark .collab-root,
+[data-theme="dark"] .collab-root {
+  --c-ink: #e6f6f8;
+  --c-text: #dcedf0;
+  --c-muted: #a9c4cb;
+  --c-surface: #0e1d23;
+  --c-surface-2: #12262d;
+  --c-border: #1f3c45;
+  --c-border-strong: #2b5260;
+  --c-accent: #3cc6d2;
+  --c-accent-strong: #66d7e0;
+  --c-accent-soft: #123a42;
+  --c-cyan: #48d1e2;
+  --c-mint: #4fd6a6;
+  --c-warn: #f2b45c;
+  --c-warn-soft: #3a2a10;
+  --c-danger: #ff8fa6;
+  --c-danger-soft: #3b1520;
+  --c-focus: #66d7e0;
+  --c-hero-a: #061a20;
+  --c-hero-b: #0b3640;
+}
 
-.hero {
+.collab-hero {
   background:
     radial-gradient(120% 140% at 100% 0%, rgba(18, 181, 201, 0.28), transparent 55%),
     radial-gradient(90% 120% at 0% 100%, rgba(47, 191, 143, 0.18), transparent 60%),
     linear-gradient(135deg, var(--c-hero-a), var(--c-hero-b));
 }
 
-.grid {
+.collab-grid {
   background-image: radial-gradient(rgba(255, 255, 255, 0.12) 1px, transparent 1px);
   background-size: 18px 18px;
   mask-image: linear-gradient(90deg, transparent, #000 40%);
 }
 
-.node {
+.collab-node {
   animation: c-pulse 4.8s ease-in-out infinite;
   transform-box: fill-box;
   transform-origin: center;
 }
-.node2 { animation-delay: -1.6s; }
-.node3 { animation-delay: -3.2s; }
+.collab-node2 { animation-delay: -1.6s; }
+.collab-node3 { animation-delay: -3.2s; }
 
-.link {
+.collab-link {
   stroke-dasharray: 4 6;
   animation: c-flow 3.2s linear infinite;
 }
 
-.orbit {
+.collab-orbit {
   animation: c-orbit 18s linear infinite;
   transform-box: view-box;
   transform-origin: 50% 50%;
 }
 
-.card {
+.collab-card {
   transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
 }
-.card:hover {
+.collab-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 14px 30px -20px rgba(14, 143, 154, 0.55);
   border-color: var(--c-border-strong);
 }
 
-.enter {
+.collab-enter {
   animation: c-enter 220ms ease-out both;
 }
 
-.avatarStack > * + * {
+.collab-avatarStack > * + * {
   margin-left: -8px;
 }
 
@@ -96,6 +118,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .node, .link, .orbit, .enter { animation: none; }
-  .card, .card:hover { transition: none; transform: none; }
+  .collab-node, .collab-link, .collab-orbit, .collab-enter { animation: none; }
+  .collab-card, .collab-card:hover { transition: none; transform: none; }
 }

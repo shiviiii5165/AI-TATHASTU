@@ -101,13 +101,13 @@ test("collaboration marketplace: publish, discover, apply, accept, chat, moderat
     await page.getByRole("button", { name: new RegExp(TITLE) }).click();
     await page.getByRole("textbox", { name: "Message" }).fill("Welcome aboard! Kick-off on Saturday?");
     await page.getByRole("button", { name: "Send message" }).click();
-    await expect(page.getByText("Welcome aboard! Kick-off on Saturday?")).toBeVisible();
+    await expect(page.getByText("Welcome aboard! Kick-off on Saturday?", { exact: true })).toBeVisible();
     await context.close();
 
     const a = await as(browser, applicant);
     await a.page.goto("/opportunities?cat=collaborations&view=inbox");
     await a.page.getByRole("button", { name: new RegExp(TITLE) }).click();
-    await expect(a.page.getByText("Welcome aboard! Kick-off on Saturday?")).toBeVisible();
+    await expect(a.page.getByText("Welcome aboard! Kick-off on Saturday?", { exact: true })).toBeVisible();
     await a.context.close();
   });
 

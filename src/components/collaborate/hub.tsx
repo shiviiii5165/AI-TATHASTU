@@ -4,7 +4,7 @@ import { Bell, Compass, FolderKanban, Inbox as InboxIcon, LogIn, Plus, UserPlus 
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
 
 import { API, call, useApi } from "./api";
-import s from "./collaborate.module.css";
+import { s } from "./styles";
 import { CreateWizard } from "./create-wizard";
 import { Discover } from "./discover";
 import { Inbox } from "./inbox";

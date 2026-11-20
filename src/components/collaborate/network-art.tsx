@@ -1,4 +1,4 @@
-import s from "./collaborate.module.css";
+import { s } from "./styles";
 
 /** Connected people forming a team: Collaborate's mark. Decorative; motion stops under reduced-motion. */
 export function NetworkArt({ className = "" }: { className?: string }) {

@@ -9,7 +9,7 @@ import type { PublicPost } from "@/lib/collaborations/public";
 import { CATEGORY_LABEL } from "@/lib/collaborations/rules";
 
 import { API, call } from "./api";
-import s from "./collaborate.module.css";
+import { s } from "./styles";
 import { Banner, btn, CATEGORY_ICON, cx, FieldError, inputCls, MODE_LABEL, STAGE_LABEL, themed } from "./ui";
 
 type Role = { title: string; count: number; skills: string };
@@ -235,7 +235,7 @@ function WizardBody({ editId, onClose, onSaved }: WizardProps) {
                   const Icon = CATEGORY_ICON[c];
                   const on = form.category === c;
                   return (
-                    <label key={c} className={cx("flex cursor-pointer gap-3 rounded-2xl border p-4 transition-colors duration-150 has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-[var(--c-focus)]", on ? "border-[var(--c-accent)] bg-[var(--c-accent-soft)]" : "border-[var(--c-border)] hover:border-[var(--c-border-strong)]")}>
+                    <label key={c} className={cx("flex cursor-pointer gap-3 rounded-2xl border p-4 transition-colors duration-150 has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-[var(--c-focus)]", on ? "border-[var(--c-accent)] bg-[var(--c-accent-soft)] ring-2 ring-[var(--c-accent)]/25" : "border-[var(--c-border)] bg-[var(--c-surface)] hover:border-[var(--c-border-strong)] hover:bg-[var(--c-surface-2)]")}>
                       <input type="radio" name="category" value={c} checked={on} onChange={() => set("category", c)} className="sr-only" />
                       <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[var(--c-surface)] text-[var(--c-accent)]"><Icon aria-hidden className="size-5" /></span>
                       <span><span className="block text-sm font-bold text-[var(--c-ink)]">{CATEGORY_LABEL[c]}</span><span className="text-xs text-[var(--c-muted)]">{CATEGORY_HINT[c]}</span></span>
