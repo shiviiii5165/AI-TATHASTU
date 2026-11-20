@@ -1,7 +1,10 @@
 "use server";
 
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
+import { db } from "@/db";
+import { supportTickets } from "@/db/schema";
 import { requireAdmin } from "@/lib/admin";
 import { queueEmailDelivery, renderTemplateContent } from "@/lib/admin/email-engine";
 import { requireAdminPermission } from "@/lib/admin/rbac";
@@ -9,6 +12,7 @@ import {
   addTicketMessage,
   assignTicket,
   createSupportTicket,
+  listAssignableAdmins,
   type TicketPriority,
   type TicketStatus,
   updateTicketStatus,
@@ -84,14 +88,16 @@ export async function postTicketMessageAction(
       content: content.trim(),
     });
 
-    // If it's a public reply, queue notification email to student
-    if (!isInternalNote && admin.email) {
-      // Background email queue
+    // A public reply notifies the student who raised the ticket (previously this went to the replying admin).
+    const [ticket] = isInternalNote
+      ? []
+      : await db.select({ requesterEmail: supportTickets.requesterEmail, ticketNumber: supportTickets.ticketNumber }).from(supportTickets).where(eq(supportTickets.id, ticketId));
+    if (!isInternalNote && ticket?.requesterEmail) {
       await queueEmailDelivery({
         templateSlug: "ticket_reply",
-        recipient: admin.email, // In production, resolved from ticket requesterEmail
+        recipient: ticket.requesterEmail,
         senderProfile: "support",
-        subject: `New reply on your ticket`,
+        subject: `[${ticket.ticketNumber}] New reply on your ticket`,
         htmlBody: renderTemplateContent(
           `<p>An agent posted a reply on your support ticket:</p><blockquote>{{message_body}}</blockquote>`,
           { message_body: content.trim() }
@@ -130,6 +136,11 @@ export async function changeTicketStatusAction(
 export async function assignTicketAction(ticketId: string, assignedToId: string | null) {
   const admin = await requireAdmin();
   await requireAdminPermission("support.tickets.assign");
+
+  // Only an active admin can be the assignee; anything else is refused, not silently stored.
+  if (assignedToId && !(await listAssignableAdmins()).some((a) => a.id === assignedToId)) {
+    return { ok: false, error: "That person isn't an active admin." };
+  }
 
   try {
     await assignTicket(ticketId, assignedToId, admin.email || "admin");

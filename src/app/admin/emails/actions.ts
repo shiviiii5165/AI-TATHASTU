@@ -1,8 +1,13 @@
 "use server";
 
+import { and, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
+import { db } from "@/db";
+import { emailDeliveries } from "@/db/schema";
 import { requireAdmin } from "@/lib/admin";
+import { recordAdminAudit } from "@/lib/admin/audit";
 import {
   processEmailDeliveries,
   publishTemplateVersion,
@@ -105,5 +110,28 @@ export async function triggerOutboxDeliveryAction() {
   } catch (err: unknown) {
     return { ok: false, error: err instanceof Error ? err.message : "Failed to process outbox" };
   }
+}
+
+/**
+ * Puts one failed email back in the queue for exactly one more attempt. It is sent by the next outbox run
+ * (or "Process due deliveries"); nothing is sent here. Only a failed email can be retried.
+ */
+export async function retryFailedDeliveryAction(formData: FormData) {
+  const admin = await requireAdmin();
+  await requireAdminPermission("email.delivery.retry");
+  const id = String(formData.get("id") || "");
+  if (!/^[0-9a-f-]{36}$/i.test(id)) redirect("/admin/emails/deliveries?retry=error");
+
+  const [row] = await db
+    .update(emailDeliveries)
+    .set({ status: "queued", nextAttemptAt: new Date(), maxAttempts: sql`${emailDeliveries.attempts} + 1` })
+    .where(and(eq(emailDeliveries.id, id), eq(emailDeliveries.status, "failed")))
+    .returning({ id: emailDeliveries.id, recipient: emailDeliveries.recipient });
+
+  if (row) {
+    await recordAdminAudit({ actorId: admin.id, actorEmail: admin.email || "admin", action: "email.delivery_retry", resource: "email_deliveries", targetId: row.id });
+  }
+  revalidatePath("/admin/emails/deliveries");
+  redirect(`/admin/emails/deliveries?retry=${row ? "queued" : "error"}`);
 }
 

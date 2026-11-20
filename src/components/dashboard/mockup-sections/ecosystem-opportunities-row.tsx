@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import {
   AlertTriangle,
   ArrowUpRight,
@@ -11,8 +11,10 @@ import {
   Users,
 } from "lucide-react";
 import Link from "next/link";
-import { AvsarBriefcase, AvsarSideGlow, RetryButton } from "@/components/avsar/avsar-ui";
-import { AVSAR_LAUNCH_URL, monogram } from "@/components/avsar/monogram";
+import { AvsarBriefcase, AvsarSideGlow, AvsarWordmark, RetryButton } from "@/components/avsar/avsar-ui";
+import { AVSAR_CATEGORIES, AVSAR_CATEGORY_KEYS, AVSAR_TAGLINE, COLLAB_KINDS, JOBS_UNAVAILABLE, tabClass, type AvsarCategory } from "@/components/avsar/categories";
+import { officialPageHref } from "@/components/avsar/links";
+import { AVSAR_LAUNCH_URL, diversifyByOrg, monogram } from "@/components/avsar/monogram";
 import type { InternshipFeed, ResearchCard, ResearchFeed } from "@/lib/dashboard/stats";
 import type { InternshipCard } from "@/lib/opportunities/avsar";
 
@@ -94,9 +96,10 @@ function PeopleRecommendationsCard() {
   );
 }
 
-// ── AVSAR: one section for Avsar internships + verified research ──────────────
+// ── AVSAR: one section, real category tabs over Avsar internships + verified research ──
 
 type FitState = ResearchCard["fit"]["state"];
+type ListingCategory = Exclude<AvsarCategory, "all" | "jobs">;
 
 const FIT_LABEL: Record<FitState, { label: string; cls: string }> = {
   strong_fit: { label: "Strong fit", cls: "bg-[#E8FAF4] text-[#0E7C66]" },
@@ -125,11 +128,14 @@ const PREVIEW_LIMIT = 4;
 
 interface Preview {
   key: string;
-  type: "internship" | "research";
+  category: ListingCategory;
   title: string;
   organization: string;
   meta: { icon: ReactNode; text: string }[];
   deadline: string | null;
+  provenance: string;
+  /** Official announcement URL stored at ingestion (research only); never constructed. */
+  officialUrl: string | null;
   fit: { state: FitState; summary: string };
   /** Internship: Avsar's own listing URL (origin-validated in lib/opportunities/avsar.ts). Research: the verified detail page. */
   href: string;
@@ -144,11 +150,13 @@ function fromInternship(it: InternshipCard): Preview {
   if (it.durationWeeks) meta.push({ icon: <Clock3 aria-hidden className="size-3" />, text: `${it.durationWeeks} week${it.durationWeeks === 1 ? "" : "s"}` });
   return {
     key: `avsar:${it.id}`,
-    type: "internship",
+    category: "internships",
     title: it.title,
     organization: it.organization,
     meta,
     deadline: it.deadline ? `Apply by ${fmtDate(it.deadline)}` : null,
+    provenance: "Listed on Avsar",
+    officialUrl: null,
     fit: it.fit,
     href: it.url,
     external: true,
@@ -161,35 +169,43 @@ function fromResearch(o: ResearchCard): Preview {
   if (o.workMode) meta.push({ icon: <Monitor aria-hidden className="size-3" />, text: WORK_MODE[o.workMode.toLowerCase()] ?? o.workMode });
   return {
     key: `research:${o.id}`,
-    type: "research",
+    category: o.kind && COLLAB_KINDS.has(o.kind) ? "collaborations" : "research",
     title: o.title,
     organization: [o.organization, o.kind ? KIND_LABEL[o.kind] ?? null : null].filter(Boolean).join(" · "),
     meta,
     deadline: o.deadline ? `Deadline: ${o.deadline}` : null,
+    provenance: `${o.sourceName} · verified ${fmtDate(o.lastVerifiedAt)}`,
+    officialUrl: officialPageHref(o.url),
     fit: o.fit,
     href: `/opportunities/${o.id}`,
     external: false,
   };
 }
 
-/** Best matches first, keeping both types visible when both have results. */
-function pickPreviews(internships: Preview[], research: Preview[]): Preview[] {
-  const byFit = (a: Preview, b: Preview) => FIT_ORDER[a.fit.state] - FIT_ORDER[b.fit.state];
-  const i = [...internships].sort(byFit);
-  const r = [...research].sort(byFit);
-  // Up to half the slots each; a type with fewer results gives its slots to the other.
-  const half = Math.ceil(PREVIEW_LIMIT / 2);
-  const nI = Math.min(i.length, Math.max(half, PREVIEW_LIMIT - r.length));
-  return [...i.slice(0, nI), ...r.slice(0, PREVIEW_LIMIT - nI)].sort(byFit);
+const byFit = (a: Preview, b: Preview) => FIT_ORDER[a.fit.state] - FIT_ORDER[b.fit.state];
+
+/** Best fit first; within the same fit level, institutions alternate so one can't fill every slot. */
+const rank = (list: Preview[]) =>
+  (Object.keys(FIT_ORDER) as FitState[]).flatMap((s) => diversifyByOrg(list.filter((p) => p.fit.state === s)));
+
+/** "All": best matches first, sharing the slots fairly so one source can't crowd out the others. */
+function pickAll(groups: Preview[][]): Preview[] {
+  const sorted = groups.map(rank);
+  const out: Preview[] = [];
+  for (let round = 0; out.length < PREVIEW_LIMIT && sorted.some((g) => g.length > round); round++) {
+    for (const g of sorted) if (g[round] && out.length < PREVIEW_LIMIT) out.push(g[round]!);
+  }
+  return out.sort(byFit);
 }
 
-const TYPE_STYLE: Record<Preview["type"], { label: string; tag: string; logo: string; bar: string }> = {
-  internship: { label: "Internship · Avsar", tag: "text-[#1D5FC4]", logo: "bg-[#EDF5FF] text-[#1D5FC4]", bar: "bg-[#1D5FC4]" },
+const TYPE_STYLE: Record<ListingCategory, { label: string; tag: string; logo: string; bar: string }> = {
+  internships: { label: "Internship · Avsar", tag: "text-[#1D5FC4]", logo: "bg-[#EDF5FF] text-[#1D5FC4]", bar: "bg-[#1D5FC4]" },
   research: { label: "Research · Verified", tag: "text-[#0E7C66]", logo: "bg-[#E8FAF4] text-[#0E7C66]", bar: "bg-[#0F9F8A]" },
+  collaborations: { label: "Collaboration · Verified", tag: "text-[#9A5B00]", logo: "bg-[#FFF4E5] text-[#9A5B00]", bar: "bg-[#D97706]" },
 };
 
 function PreviewRow({ p }: { p: Preview }) {
-  const t = TYPE_STYLE[p.type];
+  const t = TYPE_STYLE[p.category];
   const fit = FIT_LABEL[p.fit.state];
   const titleCls =
     "text-[13px] font-bold leading-snug text-[#11182B] after:absolute after:inset-0 after:rounded-xl after:content-[''] focus-visible:outline-none group-hover:text-[#1D5FC4]";
@@ -209,15 +225,17 @@ function PreviewRow({ p }: { p: Preview }) {
             ) : (
               <Link href={p.href} className={titleCls}>
                 {p.title}
-                <span className="sr-only"> at {p.organization}, verified research listing on AI Tathastu</span>
+                <span className="sr-only"> at {p.organization}, verified listing with its official source</span>
               </Link>
             )}
             <p className="truncate text-[11px] font-medium text-[#475569]">{p.organization}</p>
           </div>
-          <span className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-bold ${fit.cls}`} title="Match Intelligence">
+          <span className={`hidden shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-bold sm:inline ${fit.cls}`} title="Match Intelligence">
             {fit.label}
           </span>
         </div>
+        {/* Phones: the rating sits under the title so long titles keep the full width. */}
+        <span className={`mt-1 inline-block rounded-md px-1.5 py-0.5 text-[10px] font-bold sm:hidden ${fit.cls}`}>{fit.label}</span>
         {(p.meta.length > 0 || p.deadline) && (
           <p className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-[#475569]">
             {p.meta.map((m) => (
@@ -233,6 +251,15 @@ function PreviewRow({ p }: { p: Preview }) {
           </p>
         )}
         <p className="mt-1 line-clamp-1 text-[11px] text-[#334155]">{p.fit.summary}</p>
+        <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[10px] text-[#617493]">
+          <span className="truncate">{p.provenance}</span>
+          {p.officialUrl && (
+            <a href={p.officialUrl} target="_blank" rel="noopener noreferrer" className="relative z-10 inline-flex items-center gap-0.5 font-semibold text-[#0E7C66] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2">
+              Official page <ArrowUpRight aria-hidden className="size-2.5" />
+              <span className="sr-only"> for {p.title} (new tab)</span>
+            </a>
+          )}
+        </p>
       </div>
       {p.external && <ArrowUpRight aria-hidden className="size-3.5 shrink-0 self-center text-[#94A3B8] transition-colors group-hover:text-[#1D5FC4]" />}
     </li>
@@ -242,120 +269,180 @@ function PreviewRow({ p }: { p: Preview }) {
 function Note({ tone, children }: { tone: "error" | "warn" | "info"; children: ReactNode }) {
   const cls = { error: "text-[#8A1C36]", warn: "text-[#7A4A00]", info: "text-[#475569]" }[tone];
   return (
-    <p role={tone === "info" ? undefined : "status"} className={`flex items-start gap-1.5 text-[11px] ${cls}`}>
+    <p role={tone === "info" ? undefined : "status"} className={`flex items-start justify-center gap-1.5 text-center text-[11px] ${cls}`}>
       {tone !== "info" && <AlertTriangle aria-hidden className="mt-px size-3.5 shrink-0" />}
       <span>{children}</span>
     </p>
   );
 }
 
+function StateBox({ tone = "empty", title, body, action }: { tone?: "empty" | "error"; title: string; body: string; action?: ReactNode }) {
+  return (
+    <div
+      role={tone === "error" ? "alert" : "status"}
+      className={`rounded-xl px-4 py-5 text-center ${tone === "error" ? "border border-[#F8C9D3] bg-[#FFF5F7]" : "border border-dashed border-[#DCE1EC]"}`}
+    >
+      <p className="text-sm font-bold text-[#11182B]">{title}</p>
+      <p className="mx-auto mt-0.5 max-w-sm text-xs text-[#475569]">{body}</p>
+      {action && <div className="mt-3 flex justify-center">{action}</div>}
+    </div>
+  );
+}
+
 /**
- * One AVSAR section on the dashboard. Internships come only from Avsar's partner API and open their exact
- * Avsar listing; research comes only from AI Tathastu's verified catalogue (not published on Avsar) and opens
- * its verified detail page. Ratings are the existing qualitative fit states, never percentages.
+ * The single AVSAR section on the dashboard. Tabs switch listings in place (client state; the data is already
+ * here from the server). Internships come only from Avsar and open their exact Avsar listing; research and
+ * collaborations come only from the verified catalogue and open their verified detail page (which links the
+ * official source). Jobs has no source and says so. Ratings are qualitative fit states, never percentages.
  */
 function AvsarSection({ research, internships }: { research?: ResearchFeed; internships?: InternshipFeed }) {
+  const [cat, setCat] = useState<AvsarCategory>("all");
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
   const researchDown = !research || research.status === "unavailable";
   const avsarDown = internships?.status === "unavailable";
   const avsarOff = !internships || internships.status === "not_configured";
   const launchUrl = internships && internships.status !== "ok" ? internships.handoffUrl : internships?.browseUrl ?? AVSAR_LAUNCH_URL;
 
-  const iPreviews = internships?.status === "ok" ? internships.items.map(fromInternship) : [];
-  const rPreviews = research?.status === "ok" ? research.items.map(fromResearch) : [];
-  const shown = pickPreviews(iPreviews, rPreviews);
-  const total = iPreviews.length + rPreviews.length;
+  const groups: Record<ListingCategory, Preview[]> = { internships: [], research: [], collaborations: [] };
+  if (internships?.status === "ok") groups.internships = internships.items.map(fromInternship);
+  if (research?.status === "ok") for (const r of research.items.map(fromResearch)) groups[r.category].push(r);
+
+  const total = groups.internships.length + groups.research.length + groups.collaborations.length;
+  const pool = cat === "all" ? total : cat === "jobs" ? 0 : groups[cat].length;
+  const shown = cat === "all" ? pickAll([groups.internships, groups.research, groups.collaborations]) : cat === "jobs" ? [] : rank(groups[cat]).slice(0, PREVIEW_LIMIT);
   const bothDown = researchDown && (avsarDown || avsarOff);
   const personalised = (research?.status === "ok" && research.personalised) || (internships?.status === "ok" && internships.personalised);
+
+  // Per-category source state: a failed source is never shown as "nothing here".
+  const catFailed = cat === "internships" ? avsarDown : cat === "research" || cat === "collaborations" ? researchDown : cat === "all" ? bothDown : false;
+
+  const onKey = (e: KeyboardEvent<HTMLButtonElement>, i: number) => {
+    const n = AVSAR_CATEGORY_KEYS.length;
+    const next = e.key === "ArrowRight" ? (i + 1) % n : e.key === "ArrowLeft" ? (i - 1 + n) % n : e.key === "Home" ? 0 : e.key === "End" ? n - 1 : -1;
+    if (next < 0) return;
+    e.preventDefault();
+    setCat(AVSAR_CATEGORY_KEYS[next]!);
+    tabRefs.current[next]?.focus();
+  };
 
   return (
     <section
       aria-labelledby="avsar-dash-heading"
       data-testid="avsar-dashboard"
-      className="relative overflow-hidden rounded-2xl border border-[#E7EAF3] bg-white p-4 shadow-[0_1px_2px_rgba(17,24,43,0.04),0_12px_32px_-20px_rgba(59,79,224,0.3)] sm:p-5 xl:col-span-2"
+      className="relative overflow-hidden rounded-2xl border border-[#E7EAF3] bg-white p-4 shadow-[0_1px_2px_rgba(17,24,43,0.04),0_12px_32px_-20px_rgba(59,79,224,0.3)] sm:p-6 xl:col-span-2"
     >
       <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[3px] bg-[linear-gradient(90deg,#1D5FC4,#7C4DDB_35%,#0F9F8A_65%,#F59E0B)] opacity-80" />
-      <AvsarSideGlow className="-right-10 top-2 size-56 sm:size-72" />
+      <AvsarSideGlow className="-right-12 -top-6 hidden size-72 md:block" />
 
-      <div className="relative grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
-        <div className="min-w-0 sm:order-1">
-          <header className="pr-20 sm:pr-0">
-            <p className="inline-flex items-center gap-2 text-[11px] font-extrabold tracking-[0.22em] text-[#5B4FE0]">
-              <span aria-hidden className="flex gap-1">
-                <span className="size-1.5 rounded-full bg-[#1D5FC4]" />
-                <span className="size-1.5 rounded-full bg-[#0F9F8A]" />
-                <span className="size-1.5 rounded-full bg-[#F59E0B]" />
-              </span>
-              AVSAR
-            </p>
-            <h2 id="avsar-dash-heading" className="mt-1.5 font-heading text-lg font-bold leading-tight tracking-tight text-[#11182B] sm:text-xl">
-              Discover Opportunities for Your Timeline.
-            </h2>
-            <p className="mt-1 max-w-lg text-xs leading-relaxed text-[#475569] sm:text-[13px]">
-              Explore internships and verified research opportunities aligned with your skills, interests and career goals.
-            </p>
-            <p className="mt-2.5 flex flex-wrap gap-1.5" aria-label="Opportunity types">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#1D5FC4]/20 bg-[#EDF5FF] px-2.5 py-0.5 text-[11px] font-semibold text-[#1D5FC4]">
-                <span aria-hidden className="size-1.5 rounded-full bg-[#1D5FC4]" /> Internships
-              </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#0E7C66]/20 bg-[#E8FAF4] px-2.5 py-0.5 text-[11px] font-semibold text-[#0E7C66]">
-                <span aria-hidden className="size-1.5 rounded-full bg-[#0F9F8A]" /> Research
-              </span>
-            </p>
-          </header>
+      {/* Briefcase: beside the centred intro once there is room, a compact mark above it on phones. */}
+      <div className="pointer-events-none absolute right-4 top-6 hidden size-[130px] md:block xl:right-3 xl:size-[140px]">
+        <AvsarBriefcase size={140} />
+      </div>
 
-          <div className="mt-3 space-y-1">
-            {!bothDown && avsarDown && <Note tone="error">Avsar internships couldn&apos;t be loaded just now; showing verified research only.</Note>}
-            {!bothDown && researchDown && <Note tone="error">Verified research couldn&apos;t be loaded just now; showing Avsar internships only.</Note>}
-            {!bothDown && avsarOff && <Note tone="info">Avsar internships appear here once the Avsar connection is switched on.</Note>}
-            {internships?.status === "ok" && internships.stale && <Note tone="warn">Couldn&apos;t refresh from Avsar. Internships last updated {fmtDate(internships.fetchedAt)}.</Note>}
-            {!personalised && total > 0 && (
-              <Note tone="info">
-                Add skills or connect GitHub to see how each one fits you.{" "}
-                <Link href="/skills" className="font-semibold text-[#5B4FE0] hover:underline">Update skills</Link>
-              </Note>
-            )}
-          </div>
+      <header className="relative mx-auto max-w-md text-center md:max-w-[24rem]">
+        <div className="relative mx-auto mb-1 size-[64px] md:hidden">
+          <AvsarSideGlow className="-inset-6" />
+          <AvsarBriefcase size={64} />
+        </div>
+        <AvsarWordmark size="md" />
+        <h2 id="avsar-dash-heading" className="mt-3 font-heading text-lg font-bold leading-tight tracking-tight text-[#11182B] sm:text-xl">
+          Discover Opportunities for Your Timeline.
+        </h2>
+        <p className="mt-1.5 text-xs leading-relaxed text-[#475569] sm:text-[13px]">{AVSAR_TAGLINE}</p>
+      </header>
 
-          {bothDown ? (
-            <div role="alert" className="mt-3 rounded-xl border border-[#F8C9D3] bg-[#FFF5F7] px-4 py-5 text-center">
-              <p className="text-sm font-bold text-[#11182B]">Opportunities couldn&apos;t be loaded</p>
-              <p className="mx-auto mt-0.5 max-w-sm text-xs text-[#475569]">This is a connection problem, not an empty list.</p>
-              <div className="mt-3 flex justify-center">
-                <RetryButton />
-              </div>
-            </div>
+      <div
+        role="tablist"
+        aria-label="AVSAR categories"
+        className="relative -mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:justify-center sm:px-0"
+      >
+        {AVSAR_CATEGORY_KEYS.map((c, i) => {
+          const on = c === cat;
+          return (
+            <button
+              key={c}
+              ref={(el) => {
+                tabRefs.current[i] = el;
+              }}
+              type="button"
+              role="tab"
+              id={`avsar-tab-${c}`}
+              aria-selected={on}
+              aria-controls="avsar-dash-panel"
+              tabIndex={on ? 0 : -1}
+              onClick={() => setCat(c)}
+              onKeyDown={(e) => onKey(e, i)}
+              className={tabClass(c, on)}
+            >
+              <span aria-hidden className={`size-2 rounded-full ${on ? "bg-white" : AVSAR_CATEGORIES[c].dot}`} />
+              {AVSAR_CATEGORIES[c].label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div id="avsar-dash-panel" role="tabpanel" aria-labelledby={`avsar-tab-${cat}`} className="relative mt-3">
+        <div className="space-y-1">
+          {cat === "all" && !bothDown && avsarDown && <Note tone="error">Avsar internships couldn&apos;t be loaded just now; other categories are shown.</Note>}
+          {cat === "all" && !bothDown && researchDown && <Note tone="error">Verified research couldn&apos;t be loaded just now; Avsar internships are shown.</Note>}
+          {(cat === "all" || cat === "internships") && avsarOff && !bothDown && <Note tone="info">Avsar internships appear here once the Avsar connection is switched on.</Note>}
+          {(cat === "all" || cat === "internships") && internships?.status === "ok" && internships.stale && (
+            <Note tone="warn">Couldn&apos;t refresh from Avsar. Internships last updated {fmtDate(internships.fetchedAt)}.</Note>
+          )}
+          {!personalised && shown.length > 0 && (
+            <Note tone="info">
+              Add skills or connect GitHub to see how each one fits you.{" "}
+              <Link href="/skills" className="font-semibold text-[#5B4FE0] hover:underline">Update skills</Link>
+            </Note>
+          )}
+        </div>
+
+        <div className="mt-2">
+          {cat === "jobs" ? (
+            <StateBox title={JOBS_UNAVAILABLE.title} body={JOBS_UNAVAILABLE.body} />
+          ) : catFailed ? (
+            <StateBox
+              tone="error"
+              title={cat === "all" ? "Opportunities couldn't be loaded" : `${AVSAR_CATEGORIES[cat].label} couldn't be loaded`}
+              body="This is a connection problem, not an empty list."
+              action={<RetryButton />}
+            />
           ) : shown.length === 0 ? (
-            <div role="status" className="mt-3 rounded-xl border border-dashed border-[#DCE1EC] px-4 py-5 text-center">
-              <p className="text-sm font-bold text-[#11182B]">No matching opportunities right now.</p>
-              <p className="mx-auto mt-0.5 max-w-sm text-xs text-[#475569]">Discover opportunities on Avsar. New listings appear here as they are published.</p>
-            </div>
+            cat === "all" ? (
+              <StateBox title="No matching opportunities right now." body="Discover opportunities on Avsar. New listings appear here as they are published." />
+            ) : cat === "internships" ? (
+              avsarOff ? null : <StateBox title="No open internships on Avsar right now" body="New internships appear here as soon as Avsar publishes them." />
+            ) : cat === "research" ? (
+              <StateBox title="No verified research opportunities right now" body="Only openings confirmed on an official university, institute or lab page appear here." />
+            ) : (
+              <StateBox title="No verified collaboration calls right now" body="Collaboration calls appear here once confirmed at their official source." />
+            )
           ) : (
-            <ul className="mt-3 space-y-2" aria-label="AVSAR opportunity previews">
+            <ul className="space-y-2" aria-label={`${AVSAR_CATEGORIES[cat].label} opportunity previews`}>
               {shown.map((p) => (
                 <PreviewRow key={p.key} p={p} />
               ))}
             </ul>
           )}
-
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
-            {/* Plain <a>: the authorised launch route redirects into Avsar's own sign-in; needs a full navigation. */}
-            <a
-              href={launchUrl}
-              className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-[#1D5FC4] px-3.5 py-2 text-xs font-semibold text-white shadow-[0_6px_16px_-8px_rgba(29,95,196,0.6)] transition-colors hover:bg-[#174C9E] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1D5FC4] active:bg-[#123E82]"
-            >
-              Explore all opportunities on AVSAR <ArrowUpRight aria-hidden className="size-3.5" />
-            </a>
-            {total > shown.length && (
-              <Link href="/opportunities" className="text-[11px] font-semibold text-[#475569] hover:text-[#11182B] hover:underline">
-                {total - shown.length} more in AVSAR
-              </Link>
-            )}
-          </div>
         </div>
 
-        {/* Briefcase: corner accent on phones, full illustration beside the content from sm up. */}
-        <div className="absolute right-0 top-0 size-[76px] sm:static sm:order-2 sm:size-[150px] sm:self-start lg:size-[180px]">
-          <AvsarBriefcase size={180} />
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+          {/* Plain <a>: the authorised launch route redirects into Avsar's own sign-in; needs a full navigation. */}
+          <a
+            href={launchUrl}
+            className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-[#1D5FC4] px-4 py-2 text-xs font-semibold text-white shadow-[0_6px_16px_-8px_rgba(29,95,196,0.6)] transition-colors hover:bg-[#174C9E] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1D5FC4] active:bg-[#123E82]"
+          >
+            Explore all opportunities on AVSAR <ArrowUpRight aria-hidden className="size-3.5" />
+          </a>
+          {pool > shown.length && (
+            <Link
+              href={cat === "all" ? "/opportunities" : `/opportunities?cat=${cat}${cat === "research" ? "&section=all" : ""}`}
+              className="text-[11px] font-semibold text-[#475569] hover:text-[#11182B] hover:underline"
+            >
+              {pool - shown.length} more {cat === "all" ? "" : `${AVSAR_CATEGORIES[cat].label.toLowerCase()} `}in AVSAR
+            </Link>
+          )}
         </div>
       </div>
     </section>

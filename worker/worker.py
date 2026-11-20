@@ -131,6 +131,20 @@ RETURNING id, type, user_id, payload, attempts, max_attempts, locked_by, created
 """
 
 # Extends the lock of a job that is still running, fenced on ownership.
+# Worker liveness for admin Operational Health (table from migration 0033). One row per queue thread.
+HEARTBEAT_EVERY_S = 60.0
+HEARTBEAT_UPSERT_SQL = """
+INSERT INTO worker_heartbeats (worker_id, state, version, last_beat, expected_by, active_jobs, last_job_done_at, last_job_failed_at)
+VALUES (%(worker)s, %(state)s, %(version)s, now(),
+        CASE WHEN %(expected)s IS NULL THEN NULL ELSE now() + make_interval(secs => %(expected)s) END,
+        %(active)s, CASE WHEN %(done)s THEN now() END, CASE WHEN %(failed)s THEN now() END)
+ON CONFLICT (worker_id) DO UPDATE SET
+  state = EXCLUDED.state, version = EXCLUDED.version, last_beat = now(), expected_by = EXCLUDED.expected_by,
+  active_jobs = EXCLUDED.active_jobs,
+  last_job_done_at = coalesce(EXCLUDED.last_job_done_at, worker_heartbeats.last_job_done_at),
+  last_job_failed_at = coalesce(EXCLUDED.last_job_failed_at, worker_heartbeats.last_job_failed_at)
+"""
+
 HEARTBEAT_SQL = """
 UPDATE jobs SET locked_until = now() + make_interval(secs => %(lock)s)
  WHERE id = %(id)s AND locked_by = %(worker)s AND status = 'running'
@@ -232,6 +246,38 @@ class Worker:
         # writes are fenced on this, so a shared id would let a stale thread overwrite
         # the result of the sibling that reclaimed its job.
         self.worker_id = f"{WORKER_ID}:{uuid.uuid4().hex[:8]}"
+        self._last_beat = 0.0
+        self._beats_off = False
+
+    # ── heartbeat (admin Operational Health; migration 0033) ────────────────
+
+    def beat(self, state: str, expected_by_s: Optional[float] = None, job_outcome: Optional[str] = None, force: bool = False) -> None:
+        """Records liveness, at most once a minute unless forced. Never raises: monitoring must not stop the queue.
+        Turns itself off if the table doesn't exist yet (migration 0033 not applied)."""
+        if self._beats_off or (not force and time.monotonic() - self._last_beat < HEARTBEAT_EVERY_S):
+            return
+        try:
+            self.execute(
+                HEARTBEAT_UPSERT_SQL,
+                {
+                    "worker": self.worker_id,
+                    "state": state,
+                    "version": os.environ.get("RENDER_GIT_COMMIT", "")[:12] or None,
+                    "expected": expected_by_s,
+                    "active": 1 if state == "working" else 0,
+                    "done": job_outcome == "done",
+                    "failed": job_outcome == "failed",
+                },
+            )
+            self._last_beat = time.monotonic()
+        except Exception as exc:  # noqa: BLE001 - monitoring is best effort
+            if "worker_heartbeats" in str(exc):
+                self._beats_off = True
+                log.warning("worker heartbeat disabled: table missing (apply migration 0033)")
+            else:
+                log.warning("worker heartbeat failed: %s", type(exc).__name__)
+            if self.conn is not None and not self.conn.closed:
+                self.conn.rollback()
 
     # ── connection ──────────────────────────────────────────────────────────
 
@@ -283,13 +329,17 @@ class Worker:
         started = time.monotonic()
         heartbeat = Heartbeat(self.dsn, job.id, self.worker_id)
         heartbeat.start()
+        self.beat("working")
         try:
-            self._run_one(job)
+            outcome = self._run_one(job)
+            if outcome:
+                self.beat("polling", job_outcome=outcome, force=True)
         finally:
             heartbeat.stop()
             log.info("job %s (%s) took %dms", job.id, job.type, (time.monotonic() - started) * 1000)
 
-    def _run_one(self, job: Job) -> None:
+    def _run_one(self, job: Job) -> Optional[str]:
+        """Runs the handler and records the outcome. Returns "done" or "failed" for the heartbeat, None otherwise."""
         params: Dict[str, Any] = {"id": job.id, "worker": self.worker_id}
         try:
             if self.execute(ACCOUNT_DELETED_SQL, {"user": job.user_id}, fetch=True):
@@ -322,13 +372,14 @@ class Worker:
                 delay = RETRY_BASE_S * 2 ** (job.attempts - 1) * random.uniform(1.0, 1.25)
                 self.execute(RETRY_SQL, {**params, "error": error, "delay": delay})
                 log.info("job %s retrying in %ds", job.id, delay)
-            return
+            return "failed"
 
         if self.execute(DONE_SQL, params) == 0:
             log.warning("job %s finished after its lock was taken over; result not recorded", job.id)
-        else:
-            log.info("job %s done", job.id)
-            self.notify(job, "done")
+            return None
+        log.info("job %s done", job.id)
+        self.notify(job, "done")
+        return "done"
 
     @staticmethod
     def notify(job: Job, outcome: str) -> None:
@@ -347,6 +398,7 @@ class Worker:
         while not self.stopping:
             try:
                 job = self.claim()
+                self.beat("polling")  # at most once a minute
                 if job is None:
                     if time.monotonic() - idle_since >= DEEP_IDLE_AFTER_S:
                         self.deep_idle()
@@ -375,6 +427,8 @@ class Worker:
         row = self.execute(NEXT_DUE_SQL, fetch=True)
         if row and row.get("seconds") is not None:
             wait = min(wait, max(IDLE_POLL_MAX_S, float(row["seconds"])))
+        # Say when to expect us back, so a sleeping worker isn't mistaken for a dead one.
+        self.beat("sleeping", expected_by_s=wait, force=True)
         if self.conn is not None and not self.conn.closed:
             self.conn.close()
         self.conn = None

@@ -6,26 +6,39 @@ import { db } from "@/db";
 import { emailDeliveries } from "@/db/schema";
 import { requireAdmin } from "@/lib/admin";
 import { requireAdminPermission } from "@/lib/admin/rbac";
-import { desc } from "drizzle-orm";
+import { deliveryStatusCounts, fullTimestamp } from "@/lib/admin/summaries";
+import { desc, eq } from "drizzle-orm";
+
+import { ConfirmSubmit } from "@/components/admin/confirm-submit";
+import { retryFailedDeliveryAction } from "../actions";
 
 export const metadata = {
   title: "Delivery Outbox · Admin Control Center",
   robots: { index: false },
 };
 
-export default async function AdminEmailDeliveriesPage() {
+const STATUS_FILTERS = ["queued", "delivered", "failed"] as const;
+
+export default async function AdminEmailDeliveriesPage({ searchParams }: { searchParams?: Promise<{ status?: string; retry?: string }> } = {}) {
   await requireAdmin();
   await requireAdminPermission("email.delivery.retry");
+  const sp = (await searchParams) ?? {};
+  const statusFilter = (STATUS_FILTERS as readonly string[]).includes(sp.status ?? "") ? sp.status : undefined;
 
-  const deliveries = await db
-    .select()
-    .from(emailDeliveries)
-    .orderBy(desc(emailDeliveries.createdAt))
-    .limit(50);
+  // The table lists the latest 50 (optionally of one status); the totals are aggregated across the whole outbox.
+  const [deliveries, counts] = await Promise.all([
+    db
+      .select()
+      .from(emailDeliveries)
+      .where(statusFilter ? eq(emailDeliveries.status, statusFilter) : undefined)
+      .orderBy(desc(emailDeliveries.createdAt))
+      .limit(50),
+    deliveryStatusCounts(),
+  ]);
 
-  const queuedCount = deliveries.filter((d) => d.status === "queued").length;
-  const deliveredCount = deliveries.filter((d) => d.status === "delivered").length;
-  const failedCount = deliveries.filter((d) => d.status === "failed").length;
+  const queuedCount = counts.queued;
+  const deliveredCount = counts.delivered;
+  const failedCount = counts.failed;
 
   return (
     <div className="space-y-6">
@@ -79,6 +92,26 @@ export default async function AdminEmailDeliveriesPage() {
         </div>
       </div>
 
+      {sp.retry === "queued" && <p role="status" className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-4 py-2.5 text-xs text-emerald-800 dark:text-emerald-300">The email is back in the queue for one more attempt. It will be sent on the next outbox run, or when you press &quot;Process Due Deliveries&quot;.</p>}
+      {sp.retry === "error" && <p role="alert" className="rounded-xl border border-rose-500/30 bg-rose-500/5 px-4 py-2.5 text-xs text-rose-800 dark:text-rose-300">That email couldn&apos;t be retried. Only failed emails can be retried.</p>}
+
+      <nav aria-label="Filter by status" className="flex flex-wrap gap-1.5 text-xs">
+        {[undefined, ...STATUS_FILTERS].map((s) => (
+          <Link
+            key={s ?? "all"}
+            href={s ? `/admin/emails/deliveries?status=${s}` : "/admin/emails/deliveries"}
+            aria-current={s === statusFilter ? "page" : undefined}
+            className={`px-3 py-1.5 rounded-lg font-medium capitalize ${s === statusFilter ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`}
+          >
+            {s ?? "All"}
+          </Link>
+        ))}
+      </nav>
+
+      <p className="text-xs text-muted-foreground" data-testid="delivery-totals-note">
+        Totals cover all {counts.total.toLocaleString()} deliveries in the outbox. The table shows the latest {deliveries.length}{statusFilter ? ` ${statusFilter}` : ""}.
+      </p>
+
       {/* Outbox Table */}
       <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-2xs">
         {deliveries.length === 0 ? (
@@ -129,17 +162,24 @@ export default async function AdminEmailDeliveriesPage() {
                         {d.status}
                       </span>
                       {d.lastError && (
-                        <div className="text-[10px] text-rose-500 truncate max-w-[180px] mt-0.5" title={d.lastError}>
+                        <div className="text-[10px] text-rose-600 dark:text-rose-400 break-words max-w-[240px] mt-0.5">
                           {d.lastError}
                         </div>
                       )}
+                      {d.status === "failed" && (
+                        <form action={retryFailedDeliveryAction} className="mt-1">
+                          <input type="hidden" name="id" value={d.id} />
+                          <ConfirmSubmit
+                            message={`Try sending this email to ${d.recipient} once more?`}
+                            className="text-[11px] font-semibold text-primary hover:underline"
+                          >
+                            Retry
+                          </ConfirmSubmit>
+                        </form>
+                      )}
                     </td>
                     <td className="py-3.5 px-4 text-right text-muted-foreground font-mono">
-                      {new Date(d.createdAt).toLocaleTimeString("en-IN", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        second: "2-digit",
-                      })}
+                      {fullTimestamp(d.createdAt)}
                     </td>
                   </tr>
                 ))}

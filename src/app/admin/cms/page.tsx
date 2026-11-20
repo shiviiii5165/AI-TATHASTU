@@ -16,18 +16,7 @@ export default async function AdminCmsPage() {
   await requireAdmin();
   await requireAdminPermission("cms.edit");
 
-  // Seed initial announcement if empty
-  const [existing] = await db.select().from(cmsAnnouncements).limit(1);
-  if (!existing) {
-    await db.insert(cmsAnnouncements).values({
-      title: "Welcome to AI Tathastu 2.0",
-      content: "Explore the new Career Intelligence Hub and interactive skill graph.",
-      type: "info",
-      targetAudience: "all",
-      isActive: true,
-    });
-  }
-
+  // Read-only: viewing this page never creates announcements. Existing records are shown as they are.
   const announcements = await db
     .select()
     .from(cmsAnnouncements)
@@ -46,6 +35,11 @@ export default async function AdminCmsPage() {
         </p>
       </div>
 
+      <div role="note" data-testid="not-live-notice" className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-xs text-amber-800 dark:text-amber-300">
+        <strong>Not live on the student site.</strong> No student-facing page reads these announcements yet, so an &quot;active&quot;
+        announcement here is not shown to anyone. This page is read-only.
+      </div>
+
       {/* Announcements List */}
       <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-2xs">
         <div className="p-4 border-b border-border bg-muted/20">
@@ -55,6 +49,7 @@ export default async function AdminCmsPage() {
         </div>
 
         <div className="divide-y divide-border/60">
+          {announcements.length === 0 && <div className="py-12 text-center text-xs text-muted-foreground">No announcements.</div>}
           {announcements.map((item) => (
             <div key={item.id} className="p-4 sm:p-5 flex items-center justify-between gap-4 text-xs">
               <div className="space-y-1">
@@ -70,8 +65,8 @@ export default async function AdminCmsPage() {
                 <p className="text-muted-foreground text-xs leading-relaxed">{item.content}</p>
               </div>
 
-              <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
-                Active
+              <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-muted text-muted-foreground shrink-0">
+                {item.isActive ? "Marked active (not displayed)" : "Inactive"}
               </span>
             </div>
           ))}

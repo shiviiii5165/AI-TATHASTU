@@ -12,6 +12,7 @@ const TABS = [
   { href: "/admin/intelligence/compare", label: "Compare" },
   { href: "/admin/intelligence/benchmarks", label: "Benchmark Catalogue" },
   { href: "/admin/intelligence/integrations", label: "Ecosystem Sources" },
+  { href: "/admin/intelligence/methodology", label: "Methodology & Fairness" },
 ];
 
 export function IntelligenceSubnav() {

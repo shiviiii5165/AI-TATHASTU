@@ -244,6 +244,18 @@ export async function assignTicket(
   return updated;
 }
 
+/** People a ticket can be assigned to: admins (users.is_admin) and active admin team members. */
+export async function listAssignableAdmins(): Promise<{ id: string; name: string | null; email: string | null }[]> {
+  const { rows } = await db.execute(sql`
+    SELECT u.id::text AS id, u.name, u.email
+      FROM users u
+      LEFT JOIN admin_team_members m ON m.user_id = u.id
+     WHERE u.deleted_at IS NULL AND ((m.user_id IS NOT NULL AND m.is_active) OR (m.user_id IS NULL AND u.is_admin))
+     ORDER BY lower(coalesce(u.name, u.email))
+     LIMIT 200`);
+  return rows as { id: string; name: string | null; email: string | null }[];
+}
+
 export interface TicketWithMessages extends SupportTicket {
   messages: SupportMessage[];
   assignedToName?: string | null;
@@ -295,6 +307,8 @@ export interface ListTicketsOptions {
   assignedToId?: string;
   requesterEmail?: string;
   query?: string;
+  /** Not resolved or closed and past the resolution due date. */
+  overdue?: boolean;
   limit?: number;
   offset?: number;
 }
@@ -320,8 +334,11 @@ export async function listSupportTickets(options: ListTicketsOptions = {}) {
   if (options.requesterEmail) {
     conditions.push(eq(supportTickets.requesterEmail, options.requesterEmail.toLowerCase().trim()));
   }
+  if (options.overdue) {
+    conditions.push(sql`${supportTickets.status} NOT IN ('resolved','closed') AND ${supportTickets.resolutionDueAt} < now()`);
+  }
   if (options.query) {
-    const search = `%${options.query.trim()}%`;
+    const search = `%${options.query.trim().replace(/[%_\\]/g, (m) => `\\${m}`)}%`;
     conditions.push(
       or(
         ilike(supportTickets.ticketNumber, search),

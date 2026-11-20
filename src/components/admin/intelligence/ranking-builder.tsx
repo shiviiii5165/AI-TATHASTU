@@ -12,6 +12,7 @@ import {
   type CategoryDef,
   EVIDENCE_POLICY_LABEL,
   type EvidencePolicy,
+  MISSING_POLICY_LABEL,
   type Normalization,
   NORMALIZATION_LABEL,
   type RankingDefinition,
@@ -48,7 +49,7 @@ function Total({ value, label }: { value: number; label: string }) {
   const ok = Math.abs(value - 100) < 0.01;
   const rest = Math.round((100 - value) * 100) / 100;
   return (
-    <span className={`inline-flex items-center gap-1 text-[11px] font-semibold ${ok ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}`}>
+    <span className={`inline-flex items-center gap-1 text-[11px] font-semibold ${ok ? "text-emerald-700 dark:text-emerald-400" : "text-amber-800 dark:text-amber-400"}`}>
       {ok ? <CheckCircle2 className="size-3.5" /> : <TriangleAlert className="size-3.5" />}
       {label} {Math.round(value * 100) / 100}%{!ok && ` · ${rest > 0 ? `${rest}% left` : `${-rest}% over`}`}
     </span>
@@ -300,7 +301,7 @@ export function RankingBuilder({ catalogue, totalStudents, options, initial }: {
               <legend className="text-[11px] font-semibold text-foreground mb-1">When a benchmark has no evidence</legend>
               <label className="flex items-center gap-2 text-xs"><input type="radio" name="missing" checked={def.missingPolicy === "neutral"} onChange={() => setDef((d) => ({ ...d, missingPolicy: "neutral" }))} />Place it at the cohort midpoint (recommended: one strong value can&apos;t top a broad ranking)</label>
               <label className="flex items-center gap-2 text-xs"><input type="radio" name="missing" checked={def.missingPolicy === "renormalize"} onChange={() => setDef((d) => ({ ...d, missingPolicy: "renormalize" }))} />Leave it out and re-weight the rest (for narrow, specialist rankings)</label>
-              <label className="flex items-center gap-2 text-xs"><input type="radio" name="missing" checked={def.missingPolicy === "zero"} onChange={() => setDef((d) => ({ ...d, missingPolicy: "zero" }))} />Count it as 0 (penalises students who weren&apos;t measured)</label>
+              {/* "Count as 0" is no longer offered: missing evidence isn't low performance. A loaded draft that used it shows a validation issue. */}
             </fieldset>
             <label className="text-[11px] font-semibold text-foreground space-y-1">
               <span>Minimum evidence coverage to be ranked: {def.eligibility.minCoverage}%</span>
@@ -340,6 +341,22 @@ export function RankingBuilder({ catalogue, totalStudents, options, initial }: {
       </div>
 
       <aside className="space-y-6 xl:sticky xl:top-20 self-start">
+        {/* What will be compared, before anything is run or published. */}
+        <section className={section} data-testid="methodology-summary">
+          <h2 className={h2}>Methodology</h2>
+          <dl className="mt-3 space-y-1.5 text-[11px]">
+            <div><dt className="text-muted-foreground">Missing evidence</dt><dd className="text-foreground">{MISSING_POLICY_LABEL[def.missingPolicy]}</dd></div>
+            <div><dt className="text-muted-foreground">Evidence accepted</dt><dd className="text-foreground">{EVIDENCE_POLICY_LABEL[def.evidencePolicy]}</dd></div>
+            <div><dt className="text-muted-foreground">To be ranked</dt><dd className="text-foreground">At least {def.eligibility.minCoverage}% of the weight backed by evidence{def.eligibility.requiredBenchmarks.length ? `, plus ${def.eligibility.requiredBenchmarks.length} required benchmark(s)` : ""}</dd></div>
+            <div><dt className="text-muted-foreground">Marked provisional</dt><dd className="text-foreground">Below {def.eligibility.provisionalCoverage ?? 75}% coverage, or under {def.eligibility.minIndependentShare ?? 50}% evidence independent of self-report</dd></div>
+            <div><dt className="text-muted-foreground">Compares</dt><dd className="text-foreground">{def.categories.length} categor{def.categories.length === 1 ? "y" : "ies"}, {def.categories.reduce((n, c) => n + c.benchmarks.length, 0)} benchmark(s)</dd></div>
+          </dl>
+          {def.categories.some((c) => c.benchmarks.some((b) => b.key.startsWith("academic."))) && (
+            <p className="mt-2 text-[10px] text-amber-700 dark:text-amber-400">Grades count only when every student in the cohort uses the same scale; a mix of CGPA and percentages leaves grades out for everyone.</p>
+          )}
+          <p className="mt-2 text-[10px] text-muted-foreground">Publishing creates a new version; existing snapshots keep the version that produced them.</p>
+        </section>
+
         <section className={section}>
           <h2 className={h2}>Validation</h2>
           {issues.length === 0 ? (
@@ -366,7 +383,7 @@ export function RankingBuilder({ catalogue, totalStudents, options, initial }: {
             <h2 className={h2}>Preview</h2>
             {!preview.ok ? <p className="mt-3 text-xs text-muted-foreground">{preview.error}</p> : (
               <>
-                <p className="mt-2 text-[11px] text-muted-foreground">{preview.ranked} of {preview.cohortSize} students ranked.</p>
+                <p className="mt-2 text-[11px] text-muted-foreground" data-testid="preview-counts">{preview.ranked} of {preview.cohortSize} students ranked. {preview.cohortSize - preview.ranked} not ranked: listed separately, never placed last.</p>
                 <ol className="mt-3 space-y-2">
                   {preview.top.map((t) => (
                     <li key={t.userId} className="text-xs">

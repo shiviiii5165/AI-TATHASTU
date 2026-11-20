@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 
 import { StudentActions } from "@/components/admin/student-actions";
 import { requireAdmin } from "@/lib/admin";
-import { requireAdminPermission } from "@/lib/admin/rbac";
+import { hasPermission, requireAdminPermission } from "@/lib/admin/rbac";
 import { getStudentDetail } from "@/lib/admin/students";
 
 export const metadata = {
@@ -18,7 +18,9 @@ interface StudentDetailPageProps {
 
 export default async function AdminStudentDetailPage({ params }: StudentDetailPageProps) {
   await requireAdmin();
-  await requireAdminPermission("students.read");
+  const ctx = await requireAdminPermission("students.read");
+  // Student 360 shows evidence-level data; it keeps its own permission and audit log.
+  const canSee360 = hasPermission(ctx, "intelligence.read");
 
   const { id } = await params;
   const student = await getStudentDetail(id);
@@ -59,7 +61,15 @@ export default async function AdminStudentDetailPage({ params }: StudentDetailPa
             </div>
           </div>
 
-          <div>
+          <div className="flex flex-wrap items-center gap-2">
+            {canSee360 && (
+              <Link
+                href={`/admin/intelligence/students/${student.id}?back=/admin/students/${student.id}`}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-semibold hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2"
+              >
+                Open Student 360
+              </Link>
+            )}
             {student.deletedAt ? (
               <span className="inline-flex px-3 py-1 rounded-full text-xs font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400">
                 Tombstoned Deletion
@@ -134,14 +144,47 @@ export default async function AdminStudentDetailPage({ params }: StudentDetailPa
                 >
                   <span className="font-semibold capitalize text-foreground">{c.sourceId}</span>
                   <span className="text-[11px] text-muted-foreground font-mono">
-                    {c.lastSyncAt
-                      ? `Synced ${new Date(c.lastSyncAt).toLocaleDateString("en-IN")}`
-                      : "Connected"}
+                    {c.status.replaceAll("_", " ")}
+                    {c.lastSyncAt ? ` · synced ${new Date(c.lastSyncAt).toLocaleDateString("en-IN")}` : " · never synced"}
                   </span>
                 </div>
               ))}
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Onboarding and resume: account-level facts from onboarding_state and files. */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="rounded-2xl border border-border bg-card p-5 shadow-2xs space-y-3" data-testid="onboarding-card">
+          <h2 className="text-xs font-bold text-foreground uppercase tracking-wider">Onboarding</h2>
+          {!student.onboarding ? (
+            <p className="text-xs text-muted-foreground">Not started.</p>
+          ) : (
+            <dl className="space-y-2 text-xs">
+              <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Status</dt><dd className="font-semibold text-foreground">{student.onboarding.completedAt ? "Finished" : "Not finished"}</dd></div>
+              <div className="flex justify-between gap-3"><dt className="text-muted-foreground">{student.onboarding.completedAt ? "Finished on" : "Current step"}</dt><dd className="font-mono text-foreground">{student.onboarding.completedAt ? new Date(student.onboarding.completedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : student.onboarding.step.replaceAll("_", " ")}</dd></div>
+              <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Primary career goal</dt><dd className="text-foreground">{student.onboarding.careerRole?.replaceAll("_", " ") || "Not chosen"}</dd></div>
+            </dl>
+          )}
+        </div>
+        <div className="rounded-2xl border border-border bg-card p-5 shadow-2xs space-y-3" data-testid="resume-card">
+          <h2 className="text-xs font-bold text-foreground uppercase tracking-wider">Resume uploads</h2>
+          {student.resumes.length === 0 ? (
+            <p className="text-xs text-muted-foreground">No resume uploaded.</p>
+          ) : (
+            <ul className="space-y-1.5 text-xs">
+              {student.resumes.map((r, i) => (
+                <li key={i} className="flex justify-between gap-3">
+                  <span className="text-foreground">{new Date(r.uploadedAt).toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+                  <span className="font-mono text-muted-foreground">{r.sizeBytes ? `${Math.max(1, Math.round(r.sizeBytes / 1024))} KB` : ""}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="text-[10px] text-muted-foreground">
+            {canSee360 ? "Extracted skills, projects and evidence are in Student 360." : "Extracted evidence is visible to admins with Student Intelligence access."}
+          </p>
         </div>
       </div>
 

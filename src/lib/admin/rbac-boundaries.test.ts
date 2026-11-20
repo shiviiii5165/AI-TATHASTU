@@ -33,6 +33,8 @@ const aiOps = await import("@/app/admin/ai-ops/actions");
 const flags = await import("@/app/admin/flags/actions");
 const inst = await import("@/app/admin/institutions/actions");
 const intel = await import("@/app/admin/intelligence/actions");
+const team = await import("@/app/admin/team/actions");
+const systemActions = await import("@/app/admin/system/actions");
 
 const UUID = "00000000-0000-4000-8000-00000000abcd";
 type Permission = (typeof rbac.ALL_ADMIN_PERMISSIONS)[number];
@@ -49,6 +51,10 @@ const ACTIONS: [string, Permission, () => Promise<unknown>][] = [
   ["saveTemplateVersionAction", "email.templates.publish", () => emails.saveTemplateVersionAction(UUID, "s", "s", "h", "t", null, "n")],
   ["sendTestEmailAction", "email.send.test", () => emails.sendTestEmailAction("s", "not-an-address", "s", "h", "t")],
   ["triggerOutboxDeliveryAction", "email.delivery.retry", () => emails.triggerOutboxDeliveryAction()],
+  ["retryFailedDeliveryAction", "email.delivery.retry", () => emails.retryFailedDeliveryAction(new FormData())],
+  ["updateIncidentAction", "system.manage", () => systemActions.updateIncidentAction(new FormData())],
+  ["addTeamMemberAction", "team.manage", () => team.addTeamMemberAction(new FormData())],
+  ["updateTeamMemberAction", "team.manage", () => team.updateTeamMemberAction(new FormData())],
   ["updateBudgetPolicyAction", "ai.budgets.manage", () => aiOps.updateBudgetPolicyAction(new FormData())],
   ["toggleFlagAction", "flags.manage", () => flags.toggleFlagAction(new FormData())],
   ["approveInstitution", "institutions.manage", () => inst.approveInstitution("not-a-uuid")],

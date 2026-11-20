@@ -102,7 +102,11 @@ export async function updateAiBudgetPolicy(
     action: "ai.budget_update",
     resource: "ai_cost_budgets",
     targetId: current.id,
-    details: { previousBudget: current.budgetUsd, ...input },
+    // Before and after for every field, so the log alone shows exactly what changed.
+    details: {
+      before: { budgetUsd: Number(current.budgetUsd), userDailyUsd: Number(current.userDailyUsd), userMonthlyUsd: Number(current.userMonthlyUsd), warningPercent: current.warningThresholdPercent },
+      after: input,
+    },
   });
 
   return updated;

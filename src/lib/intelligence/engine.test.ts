@@ -107,7 +107,16 @@ describe("computeRanking", () => {
     expect(u3.coverage).toBe(40);
   });
 
-  it("counts missing as zero only when the admin chooses it", () => {
+  it("a ranking that counts missing evidence as 0 can't be published, and thresholds must be 0–100", () => {
+    const known = new Set(catalogue.keys());
+    const issues = validateDefinition(def({ missingPolicy: "zero" }), known);
+    expect(issues.map((i) => i.path)).toContain("missingPolicy");
+    expect(validateDefinition(def({ missingPolicy: "neutral" }), known)).toEqual([]);
+    const bad = validateDefinition(def({ eligibility: { minCoverage: 50, requiredBenchmarks: [], provisionalCoverage: 140, minIndependentShare: -1 } }), known);
+    expect(bad.filter((i) => i.path === "eligibility")).toHaveLength(2);
+  });
+
+  it("can still compute an old zero-policy definition so past snapshots stay explainable", () => {
     const r = computeRanking(def({ missingPolicy: "zero" }), ["u1", "u2", "u3"], signals, catalogue);
     // X has no evidence, so under "zero" it scores 0 instead of dropping out: 0.6×0 + 0.4×70.
     expect(r.find((x) => x.userId === "u3")!.score).toBe(28);
@@ -161,6 +170,25 @@ describe("computeRanking", () => {
     expect(r.find((x) => x.userId === "u4")!.ineligibleReasons[0]).toContain("No evidence");
   });
 
+  it("regression: an unranked student is never placed among or below the ranked, whatever their partial score", () => {
+    // u3 only has "p" = 100 (a high partial score) but too little coverage to be ranked.
+    const s = matrix({ u1: { a: sv(1), b: sv(1), p: sv(10) }, u2: { a: sv(5), b: sv(5), p: sv(20) }, u3: { p: sv(100) } });
+    const r = computeRanking(def({ eligibility: { minCoverage: 80, requiredBenchmarks: [] } }), ["u1", "u2", "u3"], s, catalogue);
+    expect(r.map((x) => x.rank)).toEqual([1, 2, null]);
+    expect(r[2]).toMatchObject({ userId: "u3", eligible: false });
+    expect(r[2]!.ineligibleReasons[0]).toMatch(/needs 80%/);
+  });
+
+  it("regression: no evidence anywhere is never a 0 under the publishable policies", () => {
+    for (const missingPolicy of ["neutral", "renormalize"] as const) {
+      const r = computeRanking(def({ missingPolicy }), ["has", "none"], matrix({ has: { a: sv(3), b: sv(3), p: sv(40) }, none: {} }), catalogue);
+      const none = r.find((x) => x.userId === "none")!;
+      expect(none.categories.every((c) => c.score === null)).toBe(true);
+      expect(none.rank).toBeNull();
+      expect(none.ineligibleReasons[0]).toContain("No evidence");
+    }
+  });
+
   it("enforces required benchmarks", () => {
     const r = computeRanking(def({ eligibility: { minCoverage: 0, requiredBenchmarks: ["a"] } }), ["u1", "u3"], signals, catalogue);
     expect(r.find((x) => x.userId === "u3")!.eligible).toBe(false);
@@ -210,4 +238,7 @@ describe("parseReportedGrade", () => {
     ["8.6/10", 86], ["CGPA: 9.1", 91], ["3.4 / 4", 85], ["86%", 86], ["8.2 out of 10", 82],
   ])("%s → %s", (input, pct) => expect(parseReportedGrade(input)?.percent).toBe(pct));
   it.each(["First class", "3.5", "GPA 3.5", "12/10", ""])("refuses ambiguous %s", (input) => expect(parseReportedGrade(input)).toBeNull());
+  it.each([
+    ["8.6/10", "10"], ["CGPA: 9.1", "10"], ["3.4 / 4", "4"], ["86%", "percent"], ["72/100", "percent"],
+  ])("%s keeps its scale (%s): grade points and percentages are different measures", (input, scale) => expect(parseReportedGrade(input)?.scale).toBe(scale));
 });

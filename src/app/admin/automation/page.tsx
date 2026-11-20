@@ -13,6 +13,8 @@ export default async function AdminAutomationPage() {
   await requireAdmin();
   await requireAdminPermission("support.rules.manage");
 
+  // Proposed rules only. None of these is implemented anywhere in the codebase: nothing evaluates them,
+  // sends alerts or changes tickets. They are listed as "Not implemented", never as active.
   const rules = [
     {
       id: "sla_urgent",
@@ -20,7 +22,6 @@ export default async function AdminAutomationPage() {
       event: "ticket.created",
       condition: "priority == 'urgent'",
       action: "Enqueue SLA warning email after 1h without agent reply",
-      enabled: true,
     },
     {
       id: "sla_high",
@@ -28,7 +29,6 @@ export default async function AdminAutomationPage() {
       event: "ticket.created",
       condition: "priority == 'high'",
       action: "Send Slack alert to #support-leads after 4h",
-      enabled: true,
     },
     {
       id: "auto_close",
@@ -36,7 +36,6 @@ export default async function AdminAutomationPage() {
       event: "ticket.resolved",
       condition: "days_since_resolved >= 2",
       action: "Transition status from 'resolved' to 'closed'",
-      enabled: true,
     },
     {
       id: "ai_failure_alert",
@@ -44,7 +43,6 @@ export default async function AdminAutomationPage() {
       event: "ai.circuit_breaker_tripped",
       condition: "consecutive_failures >= 3",
       action: "Notify AI Ops engineering team via email and system log",
-      enabled: true,
     },
   ];
 
@@ -57,15 +55,20 @@ export default async function AdminAutomationPage() {
           <span>Notification Rules & SLA Automation</span>
         </h1>
         <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
-          Event-to-notification policies, SLA breach monitors, and automated ticket state transitions.
+          Proposed notification and SLA rules. None of them is running yet.
         </p>
+      </div>
+
+      <div role="note" data-testid="not-implemented-notice" className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-xs text-amber-800 dark:text-amber-300">
+        <strong>Not implemented.</strong> The rules below are proposals. None of them runs today: no alerts are sent and no
+        tickets change status automatically. SLA due dates are still calculated and shown on each ticket.
       </div>
 
       {/* Rules Table */}
       <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-2xs">
         <div className="p-4 border-b border-border bg-muted/20">
           <h2 className="text-xs font-bold text-foreground uppercase tracking-wider">
-            Active Automation Policies ({rules.length})
+            Proposed Automation Rules ({rules.length})
           </h2>
         </div>
 
@@ -84,8 +87,8 @@ export default async function AdminAutomationPage() {
               </div>
 
               <div className="flex items-center gap-3 shrink-0">
-                <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                  Active
+                <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-muted text-muted-foreground">
+                  Not implemented
                 </span>
               </div>
             </div>

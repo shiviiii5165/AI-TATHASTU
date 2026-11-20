@@ -29,6 +29,7 @@ export function StudentActions({
   const [deleteReason, setDeleteReason] = useState("");
 
   const handleRevokeSessions = () => {
+    if (!window.confirm(`Sign ${userName || userEmail || "this account"} out of every device? They will have to sign in again.`)) return;
     setMessage(null);
     startTransition(async () => {
       const res = await revokeStudentSessionsAction(userId);

@@ -30,7 +30,7 @@ export function Card({ title, subtitle, source, children, className = "", action
         {action}
       </div>
       {children}
-      {source && <p className="mt-3 text-[10px] text-muted-foreground/80">Source: {source}</p>}
+      {source && <p className="mt-3 text-[10px] text-muted-foreground">Source: {source}</p>}
     </section>
   );
 }

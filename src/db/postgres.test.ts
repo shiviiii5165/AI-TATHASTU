@@ -2,6 +2,8 @@
  * The node-postgres client used for Supabase (src/db/postgres.ts), against a real Postgres wire
  * protocol (PGlite's socket server): atomic batches, plain queries, and TLS/URL handling.
  */
+import { type AddressInfo, createServer } from "node:net";
+
 import { PGlite } from "@electric-sql/pglite";
 import { PGLiteSocketServer } from "@electric-sql/pglite-socket";
 import { eq, sql } from "drizzle-orm";
@@ -12,12 +14,24 @@ import { connectPostgres, poolConfig, sslFor } from "@/db/postgres";
 import { SUPABASE_ROOT_CA } from "@/db/supabase-ca";
 
 const tt = pgTable("t", { id: integer("id").primaryKey(), v: text("v").notNull() });
-const PORT = 55000 + Math.floor(Math.random() * 400);
+// The OS picks a free port. A random port in 55000–55399 failed about 1 run in 4 on Windows, where 55162–55261 is a
+// reserved range (listen EACCES), so the suite was skipped rather than run.
+const freePort = () =>
+  new Promise<number>((resolve, reject) => {
+    const s = createServer();
+    s.once("error", reject);
+    s.listen(0, "127.0.0.1", () => {
+      const { port } = s.address() as AddressInfo;
+      s.close(() => resolve(port));
+    });
+  });
+let PORT = 0;
 let pglite: PGlite;
 let server: PGLiteSocketServer;
 let db: ReturnType<typeof connectPostgres>;
 
 beforeAll(async () => {
+  PORT = await freePort();
   pglite = new PGlite();
   server = new PGLiteSocketServer({ db: pglite, port: PORT, host: "127.0.0.1" });
   await server.start();

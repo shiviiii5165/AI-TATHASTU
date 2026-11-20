@@ -32,7 +32,8 @@ async function Content() {
   const user = await getCurrentUser();
   if (!(await getAdminContext(user))) notFound();
   if (!isMfaKeyConfigured()) {
-    return <p role="alert" className="text-sm text-destructive">Admin verification isn&apos;t configured on this server. Set ADMIN_MFA_SECRET.</p>;
+    // text-destructive failed WCAG AA contrast here (axe); colour only, no behaviour change.
+    return <p role="alert" className="text-sm text-rose-700 dark:text-rose-400">Admin verification isn&apos;t configured on this server. Set ADMIN_MFA_SECRET.</p>;
   }
   const enrollment = await getMfaEnrollment(user.id);
   const session = await auth();

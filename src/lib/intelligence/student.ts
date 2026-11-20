@@ -84,7 +84,7 @@ export async function loadStudent360(userId: string): Promise<Student360 | null>
     db.execute(sql`SELECT canonical_title, technologies, status, match_confidence, timeline_start, timeline_end FROM unified_projects WHERE user_id = ${userId}::uuid ORDER BY timeline_end DESC NULLS LAST`),
     db.execute(sql`SELECT field_group, field_name, coalesce(record_key, id::text) AS rk, origin, confirmation, coalesce(normalized_value, extracted_value) AS v, created_at
       FROM profile_facts WHERE user_id = ${userId}::uuid AND superseded_by IS NULL AND confirmation <> 'rejected'
-        AND field_group IN ('education', 'experience', 'certifications', 'publications', 'achievements')
+        AND field_group IN ('education', 'experience', 'certifications', 'publications', 'achievements', 'projects')
       ORDER BY created_at`),
     db.execute(sql`SELECT kind, title, provider, status, verification, url, completed_at, created_at, skills FROM learning_records WHERE user_id = ${userId}::uuid AND deleted_at IS NULL ORDER BY coalesce(completed_at, created_at) DESC`),
     db.execute(sql`SELECT skill, role, evidence_url, created_at FROM roadmap_milestone_submissions WHERE user_id = ${userId}::uuid ORDER BY created_at DESC LIMIT 50`),

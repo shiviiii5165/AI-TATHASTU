@@ -24,6 +24,14 @@ test("student intelligence: access, pages, and a ranking from builder to snapsho
   await seedComputedProfile(s2.id);
   // Different, real-shaped evidence so the ranks differ.
   await sql.query("INSERT INTO unified_projects (user_id, canonical_title, status) VALUES ($1, 'Retrieval eval harness', 'matched'), ($1, 'Lab robot', 'standalone')", [s1.id]);
+  // Projects only count as evidence when the student described them (resume/profile), and corroboration only when they
+  // have repositories to match against (lib/intelligence/catalogue.ts). Without these the builder rightly disables
+  // "Projects": the earlier seed had neither, so that step could never pass.
+  await sql.query(
+    "INSERT INTO profile_facts (user_id, field_group, field_name, record_key, origin, extracted_value) VALUES ($1, 'projects', 'title', 'p1', 'resume', '\"Retrieval eval harness\"'), ($1, 'projects', 'title', 'p2', 'resume', '\"Lab robot\"')",
+    [s1.id],
+  );
+  await sql.query("INSERT INTO code_repositories (user_id, source, repo_name) VALUES ($1, 'github', 'ananya/retrieval-eval-harness')", [s1.id]);
   await sql.query("INSERT INTO learning_records (user_id, kind, title, source, status, verification) VALUES ($1, 'certification', 'Cloud Practitioner', 'user', 'completed', 'verified')", [s2.id]);
   await sql.query("INSERT INTO profile_facts (user_id, field_group, field_name, record_key, origin, extracted_value) VALUES ($1, 'education', 'grade', 'ed1', 'resume', '\"CGPA 8.7/10\"')", [s3.id]);
 

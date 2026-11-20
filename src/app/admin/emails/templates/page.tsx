@@ -4,7 +4,6 @@ import Link from "next/link";
 import { db } from "@/db";
 import { emailTemplates } from "@/db/schema";
 import { requireAdmin } from "@/lib/admin";
-import { seedStarterTemplates } from "@/lib/admin/email-engine";
 import { requireAdminPermission } from "@/lib/admin/rbac";
 
 export const metadata = {
@@ -16,8 +15,7 @@ export default async function AdminEmailTemplatesPage() {
   await requireAdmin();
   await requireAdminPermission("email.templates.read");
 
-  await seedStarterTemplates();
-
+  // Read-only: opening this page never creates templates. Existing templates are listed as they are.
   const templates = await db
     .select()
     .from(emailTemplates)
@@ -46,6 +44,12 @@ export default async function AdminEmailTemplatesPage() {
           <ArrowRight className="size-3.5" />
         </Link>
       </div>
+
+      {templates.length === 0 && (
+        <div className="rounded-2xl border border-dashed border-border py-12 text-center text-xs text-muted-foreground" data-testid="no-templates">
+          No email templates in the database. Outgoing emails don&apos;t depend on them; starter templates are no longer created automatically when this page opens.
+        </div>
+      )}
 
       {/* Templates Grouped by Category */}
       <div className="space-y-8">

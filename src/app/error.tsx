@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { startTransition, useEffect } from "react";
 
+import { reportClientError } from "@/lib/client-error-report";
+
 /** A page failed to render (usually a database or service outage). The rest of the app is unaffected. */
 export default function RouteError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   const router = useRouter();
@@ -11,6 +13,7 @@ export default function RouteError({ error, reset }: { error: Error & { digest?:
   useEffect(() => {
     // The digest matches the server log; the message itself isn't sent to the browser in production.
     console.error("page render failed", error.digest ?? error.name);
+    reportClientError(error); // counted on Operational Health: path + error class only
   }, [error]);
 
   // A failed Server Component only re-runs if the route is refreshed as well.

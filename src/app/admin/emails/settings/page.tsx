@@ -21,8 +21,13 @@ export default async function AdminEmailSettingsPage() {
           <span>Global Email Branding & Sender Profiles</span>
         </h1>
         <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
-          Configure official brand colors, logos, support contact headers, and SPF/DKIM verification.
+          Sender addresses and brand references used in outgoing email. Read-only.
         </p>
+      </div>
+
+      <div role="note" data-testid="dns-not-verified" className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-xs text-muted-foreground">
+        <strong className="text-foreground">Domain authentication (SPF/DKIM): not checked.</strong> Nothing in AI Tathastu verifies these
+        DNS records, so no verification status is shown. Check them with your email provider.
       </div>
 
       <div className="rounded-2xl border border-border bg-card p-6 shadow-2xs space-y-5">

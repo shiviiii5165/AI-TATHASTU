@@ -232,6 +232,13 @@
       "when": 1794600000000,
       "tag": "0032_student_intelligence",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1794700000000,
+      "tag": "0033_monitoring",
+      "breakpoints": true
     }
   ]
 }

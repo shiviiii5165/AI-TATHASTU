@@ -2,9 +2,10 @@ import { Mail, Newspaper, Send, Users } from "lucide-react";
 import Link from "next/link";
 
 import { db } from "@/db";
-import { newsletterCampaigns, newsletterSubscribers } from "@/db/schema";
+import { newsletterSubscribers } from "@/db/schema";
 import { requireAdmin } from "@/lib/admin";
 import { requireAdminPermission } from "@/lib/admin/rbac";
+import { newsletterSummary, subscriberTone } from "@/lib/admin/summaries";
 import { desc } from "drizzle-orm";
 
 export const metadata = {
@@ -22,10 +23,9 @@ export default async function AdminNewsletterPage() {
     .orderBy(desc(newsletterSubscribers.subscribedAt))
     .limit(50);
 
-  const campaigns = await db
-    .select()
-    .from(newsletterCampaigns)
-    .orderBy(desc(newsletterCampaigns.createdAt));
+  // Totals by real status across all rows; the table still lists the latest 50 subscribers.
+  const summary = await newsletterSummary();
+  const otherStatuses = Object.entries(summary.subscribersByStatus).filter(([s]) => s !== "subscribed");
 
   return (
     <div className="space-y-6">
@@ -43,15 +43,20 @@ export default async function AdminNewsletterPage() {
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="p-5 rounded-2xl border border-border bg-card shadow-2xs">
-          <span className="text-xs font-semibold text-muted-foreground">Active Subscribers</span>
-          <div className="text-2xl font-bold text-foreground mt-1">{subscribers.length}</div>
-          <p className="text-[11px] text-muted-foreground mt-1">Double opt-in & footer consent sources</p>
+          <span className="text-xs font-semibold text-muted-foreground">Subscribed</span>
+          <div className="text-2xl font-bold text-foreground mt-1" data-testid="subscribed-count">{summary.subscribed.toLocaleString()}</div>
+          <p className="text-[11px] text-muted-foreground mt-1">
+            Status &quot;subscribed&quot;, of {summary.subscribersTotal.toLocaleString()} total
+            {otherStatuses.length > 0 && <> · {otherStatuses.map(([s, n]) => `${n} ${s}`).join(" · ")}</>}
+          </p>
         </div>
 
         <div className="p-5 rounded-2xl border border-border bg-card shadow-2xs">
           <span className="text-xs font-semibold text-muted-foreground">Campaigns Sent</span>
-          <div className="text-2xl font-bold text-foreground mt-1">{campaigns.length}</div>
-          <p className="text-[11px] text-muted-foreground mt-1">Marketing broadcasts</p>
+          <div className="text-2xl font-bold text-foreground mt-1" data-testid="campaigns-sent">{summary.campaignsSent.toLocaleString()}</div>
+          <p className="text-[11px] text-muted-foreground mt-1">
+            Status &quot;sent&quot; only; drafts and scheduled excluded ({summary.campaignsTotal.toLocaleString()} campaigns in total)
+          </p>
         </div>
       </div>
 
@@ -59,7 +64,7 @@ export default async function AdminNewsletterPage() {
       <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-2xs">
         <div className="p-4 border-b border-border bg-muted/20">
           <h2 className="text-xs font-bold text-foreground uppercase tracking-wider">
-            Subscriber Directory ({subscribers.length})
+            Subscriber Directory (latest {subscribers.length} of {summary.subscribersTotal.toLocaleString()})
           </h2>
         </div>
 
@@ -86,7 +91,7 @@ export default async function AdminNewsletterPage() {
                     <td className="py-3 px-4 text-muted-foreground">{sub.name || "—"}</td>
                     <td className="py-3 px-4 text-muted-foreground">{sub.consentSource}</td>
                     <td className="py-3 px-4">
-                      <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 capitalize">
+                      <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold capitalize ${subscriberTone(sub.status)}`}>
                         {sub.status}
                       </span>
                     </td>

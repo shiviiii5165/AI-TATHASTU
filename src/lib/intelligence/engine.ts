@@ -53,6 +53,14 @@ export function validateDefinition(def: RankingDefinition, known: ReadonlySet<st
   }
   if (def.eligibility.minCoverage < 0 || def.eligibility.minCoverage > 100)
     issues.push({ path: "eligibility", message: "Minimum coverage must be between 0 and 100." });
+  for (const [k, v] of [["provisionalCoverage", def.eligibility.provisionalCoverage], ["minIndependentShare", def.eligibility.minIndependentShare]] as const)
+    if (v !== undefined && !(Number.isFinite(v) && v >= 0 && v <= 100))
+      issues.push({ path: "eligibility", message: `${k === "provisionalCoverage" ? "Provisional coverage" : "Independent-evidence share"} must be between 0 and 100.` });
+  // Fairness rule: missing evidence is not evidence of low performance. Counting it as 0 ranks students down for
+  // what wasn't measured, so a ranking can't be published that way (it can still be previewed, and older
+  // snapshots that used it stay readable and are flagged on the methodology page).
+  if (def.missingPolicy === "zero")
+    issues.push({ path: "missingPolicy", message: "Missing evidence can't count as 0: choose the cohort midpoint or leave it out and re-weight." });
   return issues;
 }
 

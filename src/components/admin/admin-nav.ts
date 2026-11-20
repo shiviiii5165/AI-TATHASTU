@@ -16,7 +16,8 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     label: "Operations",
     items: [
       { title: "Overview", href: "/admin", iconName: "LayoutDashboard" },
-      { title: "Tickets & Support", href: "/admin/tickets", iconName: "LifeBuoy", badge: "Active" },
+      // No badge: a fixed "Active" label said nothing about the queue.
+      { title: "Tickets & Support", href: "/admin/tickets", iconName: "LifeBuoy" },
       { title: "Academic Catalog", href: "/admin/institutions", iconName: "GraduationCap" },
     ],
   },

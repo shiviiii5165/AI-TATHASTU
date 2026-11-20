@@ -16,37 +16,7 @@ export default async function AdminKbPage() {
   await requireAdmin();
   await requireAdminPermission("kb.manage");
 
-  // Seed starter articles if empty
-  const [count] = await db.select().from(knowledgeBaseArticles).limit(1);
-  if (!count) {
-    await db.insert(knowledgeBaseArticles).values([
-      {
-        slug: "how-github-intelligence-works",
-        title: "How GitHub Repository & Commit Intelligence Works",
-        category: "integrations",
-        content: "AI Tathastu analyzes your public GitHub commits, languages, and PR activity to generate verified skill evidence and ERIS score metrics.",
-        isInternalOnly: false,
-        isPublished: true,
-      },
-      {
-        slug: "troubleshooting-magic-link-email",
-        title: "Troubleshooting Passwordless Magic-Link Delivery",
-        category: "auth",
-        content: "If you do not see your sign-in email within 60 seconds, check your spam/junk folder. Ensure your domain accepts automated emails from support.aitathastu@gmail.com.",
-        isInternalOnly: false,
-        isPublished: true,
-      },
-      {
-        slug: "support-agent-onboarding-sop",
-        title: "Standard Operating Procedure: Support Escalations",
-        category: "internal",
-        content: "For tier-2 infrastructure or database discrepancies, assign the ticket to @engineering with internal notes summarizing user correlation IDs.",
-        isInternalOnly: true,
-        isPublished: true,
-      },
-    ]);
-  }
-
+  // Read-only: viewing this page never creates articles. Existing records are shown as they are.
   const articles = await db
     .select()
     .from(knowledgeBaseArticles)
@@ -66,6 +36,15 @@ export default async function AdminKbPage() {
           </p>
         </div>
       </div>
+
+      <div role="note" data-testid="not-live-notice" className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-xs text-amber-800 dark:text-amber-300">
+        <strong>Not live on the student site.</strong> No student-facing page reads these articles yet, so &quot;published&quot; here is
+        not visible to students. This page is read-only: articles can&apos;t be created or edited here yet.
+      </div>
+
+      {articles.length === 0 && (
+        <div className="rounded-2xl border border-dashed border-border py-12 text-center text-xs text-muted-foreground">No articles in the knowledge base.</div>
+      )}
 
       {/* Articles Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

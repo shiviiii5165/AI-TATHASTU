@@ -195,3 +195,33 @@ describe("Student Intelligence loaders on real Postgres", async () => {
     expect(await loadStudent360("not-a-uuid")).toBeNull();
   });
 });
+
+describe("grade scales", () => {
+  it("a cohort mixing CGPA and percentages gets no grade benchmark (no evidence, not 0); one scale keeps it", async () => {
+    const { skills } = await loadCatalogue();
+    // B already has "CGPA 8.4/10". Alone in the 2nd-year cohort, the grade is used.
+    expect((await loadSignals({ academicYear: "2nd Year" }, skills)).get(B)?.get("academic.reported_grade")?.value).toBe(84);
+    await db.insert(S.profileFacts).values({ userId: C, fieldGroup: "education", fieldName: "grade", recordKey: "edc", origin: "resume", extractedValue: "78%" });
+    const mixed = await loadSignals({}, skills);
+    expect(mixed.get(B)?.has("academic.reported_grade") ?? false).toBe(false);
+    expect(mixed.get(C)?.has("academic.reported_grade") ?? false).toBe(false);
+  });
+});
+
+describe("snapshot immutability", () => {
+  it("regression: later evidence changes never rewrite a stored snapshot or its version", async () => {
+    const run = await runRanking(null);
+    const [p] = await db.insert(S.intelligenceRankingProfiles).values({ name: "Frozen", definition: run.definition, createdByEmail: "x", updatedByEmail: "x", publishedVersion: 1, status: "published" }).returning();
+    await db.insert(S.intelligenceRankingVersions).values({ profileId: p.id, version: 1, definition: run.definition, publishedByEmail: "x" });
+    const rows = toSnapshotRows(run.results);
+    await db.insert(S.intelligenceRankingSnapshots).values({ profileId: p.id, version: 1, cohortKey: cohortKey({}), rankedCount: rows.filter((r) => r.eligible).length, ineligibleCount: rows.filter((r) => !r.eligible).length, results: rows, computedByEmail: "x" });
+    const before = await previousSnapshot(p.id, 1, cohortKey({}));
+    // New evidence arrives for a student.
+    await db.insert(S.learningRecords).values({ userId: C, kind: "certification", title: "New Cert", source: "user", verification: "verified", status: "completed" });
+    await runRanking(null);
+    const after = await previousSnapshot(p.id, 1, cohortKey({}));
+    expect(after?.results).toEqual(before?.results);
+    const [ver] = await db.select().from(S.intelligenceRankingVersions).where(eq(S.intelligenceRankingVersions.profileId, p.id));
+    expect(ver.version).toBe(1);
+  });
+});

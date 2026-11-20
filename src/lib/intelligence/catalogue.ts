@@ -5,7 +5,7 @@ import { sql, type SQL } from "drizzle-orm";
 import { db } from "@/db";
 import type { IntelligenceDoc } from "@/lib/dashboard/types";
 
-import { parseReportedGrade } from "./grade";
+import { GRADE_SCALE_LABEL, parseReportedGrade } from "./grade";
 import type { BenchmarkDef, CohortFilter, SignalMatrix, SignalValue, Verification } from "./types";
 
 // ─── Benchmark catalogue ─────────────────────────────────────────────────────
@@ -68,7 +68,7 @@ export const MEASUREMENTS: BenchmarkDef[] = [
     description: "Distinct achievements (hackathons, awards, scholarships…) listed by the student." },
 
   { key: "academic.reported_grade", family: "Academics", label: "Reported grade (% of its scale)", unit: "%", scale: "percent", verification: "self_reported", source: "Resume education entry", defaultNormalization: "absolute",
-    description: "The most recent grade on the resume converted to a percentage of its stated scale (8.6/10 → 86, 3.4/4 → 85). Only grades with a clear scale are used. No institution feed exists yet." },
+    description: "The most recent grade on the resume as a share of its stated scale (8.6/10 → 86). Only grades with a clear scale are used, and only when everyone in the cohort uses the same scale: grade points and percentages aren't converted into each other. No institution feed exists yet." },
 
   { key: "learning.courses_completed", family: "Learning", label: "Courses completed", unit: "courses", scale: "count", verification: "self_reported", source: "Learning records", defaultNormalization: "percentile",
     description: "Courses marked completed. Completion is learning activity, never proficiency." },
@@ -321,9 +321,11 @@ export async function loadSignals(c: CohortFilter, skills: CatalogueSkill[]): Pr
       put(u, key, { value: n, verification: key === "research.publications_orcid" ? "external" : "self_reported", source: key === "research.publications_orcid" ? "ORCID record" : "Resume / profile entries" });
     }
   }
-  for (const r of grades.rows as Row[]) {
-    const g = parseReportedGrade(r.norm ?? r.grade);
-    if (g) put(r.u as string, "academic.reported_grade", { value: g.percent, verification: "self_reported", source: `Resume grade "${g.text}"` });
+  // Grades are only comparable on one scale. If this cohort mixes scales (e.g. CGPA out of 10 and percentages), no
+  // student gets a grade value: it becomes "no evidence" (never 0) rather than a guessed conversion.
+  const parsedGrades = (grades.rows as Row[]).map((r) => ({ u: r.u as string, g: parseReportedGrade(r.norm ?? r.grade) })).filter((x) => x.g);
+  if (new Set(parsedGrades.map((x) => x.g!.scale)).size === 1) {
+    for (const { u, g } of parsedGrades) put(u, "academic.reported_grade", { value: g!.percent, verification: "self_reported", source: `Resume grade "${g!.text}" (${GRADE_SCALE_LABEL[g!.scale]})` });
   }
   const hasRepos = new Set((repos.rows as Row[]).map((r) => r.u as string));
   for (const r of projects.rows as Row[]) {

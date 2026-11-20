@@ -71,6 +71,27 @@ export function AvsarBriefcase({ size = 220, decorative = true }: { size?: numbe
   );
 }
 
+/** The centred AVSAR brand: the first thing the eye lands on in every AVSAR surface. */
+export function AvsarWordmark({ size = "lg", as: Tag = "p" }: { size?: "md" | "lg"; as?: "p" | "span" }) {
+  return (
+    <Tag className="flex items-center justify-center gap-3">
+      <span aria-hidden className="hidden h-px w-10 bg-[linear-gradient(90deg,transparent,#1D5FC4)] sm:block" />
+      <span
+        className={`bg-[linear-gradient(100deg,#1D5FC4_0%,#5B4FE0_38%,#7C4DDB_58%,#0F9F8A_100%)] bg-clip-text pl-[0.2em] font-heading font-extrabold leading-none tracking-[0.2em] text-transparent ${
+          size === "lg" ? "text-4xl sm:text-5xl" : "text-3xl sm:text-4xl"
+        }`}
+      >
+        AVSAR
+      </span>
+      <span aria-hidden className="hidden items-center gap-1 sm:flex">
+        <span className="size-1.5 rounded-full bg-[#0F9F8A]" />
+        <span className="size-1.5 rounded-full bg-[#F59E0B]" />
+        <span className="size-1.5 rounded-full bg-[#F0506E]" />
+      </span>
+    </Tag>
+  );
+}
+
 /** Soft light behind the briefcase, falling off towards the content side. Pulses with the briefcase (static under reduced motion). */
 export function AvsarSideGlow({ className = "" }: { className?: string }) {
   return (

@@ -9,6 +9,11 @@ import { crossSiteRefusal } from "@/lib/same-origin";
 
 const SLOW_ROUTE_MS = 1_000;
 
+/** Per-route outcome counts for Operational Health (route_stats). Never awaited, never throws into the request. */
+function record(o: { route: string; ok: boolean; ms: number; slow: boolean; error?: string; requestId?: string }) {
+  void import("@/lib/admin/monitoring").then((m) => m.recordRouteOutcome(o)).catch(() => {});
+}
+
 /**
  * Wraps a route handler so an outage (usually the database) answers 503 with
  * Retry-After and a JSON body, which clients can act on, rather than Next's
@@ -34,10 +39,13 @@ export function guarded<Args extends unknown[]>(handler: (...args: Args) => Prom
       response.headers.set("X-Request-Id", requestId);
       const ms = Date.now() - started;
       if (ms >= SLOW_ROUTE_MS) console.warn(JSON.stringify({ event: "route_slow", route, ms, status: response.status, requestId }));
+      record({ route, ok: response.status < 500, ms, slow: ms >= SLOW_ROUTE_MS, error: response.status >= 500 ? `HTTP ${response.status}` : undefined, requestId });
       return response;
     } catch (error) {
       unstable_rethrow(error); // Next's own control flow (dynamic rendering, redirects).
       console.error(JSON.stringify({ event: "route_failed", route, ms: Date.now() - started, kind: error instanceof Error ? error.name : "unknown", requestId }));
+      // Error class only: messages can carry user data.
+      record({ route, ok: false, ms: Date.now() - started, slow: false, error: error instanceof Error ? error.name : "unknown", requestId });
       return NextResponse.json(
         { error: "This is temporarily unavailable. Try again shortly.", requestId },
         { status: 503, headers: { "Retry-After": "30", "X-Request-Id": requestId } },

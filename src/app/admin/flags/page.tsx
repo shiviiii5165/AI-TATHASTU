@@ -4,6 +4,8 @@ import { db } from "@/db";
 import { featureFlags } from "@/db/schema";
 import { requireAdmin } from "@/lib/admin";
 import { requireAdminPermission } from "@/lib/admin/rbac";
+import { ConfirmSubmit } from "@/components/admin/confirm-submit";
+
 import { toggleFlagAction } from "./actions";
 
 export const metadata = {
@@ -23,10 +25,10 @@ export default async function AdminFlagsPage() {
       <div>
         <h1 className="text-2xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
           <Sliders className="size-6 text-primary" />
-          <span>Feature Flags & Runtime Kill-Switches</span>
+          <span>Feature Flags</span>
         </h1>
         <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
-          Safely enable or toggle experimental platform features, maintenance mode, and feature rollouts.
+          Switch platform features on or off for everyone. Each change asks for confirmation and is recorded in the audit log.
         </p>
       </div>
 
@@ -34,7 +36,7 @@ export default async function AdminFlagsPage() {
       <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-2xs">
         <div className="p-4 border-b border-border bg-muted/20">
           <h2 className="text-xs font-bold text-foreground uppercase tracking-wider">
-            Active Feature Flags ({flags.length})
+            Feature flags ({flags.length}) · {flags.filter((f) => f.enabled).length} on
           </h2>
         </div>
 
@@ -57,17 +59,19 @@ export default async function AdminFlagsPage() {
                 <form action={toggleFlagAction}>
                   <input type="hidden" name="key" value={flag.key} />
                   <input type="hidden" name="enabled" value={String(flag.enabled)} />
-                  <button
-                    type="submit"
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+                  <ConfirmSubmit
+                    message={`${flag.enabled ? "Turn OFF" : "Turn ON"} "${flag.key}"? This takes effect for everyone immediately and is recorded in the audit log.`}
+                    ariaLabel={`${flag.key} is ${flag.enabled ? "on" : "off"}. ${flag.enabled ? "Turn off" : "Turn on"}`}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 ${
                       flag.enabled
-                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20"
+                        ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20"
                         : "bg-muted text-muted-foreground hover:bg-muted/80"
                     }`}
                   >
-                    <span className="size-2 rounded-full bg-current" />
-                    <span>{flag.enabled ? "Enabled" : "Disabled"}</span>
-                  </button>
+                    <span aria-hidden className="size-2 rounded-full bg-current" />
+                    <span>{flag.enabled ? "On" : "Off"}</span>
+                    <span className="text-[10px] font-normal opacity-80">· click to turn {flag.enabled ? "off" : "on"}</span>
+                  </ConfirmSubmit>
                 </form>
               </div>
             ))}

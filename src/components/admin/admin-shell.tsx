@@ -120,7 +120,8 @@ export function AdminShell({ children, userEmail, userName, role }: AdminShellPr
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6" aria-label="Admin Navigation">
           {filteredGroups.map((group) => (
             <div key={group.label}>
-              <div className="px-3 text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider mb-1.5">
+              {/* Full muted colour: the faded /80 variant failed WCAG AA contrast. */}
+              <div className="px-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
                 {group.label}
               </div>
               <div className="space-y-0.5">
@@ -206,10 +207,15 @@ export function AdminShell({ children, userEmail, userName, role }: AdminShellPr
           </div>
 
           <div className="flex items-center gap-3 sm:gap-4">
-            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
-              <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Healthy</span>
-            </div>
+            {/* No platform health check is connected to this header yet, so it claims no status. */}
+            <span
+              title="No health check is connected yet"
+              data-testid="header-status"
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted text-muted-foreground text-xs font-semibold"
+            >
+              <span aria-hidden className="size-2 rounded-full bg-muted-foreground/50" />
+              <span>Status: not monitored</span>
+            </span>
 
             <ThemeToggleButton />
 

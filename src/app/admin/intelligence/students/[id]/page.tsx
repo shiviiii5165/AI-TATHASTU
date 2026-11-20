@@ -3,7 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { ActivityCalendar, BarList, Card, Empty, Kpi, Radar, RankLine, ScoreCell, SLOT, VERIFICATION_COLOR, VerificationBadge } from "@/components/admin/intelligence/charts";
+import { EvidencePanel } from "@/components/admin/intelligence/evidence-panel";
 import { recordAdminAudit } from "@/lib/admin/audit";
+import { confidenceChecks, confidenceOf, coverageOf, detectConflicts, evidenceCategories } from "@/lib/intelligence/evidence";
 import { requireAdminPermission } from "@/lib/admin/rbac";
 import { categoryOf, EVIDENCE_BASIS, evidenceBasisOf, skillsToDevelop } from "@/lib/dashboard/intelligence";
 import { verificationOfBasis } from "@/lib/intelligence/catalogue";
@@ -51,18 +53,29 @@ export default async function Student360Page({ params, searchParams }: { params:
   const certsListed = (s.facts.certifications ?? []).length;
   const pubs = s.facts.publications ?? [];
   const summary = buildEvidenceSummary(s, mine, run.definition.categories.length ? ranking.name : null);
-  const back = sp.back?.startsWith("/admin/intelligence") ? sp.back : "/admin/intelligence/rankings";
+  // Only in-admin paths are accepted as a back link.
+  const back = sp.back && /^\/admin\/(intelligence|students)(\/|\?|$)/.test(sp.back) ? sp.back : "/admin/intelligence/rankings";
+  const backLabel = back.startsWith("/admin/students")
+    ? "Back to student directory"
+    : back.startsWith("/admin/intelligence/rankings")
+      ? "Back to rankings"
+      : "Back";
   const languages = new Map<string, number>();
   for (const r of s.repos) for (const [l, b] of Object.entries(r.languages)) languages.set(l, (languages.get(l) ?? 0) + Number(b || 0));
   const langTotal = [...languages.values()].reduce((a, b) => a + b, 0);
 
-  const nav = ["overview", "skills", "gaps", "code", "credentials", "career", "timeline", "ecosystem"];
+  const nav = ["evidence", "overview", "skills", "gaps", "code", "credentials", "career", "timeline", "ecosystem"];
+  // Coverage and confidence come from the same records shown below; they're separate from the ranking score.
+  const categories = evidenceCategories(s);
+  const coverage = coverageOf(categories);
+  const confidence = confidenceOf(categories);
+  const gaps360 = categories.filter((c) => c.state === "missing" || c.state === "unreviewed" || c.state === "outdated" || c.state === "unavailable");
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-          <Link href={back} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground mb-3 transition-colors"><ArrowLeft className="size-3.5" /> Back to rankings</Link>
+          <Link href={back} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground mb-3 transition-colors"><ArrowLeft className="size-3.5" /> {backLabel}</Link>
           <div className="flex items-center gap-3">
             <div className="size-12 rounded-full bg-primary/10 text-primary font-bold text-base flex items-center justify-center shrink-0">{(s.user.name?.[0] || s.user.email?.[0] || "S").toUpperCase()}</div>
             <div>
@@ -75,7 +88,7 @@ export default async function Student360Page({ params, searchParams }: { params:
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold ${s.user.deletedAt ? "bg-rose-500/10 text-rose-600 dark:text-rose-400" : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"}`}>{s.user.deletedAt ? "Deleted" : "Active"}</span>
+          <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold ${s.user.deletedAt ? "bg-rose-500/10 text-rose-700 dark:text-rose-400" : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"}`}>{s.user.deletedAt ? "Deleted" : "Active"}</span>
           <Link href={`/admin/intelligence/compare?ids=${id}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-accent"><GitCompare className="size-3.5" /> Compare</Link>
           <Link href={`/admin/students/${id}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-accent"><ShieldCheck className="size-3.5" /> Account admin</Link>
         </div>
@@ -92,6 +105,24 @@ export default async function Student360Page({ params, searchParams }: { params:
       <nav className="flex gap-1.5 overflow-x-auto text-[11px]">
         {nav.map((n) => <a key={n} href={`#${n}`} className="px-2.5 py-1 rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-accent capitalize whitespace-nowrap">{n}</a>)}
       </nav>
+
+      <section id="evidence" className="space-y-3 scroll-mt-20">
+        <EvidencePanel categories={categories} coverage={coverage} confidence={confidence} checks={confidenceChecks(categories)} conflicts={detectConflicts(s)} />
+        {gaps360.length > 0 && (
+          <details className="rounded-2xl border border-border bg-card px-5 py-3 text-xs" data-testid="data-gaps">
+            <summary className="cursor-pointer font-semibold text-foreground">Data gaps and quality issues ({gaps360.length})</summary>
+            <ul className="mt-2 space-y-1 text-muted-foreground">
+              {gaps360.map((c) => (
+                <li key={c.id}>
+                  <strong className="text-foreground">{c.label}:</strong>{" "}
+                  {c.state === "missing" ? "nothing recorded. Ask the student to add it, or connect a source." : c.state === "unreviewed" ? "extracted from the resume but not reviewed by the student; treated as a claim." : c.state === "outdated" ? "older than its freshness limit; may no longer be accurate." : "the connected source is failing; this isn't counted against the student."}
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
+        <p className="text-[11px] text-muted-foreground">Rank and score below come from the selected ranking. They aren&apos;t a measure of potential, and shouldn&apos;t be used alone for decisions.</p>
+      </section>
 
       <section id="overview" className="space-y-6 scroll-mt-20">
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
