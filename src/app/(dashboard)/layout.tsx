@@ -6,9 +6,8 @@ import { AppNav } from "@/components/dashboard/app-nav";
 import { MobileNav } from "@/components/dashboard/mobile-nav";
 
 import { Suspense } from "react";
-import { connection } from "next/server";
-import { auth } from "@/auth";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
+import { getSession } from "@/lib/dal";
 
 // Shell for the dashboard and every module page.
 export default function AppLayout({ children }: LayoutProps<"/">) {
@@ -79,14 +78,12 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
 }
 
 async function HeaderWithSession() {
-  await connection();
-  const session = await auth();
+  const session = await getSession();
   return <DashboardHeader user={session?.user} />;
 }
 
 async function MobileNavWithSession() {
-  await connection();
-  const session = await auth();
+  const session = await getSession();
   return (
     <MobileNav
       user={session?.user}

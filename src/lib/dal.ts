@@ -16,14 +16,22 @@ import { stepHref, stepIndex, type WizardStep } from "@/lib/onboarding/steps";
 // trusting that the page that rendered them was guarded.
 
 /**
+ * auth() once per request. Each auth() runs the jwt callback, which reads the database
+ * (session version), so the layout's header, mobile nav and the page must share one call.
+ */
+export const getSession = cache(async () => {
+  // auth() touches crypto before reading the request; mark it request-time
+  // first so Cache Components doesn't treat it as prerenderable.
+  await connection();
+  return auth();
+});
+
+/**
  * The session's user row and onboarding row, read in parallel (one round trip
  * instead of two: the JWT already carries the user id). Cached per request.
  */
 const loadSessionRows = cache(async () => {
-  // auth() touches crypto before reading the request; mark it request-time
-  // first so Cache Components doesn't treat it as prerenderable.
-  await connection();
-  const session = await auth();
+  const session = await getSession();
   const userId = session?.user?.id;
   if (!userId) return null;
   const [[user], [state]] = await Promise.all([
