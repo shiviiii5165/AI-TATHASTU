@@ -50,8 +50,11 @@ export function poolConfig(url: string): pg.PoolConfig {
     password: decodeURIComponent(u.password),
     database: decodeURIComponent(u.pathname.replace(/^\//, "")) || "postgres",
     ssl: sslFor(u.hostname, u.searchParams.get("sslmode")),
-    max: Number(process.env.DB_POOL_MAX) || 5,
-    idleTimeoutMillis: 10_000,
+    // The dashboard reads ~10 things in parallel; 5 made them queue behind each other.
+    max: Number(process.env.DB_POOL_MAX) || 10,
+    // Keep connections warm between clicks: a new TLS connection to the pooler costs hundreds of ms.
+    idleTimeoutMillis: 60_000,
+    keepAlive: true,
     connectionTimeoutMillis: timeout,
     query_timeout: timeout,
     application_name: "ai-tathastu-web",
