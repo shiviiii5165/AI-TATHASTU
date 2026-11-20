@@ -239,6 +239,13 @@
       "when": 1794700000000,
       "tag": "0033_monitoring",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1794800000000,
+      "tag": "0034_collaborations",
+      "breakpoints": true
     }
   ]
 }

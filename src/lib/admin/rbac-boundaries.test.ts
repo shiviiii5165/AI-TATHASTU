@@ -35,6 +35,7 @@ const inst = await import("@/app/admin/institutions/actions");
 const intel = await import("@/app/admin/intelligence/actions");
 const team = await import("@/app/admin/team/actions");
 const systemActions = await import("@/app/admin/system/actions");
+const collab = await import("@/app/admin/collaborations/actions");
 
 const UUID = "00000000-0000-4000-8000-00000000abcd";
 type Permission = (typeof rbac.ALL_ADMIN_PERMISSIONS)[number];
@@ -66,6 +67,15 @@ const ACTIONS: [string, Permission, () => Promise<unknown>][] = [
   ["duplicateRankingAction", "intelligence.manage", () => intel.duplicateRankingAction("not-a-uuid")],
   ["setRankingArchivedAction", "intelligence.manage", () => intel.setRankingArchivedAction("not-a-uuid", true)],
   ["takeSnapshotAction", "intelligence.manage", () => intel.takeSnapshotAction("not-a-uuid", {})],
+  ["suspendCollaborationAction", "collaborations.moderate", () => collab.suspendCollaborationAction(new FormData())],
+  ["restoreCollaborationAction", "collaborations.moderate", () => collab.restoreCollaborationAction(new FormData())],
+  ["removeCollaborationAction", "collaborations.moderate", () => collab.removeCollaborationAction(new FormData())],
+  ["resolveCollabReportAction", "collaborations.moderate", () => collab.resolveCollabReportAction(new FormData())],
+  ["hideCollabMessageAction", "collaborations.moderate", () => collab.hideCollabMessageAction(new FormData())],
+  ["transferCollaborationAction", "collaborations.manage", () => collab.transferCollaborationAction(new FormData())],
+  ["clearCollabReviewAction", "collaborations.manage", () => collab.clearCollabReviewAction(new FormData())],
+  ["verifyCollabCreatorAction", "collaborations.manage", () => collab.verifyCollabCreatorAction(new FormData())],
+  ["revokeCollabCreatorAction", "collaborations.manage", () => collab.revokeCollabCreatorAction(new FormData())],
 ];
 
 const isDenied = (error: unknown) => String((error as { digest?: string }).digest ?? "").includes("HTTP_ERROR_FALLBACK;404");
@@ -130,6 +140,9 @@ describe("the role-permission matrix", () => {
       "intelligence.read": ["super_admin"],
       "intelligence.manage": ["super_admin"],
       "intelligence.export": ["super_admin"],
+      // Collaboration moderation sees reported conversations; transfer and creator verification change who owns what.
+      "collaborations.moderate": ["super_admin", "support_admin"],
+      "collaborations.manage": ["super_admin"],
     };
     for (const [permission, roles] of Object.entries(sensitive)) {
       const holders = ADMIN_ROLES.filter((r) => (rbac.ROLE_PERMISSIONS[r] as readonly string[]).includes(permission));

@@ -65,6 +65,11 @@ export const ALL_ADMIN_PERMISSIONS = [
   "intelligence.manage",
   "intelligence.export",
 
+  // AVSAR Collaborations: moderate = review reports, suspend/restore/remove listings, hide messages;
+  // manage = ownership transfer and faculty/alumni creator verification (super_admin only by default).
+  "collaborations.moderate",
+  "collaborations.manage",
+
   // System & Platform
   "flags.manage",
   "system.manage",
@@ -90,6 +95,7 @@ export const ROLE_PERMISSIONS: Record<AdminRole, readonly AdminPermission[]> = {
     "email.templates.read",
     "logs.read",
     "institutions.manage",
+    "collaborations.moderate",
   ],
 
   support_agent: [

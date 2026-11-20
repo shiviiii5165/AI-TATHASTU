@@ -1060,3 +1060,6 @@ export * from "./schema-admin";
 
 // ─── STUDENT INTELLIGENCE (admin rankings, migration 0032) ──────────────────
 export * from "./schema-intelligence";
+
+// ─── AVSAR COLLABORATIONS (migration 0034) ──────────────────────────────────
+export * from "./schema-collaborations";

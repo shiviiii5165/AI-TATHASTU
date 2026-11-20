@@ -427,6 +427,20 @@ function AvsarSection({ research, internships }: { research?: ResearchFeed; inte
           )}
         </div>
 
+        {cat === "collaborations" && (
+          <Link
+            href="/opportunities?cat=collaborations"
+            data-testid="avsar-collaborate-cta"
+            className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-[#B5D8DE] bg-[#F2FAFB] px-3.5 py-3 text-left transition-colors duration-150 hover:border-[#0E8F9A] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0E8F9A]"
+          >
+            <span>
+              <span className="block text-[13px] font-bold text-[#0B2530]">Build a team in Collaborate</span>
+              <span className="block text-[11px] text-[#4A6470]">Post a project, hackathon team or research idea, or join one.</span>
+            </span>
+            <ArrowUpRight aria-hidden className="size-4 shrink-0 text-[#0E8F9A]" />
+          </Link>
+        )}
+
         <div className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
           {/* Plain <a>: the authorised launch route redirects into Avsar's own sign-in; needs a full navigation. */}
           <a

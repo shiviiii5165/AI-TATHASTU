@@ -13,6 +13,8 @@ import type { OppDb } from "@/lib/opportunities/ingest";
 import { AvsarBriefcase, AvsarSideGlow, AvsarWordmark, RetryButton } from "@/components/avsar/avsar-ui";
 import { AVSAR_CATEGORIES, AVSAR_CATEGORY_KEYS, AVSAR_TAGLINE, COLLAB_KINDS, isAvsarCategory, JOBS_UNAVAILABLE, tabClass, type AvsarCategory } from "@/components/avsar/categories";
 import { officialPageHref } from "@/components/avsar/links";
+import { CollaborateHub } from "@/components/collaborate/hub";
+import { hubView, uuidOrNull } from "@/components/collaborate/views";
 import { monogram } from "@/components/avsar/monogram";
 import { FitBadge, KIND_LABEL, fmtDate } from "./ui";
 
@@ -279,6 +281,21 @@ async function OpportunitiesContent({ searchParams }: { searchParams: SP }) {
           );
         })}
       </nav>
+
+      {/* Collaborations: the team-building marketplace first; verified external collaboration calls stay listed below it. */}
+      {cat === "collaborations" && (
+        <>
+          <CollaborateHub
+            signedIn
+            basePath="/opportunities?cat=collaborations"
+            initialView={hubView(one(sp.view))}
+            initialPost={uuidOrNull(one(sp.post))}
+            initialThread={uuidOrNull(one(sp.thread))}
+          />
+          <h2 className="pt-4 text-sm font-bold text-[#11182B]">Verified collaboration calls</h2>
+          <p className="-mt-3 text-xs text-[#475569]">Open calls for collaborators published by universities, institutes and labs, confirmed at their official source.</p>
+        </>
+      )}
 
       {cat === "research" && <ResearchControls section={section} qs={qs} filters={filters} closing={one(sp.closing)} facets={research?.facets} activeFilters={activeFilters} />}
 

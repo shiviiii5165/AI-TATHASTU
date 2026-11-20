@@ -1,0 +1,101 @@
+/*
+ * Collaborate's own identity inside AVSAR: deep ink with teal/cyan accents, a connected-node motif.
+ * Tokens live here (light and dark); components use them through var(--…). Motion is transform/opacity only
+ * and stops under prefers-reduced-motion.
+ */
+.root {
+  --c-ink: #0b2530;
+  --c-text: #12303b;
+  --c-muted: #4a6470;
+  --c-surface: #ffffff;
+  --c-surface-2: #f2fafb;
+  --c-border: #d6e9ec;
+  --c-border-strong: #b5d8de;
+  --c-accent: #0e8f9a;
+  --c-accent-strong: #0a6f78;
+  --c-accent-soft: #e2f6f7;
+  --c-cyan: #12b5c9;
+  --c-mint: #2fbf8f;
+  --c-warn: #9a5b00;
+  --c-warn-soft: #fff4e5;
+  --c-danger: #a3203b;
+  --c-danger-soft: #fff1f4;
+  --c-focus: #0e8f9a;
+  --c-hero-a: #082a33;
+  --c-hero-b: #0c4651;
+  color: var(--c-text);
+}
+
+/* Dark tokens: applied with the app's own `dark:` variant (DARK_TOKENS in ui.tsx), so they follow the theme toggle. */
+
+.hero {
+  background:
+    radial-gradient(120% 140% at 100% 0%, rgba(18, 181, 201, 0.28), transparent 55%),
+    radial-gradient(90% 120% at 0% 100%, rgba(47, 191, 143, 0.18), transparent 60%),
+    linear-gradient(135deg, var(--c-hero-a), var(--c-hero-b));
+}
+
+.grid {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.12) 1px, transparent 1px);
+  background-size: 18px 18px;
+  mask-image: linear-gradient(90deg, transparent, #000 40%);
+}
+
+.node {
+  animation: c-pulse 4.8s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.node2 { animation-delay: -1.6s; }
+.node3 { animation-delay: -3.2s; }
+
+.link {
+  stroke-dasharray: 4 6;
+  animation: c-flow 3.2s linear infinite;
+}
+
+.orbit {
+  animation: c-orbit 18s linear infinite;
+  transform-box: view-box;
+  transform-origin: 50% 50%;
+}
+
+.card {
+  transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+}
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px -20px rgba(14, 143, 154, 0.55);
+  border-color: var(--c-border-strong);
+}
+
+.enter {
+  animation: c-enter 220ms ease-out both;
+}
+
+.avatarStack > * + * {
+  margin-left: -8px;
+}
+
+@keyframes c-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.9; }
+  50% { transform: scale(1.18); opacity: 1; }
+}
+
+@keyframes c-flow {
+  to { stroke-dashoffset: -20; }
+}
+
+@keyframes c-orbit {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes c-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .node, .link, .orbit, .enter { animation: none; }
+  .card, .card:hover { transition: none; transform: none; }
+}

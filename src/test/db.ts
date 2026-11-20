@@ -21,7 +21,7 @@ export async function createTestDb() {
       // and strip hnsw index syntax for in-memory testing.
       const cleaned = trimmed
         .replace(/vector\(\d+\)/g, "real[]")
-        .replace(/vector/g, "real[]")
+        .replace(/(?<!ts)vector/g, "real[]") // pgvector only: full-text tsvector is native
         .replace(/USING hnsw \([^)]+\)/g, "")
         .replace(/vector_cosine_ops/g, "");
 
