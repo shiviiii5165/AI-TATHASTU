@@ -32,7 +32,11 @@ async function handle(request: Request) {
     const r = await reconcileProfileSyncs(clientId);
     reconciledByApp[clientId] = { queued: r.queued, byCause: r.byCause };
     if (clientId === "collaborate") reconciled = { queued: r.queued, byCause: r.byCause };
-    repaired[clientId] = (await repairMissingProfiles(clientId, { apply: true, limit: 50 })).queued;
+    // Scheduled repair is opt-in per app (<APP>_AUTO_REPAIR=1): right after migration 0036 no linked user has a status
+    // yet, so the first run would re-send everyone. Run it deliberately first (admin page or scripts/integration-sync.ts).
+    if (process.env[`${clientId.toUpperCase()}_AUTO_REPAIR`] === "1") {
+      repaired[clientId] = (await repairMissingProfiles(clientId, { apply: true, limit: 50 })).queued;
+    }
   }
   const result = await dispatchWebhooks(100);
   // Codes live 60 seconds; keep a day for debugging, then drop them.
