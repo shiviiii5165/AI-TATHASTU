@@ -167,3 +167,34 @@ test.describe("Dark Mode Comprehensive E2E Verification", () => {
     expect(bodyVisible).toBe(true);
   });
 });
+
+test.describe("Light is the default theme", () => {
+  // A device in dark mode must not switch a first-time visitor to dark.
+  test.use({ colorScheme: "dark" });
+
+  const isDark = (page: import("@playwright/test").Page) =>
+    page.evaluate(() => document.documentElement.classList.contains("dark") || document.documentElement.getAttribute("data-theme") === "dark");
+
+  for (const path of ["/", "/login", "/about"]) {
+    test(`first visit to ${path} on a dark-mode device opens light`, async ({ page }) => {
+      await page.goto(path);
+      await page.waitForLoadState("load");
+      expect(await isDark(page)).toBe(false);
+      expect(await page.evaluate(() => document.documentElement.style.colorScheme)).toBe("light");
+    });
+  }
+
+  test("a saved dark choice is still honoured", async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem("ai-tathastu-theme", "dark"));
+    await page.goto("/");
+    await page.waitForLoadState("load");
+    expect(await isDark(page)).toBe(true);
+  });
+
+  test("an explicit 'system' choice still follows the device", async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem("ai-tathastu-theme", "system"));
+    await page.goto("/");
+    await page.waitForLoadState("load");
+    expect(await isDark(page)).toBe(true);
+  });
+});

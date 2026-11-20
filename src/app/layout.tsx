@@ -7,7 +7,8 @@ const themeInitScript = `(function() {
   try {
     var key = 'ai-tathastu-theme';
     var stored = localStorage.getItem(key);
-    var isDark = stored === 'dark' || ((!stored || stored === 'system') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    // Light unless the visitor chose dark (or chose to follow their device). A dark OS alone doesn't switch it.
+    var isDark = stored === 'dark' || (stored === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
     var root = document.documentElement;
     if (isDark) {
       root.classList.add('dark');
@@ -70,10 +71,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   viewportFit: "cover",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#FFFFFF" },
-    { media: "(prefers-color-scheme: dark)", color: "#101116" },
-  ],
+  // The site opens light by default, so the browser bar matches it whatever the device theme.
+  themeColor: "#FFFFFF",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

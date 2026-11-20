@@ -29,8 +29,11 @@ function getSystemTheme(): ResolvedTheme {
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
+/** Light by default: a first-time visitor sees light even on a dark device. "system" is only an explicit choice. */
+export const DEFAULT_THEME: Theme = "light";
+
 function getStoredTheme(): Theme {
-  if (typeof window === "undefined") return "system";
+  if (typeof window === "undefined") return DEFAULT_THEME;
   try {
     const item = localStorage.getItem(STORAGE_KEY);
     if (item === "light" || item === "dark" || item === "system") {
@@ -39,7 +42,7 @@ function getStoredTheme(): Theme {
   } catch {
     // Graceful fallback when localStorage is blocked/unavailable
   }
-  return "system";
+  return DEFAULT_THEME;
 }
 
 function applyThemeToDOM(resolved: ResolvedTheme) {
@@ -57,7 +60,7 @@ function applyThemeToDOM(resolved: ResolvedTheme) {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("system");
+  const [theme, setThemeState] = useState<Theme>(DEFAULT_THEME);
   const [systemTheme, setSystemTheme] = useState<ResolvedTheme>("light");
   const [mounted, setMounted] = useState(false);
 
