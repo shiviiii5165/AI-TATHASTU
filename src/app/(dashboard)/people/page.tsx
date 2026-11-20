@@ -37,9 +37,9 @@ function PeopleSkeleton() {
 async function PeopleContent() {
   const { user } = await requireOnboardedUser();
 
-  // Discoverable people only (mentor_discovery consent), ranked in Postgres by
-  // pgvector distance to this user's embedding. No floor or default on the score.
-  const people = await similarPeople({ id: user.id, role: user.role }, 24);
+  // Every active member (open profiles, consent policy v4), ranked in Postgres by pgvector distance to this user's
+  // embedding; people without an embedding yet follow. No floor or default on the score.
+  const people = await similarPeople({ id: user.id, role: user.role }, 24, { peers: true, includeUnmatched: true });
 
   const scoredPeers = people.map((p) => ({
     id: p.id,

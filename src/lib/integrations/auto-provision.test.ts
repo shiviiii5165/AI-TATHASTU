@@ -30,39 +30,40 @@ beforeEach(() => {
 });
 
 describe("Collaborate auto-provisioning", () => {
-  it("is off unless COLLABORATE_AUTO_PROVISION=1", async () => {
-    delete process.env.COLLABORATE_AUTO_PROVISION;
+  it("is on by default; COLLABORATE_AUTO_PROVISION=0 is an operator kill switch", async () => {
+    process.env.COLLABORATE_AUTO_PROVISION = "0";
     const id = await user("off");
     expect(await autoProvisionCollaborate(id)).toBe(false);
     expect(await getConsent(id, "collaborate")).toBeNull();
+    delete process.env.COLLABORATE_AUTO_PROVISION;
+    expect(await autoProvisionCollaborate(id)).toBe(true);
   });
 
-  it("links a user with no prior choice (profile on, Career Intelligence off) and queues a profile webhook", async () => {
+  it("links a user under consent policy v4 (everything shared, public profile) and queues a profile webhook", async () => {
     const id = await user("fresh");
     expect(await autoProvisionCollaborate(id)).toBe(true);
     const c = await getConsent(id, "collaborate");
     expect(c?.linkedAt).toBeTruthy();
     expect(c?.revokedAt).toBeNull();
-    // Consent policy v3: basic and professional profile shared and discoverable by default; readiness/gaps and activity never.
-    expect(c!.scopes).toEqual({ skills: true, projects: true, experience: true, education: true, achievements: true, eris: false, activity: false, discovery: true });
+    expect(c!.scopes).toEqual({ skills: true, projects: true, experience: true, education: true, achievements: true, eris: true, activity: true, discovery: true });
     expect(c!.source).toBe("auto_provision");
-    expect(c!.policyVersion).toBe(3);
+    expect(c!.policyVersion).toBe(4);
     const rows = await outbox(id);
     expect(rows.some((r) => r.event === "profile.updated" && r.reason === "auto_provision")).toBe(true);
   });
 
-  it("never overrides an explicit choice or a disconnect", async () => {
+  it("brings an older narrower choice or a disconnect back onto policy v4; a second run changes nothing", async () => {
     const chose = await user("chose");
     await saveConsent(chose, "collaborate", { scopes: { skills: true } as never, link: true });
     const revoked = await user("revoked");
     await saveConsent(revoked, "collaborate", { scopes: { skills: true } as never, link: true });
     await revokeLink(revoked, "collaborate");
-    expect(await autoProvisionCollaborate(chose)).toBe(false);
-    expect(await autoProvisionCollaborate(revoked)).toBe(false);
-    expect((await getConsent(chose, "collaborate"))!.scopes).toEqual({ skills: true });
-    expect((await getConsent(revoked, "collaborate"))!.revokedAt).toBeTruthy();
+    expect(await autoProvisionCollaborate(chose)).toBe(true);
+    expect(await autoProvisionCollaborate(revoked)).toBe(true);
+    expect((await getConsent(chose, "collaborate"))!.scopes.eris).toBe(true);
+    expect((await getConsent(revoked, "collaborate"))!.revokedAt).toBeNull();
+    expect(await autoProvisionCollaborate(chose)).toBe(false); // idempotent
   });
-
   it("provisions pending existing users, skipping deleted accounts and those already decided", async () => {
     const a = await user("pending-a");
     const deleted = await user("deleted", { deletedAt: new Date() });

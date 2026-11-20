@@ -1,21 +1,14 @@
 "use client";
 
-import { ArrowUpRight, Check, CircleAlert, LoaderCircle, RefreshCw, Unplug } from "lucide-react";
+import { ArrowUpRight, Check, CircleAlert, LoaderCircle, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
-import {
-  disconnectIntegration,
-  saveIntegrationConsent,
-  syncIntegration,
-} from "@/app/(dashboard)/settings/integrations/actions";
-import { SaveStatusText } from "@/components/onboarding/save-status";
-import { ScopeToggles } from "@/components/integrations/scope-toggles";
+import { syncIntegration } from "@/app/(dashboard)/settings/integrations/actions";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import type { IntegrationClientId, IntegrationScope, SyncStatus } from "@/db/schema";
-import { useAutosave } from "@/hooks/use-autosave";
 import { timeAgo } from "@/lib/format";
+import { scopesForApp } from "@/lib/integrations/scopes";
 import { cn } from "@/lib/utils";
 
 export type IntegrationCardView = {
@@ -42,7 +35,6 @@ const SYNC_TEXT: Partial<Record<SyncStatus, string>> = {
   conflict: "Action needed",
   review: "Being reviewed",
   failed: "Sync failed",
-  declined: "Not syncing",
 };
 
 /** What the user can do about a state that needs them. No internal codes or errors are shown. */
@@ -51,32 +43,27 @@ function syncGuidance(status: SyncStatus | undefined, name: string): string | nu
     case "conflict":
       return `You already have a ${name} account with this email. To link it, open ${name}, choose "Continue with AI Tathastu" and confirm with your ${name} password. Nothing is merged until you do.`;
     case "review":
-      return `A ${name} account with this email already exists and we couldn't confirm it's yours automatically. Our team is reviewing it; nothing is shared with that account meanwhile.`;
+      return `A ${name} account with this email already exists and we couldn't confirm it's yours automatically. Our team is reviewing it.`;
     case "failed":
       return `We couldn't update your ${name} profile. Try "Sync profile"; if it keeps failing, contact support.`;
-    case "declined":
-      return `You deleted or disconnected your account on ${name}, so we won't recreate it. Sign in to ${name} with AI Tathastu if you want it back.`;
     case "missing":
-      return `Your private ${name} profile is being created. This usually takes a few minutes.`;
+      return `Your ${name} profile is being created. This usually takes a few minutes.`;
     default:
       return null;
   }
 }
 
-export function IntegrationCard({ card, projects }: { card: IntegrationCardView; projects: { key: string; title: string }[] }) {
+/**
+ * One connected app (consent policy v4): every AI Tathastu account is linked to it and shares its whole profile, so
+ * there are no sharing toggles or disconnect here. Deleting the AI Tathastu account removes it from every app.
+ */
+export function IntegrationCard({ card }: { card: IntegrationCardView; projects?: { key: string; title: string }[] }) {
   const router = useRouter();
-  const [scopes, setScopes] = useState(card.scopes);
-  const [hidden, setHidden] = useState(new Set(card.hiddenProjects));
-  const { status, error, save, retry } = useAutosave(saveIntegrationConsent);
   const [syncing, startSync] = useTransition();
-  const [disconnecting, startDisconnect] = useTransition();
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
   const linked = Boolean(card.linkedAt);
   const headingId = `integration-${card.id}`;
-
-  function persist(nextScopes = scopes, nextHidden = hidden) {
-    void save({ clientId: card.id, scopes: nextScopes, hiddenProjects: [...nextHidden] });
-  }
+  const shared = scopesForApp(card.id).filter((s) => s.id !== "discovery");
 
   function sync() {
     setNotice(null);
@@ -87,14 +74,7 @@ export function IntegrationCard({ card, projects }: { card: IntegrationCardView;
     });
   }
 
-  function disconnect() {
-    setNotice(null);
-    startDisconnect(async () => {
-      const result = await disconnectIntegration(card.id).catch(() => ({ ok: false as const, error: "Couldn't disconnect. Try again." }));
-      setNotice(result.ok ? { ok: true, text: `Disconnected. ${card.name} can no longer read your profile.` } : { ok: false, text: result.error });
-      router.refresh();
-    });
-  }
+  const guidance = linked ? syncGuidance(card.sync?.status, card.name) : null;
 
   return (
     <article aria-labelledby={headingId} className={cn("rounded-lg border bg-card p-6", linked && "border-foreground")}>
@@ -109,10 +89,8 @@ export function IntegrationCard({ card, projects }: { card: IntegrationCardView;
               <span className="inline-flex items-center gap-1.5">
                 <Check aria-hidden className="size-4" /> Connected {timeAgo(card.linkedAt!, new Date())}
               </span>
-            ) : card.revoked ? (
-              "Disconnected. Sign in to it with AI Tathastu again to reconnect."
             ) : (
-              <span className="text-muted-foreground">Not connected yet. Choose what to share, then sign in to it with AI Tathastu.</span>
+              <span className="text-muted-foreground">Your {card.name} account is being set up.</span>
             )}
             {linked && card.sync && SYNC_TEXT[card.sync.status] && (
               <span className={cn("ml-3 text-muted-foreground", (card.sync.status === "failed" || card.sync.status === "conflict") && "text-destructive")}>
@@ -121,16 +99,13 @@ export function IntegrationCard({ card, projects }: { card: IntegrationCardView;
               </span>
             )}
           </p>
-          {linked && (
-            <p className="mt-1 text-xs text-muted-foreground">
-              Your {card.name} profile is private until you change its visibility in {card.name}.
-              {card.sync?.status === "synced" || !card.sync?.lastSuccessAt ? "" : ` Last successful sync ${timeAgo(card.sync.lastSuccessAt, new Date())}.`}
-            </p>
+          {card.id === "collaborate" && (
+            <p className="mt-1 text-xs text-muted-foreground">Your Collaborate profile is public, so other members can find you and connect.</p>
           )}
-          {linked && syncGuidance(card.sync?.status, card.name) && (
+          {guidance && (
             <p role="status" className="mt-3 flex items-start gap-1.5 rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground">
               <CircleAlert aria-hidden className="mt-0.5 size-4 shrink-0" />
-              {syncGuidance(card.sync?.status, card.name)}
+              {guidance}
             </p>
           )}
         </div>
@@ -147,61 +122,25 @@ export function IntegrationCard({ card, projects }: { card: IntegrationCardView;
         </a>
       </div>
 
-      {!card.available && (
-        <p className="mt-4 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
-          Signing in to {card.name} with AI Tathastu isn&apos;t switched on yet. Your choices below are saved for when it is.
-        </p>
-      )}
-
       <section aria-labelledby={`${headingId}-share`} className="mt-6">
-        <div className="flex items-baseline justify-between gap-3">
-          <h3 id={`${headingId}-share`} className="text-sm font-medium">
-            What {card.name} can see
-          </h3>
-          <SaveStatusText status={status} error={error} onRetry={retry} />
-        </div>
-        <p className="mt-1 text-sm text-muted-foreground">Always: your name, email, target role, university and location.</p>
-        <ScopeToggles
-          idPrefix={card.id}
-          scopes={scopes}
-          requested={card.requested}
-          appName={card.name}
-          appId={card.id}
-          disabled={disconnecting}
-          onChange={(id, on) => {
-            const next = { ...scopes, [id]: on };
-            setScopes(next);
-            persist(next);
-          }}
-        />
+        <h3 id={`${headingId}-share`} className="text-sm font-medium">
+          What {card.name} receives
+        </h3>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Your name, email (never shown publicly), target role, university and location, plus:
+        </p>
+        <ul className="mt-2 grid gap-1.5 sm:grid-cols-2">
+          {shared.map((s) => (
+            <li key={s.id} className="flex items-start gap-2 text-sm">
+              <Check aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+              {s.label.replace(/^Share /, "")}
+            </li>
+          ))}
+        </ul>
+        <p className="mt-3 text-xs text-muted-foreground">
+          Never shared: your phone number, resume file, passwords or sign-in tokens. Deleting your AI Tathastu account removes you from {card.name} too.
+        </p>
       </section>
-
-      {scopes.projects && projects.length > 0 && (
-        <section aria-labelledby={`${headingId}-projects`} className="mt-4 rounded-md border p-4">
-          <h3 id={`${headingId}-projects`} className="text-sm font-medium">
-            Projects {card.name} can see
-          </h3>
-          <ul className="mt-2 grid gap-2 sm:grid-cols-2">
-            {projects.map((p) => (
-              <li key={p.key}>
-                <label className="flex cursor-pointer items-center gap-2 text-sm">
-                  <Checkbox
-                    checked={!hidden.has(p.key)}
-                    onCheckedChange={(checked) => {
-                      const next = new Set(hidden);
-                      if (checked) next.delete(p.key);
-                      else next.add(p.key);
-                      setHidden(next);
-                      persist(scopes, next);
-                    }}
-                  />
-                  <span className="truncate">{p.title}</span>
-                </label>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
 
       {notice && (
         <p role={notice.ok ? "status" : "alert"} className={cn("mt-4 flex items-start gap-1.5 text-sm", !notice.ok && "text-destructive")}>
@@ -212,13 +151,9 @@ export function IntegrationCard({ card, projects }: { card: IntegrationCardView;
 
       {linked && (
         <div className="mt-6 flex flex-wrap items-center gap-2 border-t pt-5">
-          <Button type="button" onClick={sync} disabled={syncing || disconnecting} className="h-9 px-4">
+          <Button type="button" onClick={sync} disabled={syncing} className="h-9 px-4">
             {syncing ? <LoaderCircle data-icon="inline-start" aria-hidden className="animate-spin" /> : <RefreshCw data-icon="inline-start" aria-hidden />}
             {syncing ? "Syncing" : "Sync profile"}
-          </Button>
-          <Button type="button" variant="ghost" onClick={disconnect} disabled={syncing || disconnecting} className="h-9 px-3">
-            {disconnecting ? <LoaderCircle data-icon="inline-start" aria-hidden className="animate-spin" /> : <Unplug data-icon="inline-start" aria-hidden />}
-            Disconnect
           </Button>
           {!card.syncAvailable && (
             <span className="text-sm text-muted-foreground">{card.name} reads your profile when you sign in; push sync isn&apos;t set up on its side yet.</span>

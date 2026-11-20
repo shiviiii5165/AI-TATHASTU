@@ -33,7 +33,7 @@ export default function IntegrationsPage({ searchParams }: PageProps<"/settings/
           <div>
             <h1 className="editorial-title text-3xl sm:text-4xl text-[#11182B] tracking-tight">Apps You Sign In To</h1>
             <p className="mt-1 text-sm text-[#64748B] max-w-2xl">
-              Collaborate, Avsar and Tathastu Meet use your AI Tathastu account. Your profile there starts private. Choose what each app can see; Career Intelligence stays off unless you turn it on.
+              Your AI Tathastu account comes with a Collaborate and an Avsar account. Your profile is shared with both and kept in sync, and your Collaborate profile is public, like a professional network.
             </p>
           </div>
           <div className="flex items-center gap-2">

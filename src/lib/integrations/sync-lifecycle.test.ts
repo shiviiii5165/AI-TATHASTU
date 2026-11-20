@@ -77,7 +77,7 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("signup provisions both apps", () => {
-  it("creates a linked consent for Collaborate AND Avsar with policy v3, logs it, and both apps get auto_provision", async () => {
+  it("creates a linked consent for Collaborate AND Avsar with policy v4, logs it, and both apps get auto_provision", async () => {
     const id = await user();
     answers[`collaborate:${id}`] = [{ outcome: "created" }];
     answers[`avasar:${id}`] = [{ outcome: "created" }];
@@ -85,17 +85,17 @@ describe("signup provisions both apps", () => {
     for (const app of ["collaborate", "avasar"] as const) {
       const c = await getConsent(id, app);
       expect(c?.linkedAt).toBeTruthy();
-      expect(c!.scopes.eris).toBe(false);
-      expect(c!.scopes.activity).toBe(false);
+      expect(c!.scopes.eris).toBe(true);
+      expect(c!.scopes.activity).toBe(true);
       expect(c!.scopes.skills).toBe(true);
       expect((await state(id, app))?.status).toBe("pending");
     }
     const log = await db.select().from(schema.integrationConsentLog).where(eq(schema.integrationConsentLog.userId, id));
     expect(log.map((l) => [l.clientId, l.source, l.policyVersion, l.linked]).sort()).toEqual([
-      ["avasar", "auto_provision", 3, true],
-      ["collaborate", "auto_provision", 3, true],
+      ["avasar", "auto_provision", 4, true],
+      ["collaborate", "auto_provision", 4, true],
     ]);
-    // Owner decision: new users are discoverable on Collaborate by default; the choice doesn't exist for Avsar.
+    // Owner decision (policy v4): the Collaborate profile is public; "discovery" doesn't exist for Avsar.
     expect((await getConsent(id, "collaborate"))!.scopes.discovery).toBe(true);
     expect((await getConsent(id, "avasar"))!.scopes.discovery).toBe(false);
     await dispatchWebhooks(100);
@@ -109,20 +109,20 @@ describe("signup provisions both apps", () => {
     expect((await state(id, "avasar"))?.lastSuccessAt).toBeTruthy();
   });
 
-  it("the shared projection never carries Career Intelligence when it is off", async () => {
+  it("policy v4 shares Career Intelligence with both apps, and never phone numbers, resume text or passwords", async () => {
     const id = await user();
     await autoProvisionNewUser(id);
     await dispatchWebhooks(100);
     for (const s of sent.filter((x) => x.userId === id)) {
       const profile = (s.body.data as { profile: Record<string, unknown> }).profile;
-      expect(profile.goals).toBeNull();
-      expect(profile.activity).toBeNull();
+      expect(profile.goals).not.toBeNull();
+      expect(profile.activity).not.toBeNull();
       expect(JSON.stringify(profile)).not.toMatch(/phone|resumeText|password/i);
     }
   });
 
-  it("an app switched off for signups is skipped; the other is still provisioned", async () => {
-    delete process.env.AVASAR_AUTO_PROVISION;
+  it("an app switched off by the operator kill switch is skipped; the other is still provisioned", async () => {
+    process.env.AVASAR_AUTO_PROVISION = "0";
     const id = await user();
     expect(await autoProvisionNewUser(id)).toEqual(["collaborate"]);
     expect(await getConsent(id, "avasar")).toBeNull();
@@ -290,17 +290,15 @@ describe("consent", () => {
     expect((await getConsent(id, "collaborate"))!.scopes.discovery).toBe(true);
   });
 
-  it("existing users (backfill) also start discoverable only under policy v3; earlier consents keep discovery off", async () => {
-    const old = await user();
-    await db.insert(schema.integrationConsents).values({ userId: old, clientId: "collaborate", scopes: { skills: true }, linkedAt: new Date() });
-    expect((await getConsent(old, "collaborate"))!.scopes.discovery).toBeUndefined(); // absent = off
-  });
-
-  it("auto-provisioning never overrides an explicit choice, even one that shares nothing", async () => {
+  it("an existing account on an older, narrower consent is brought onto policy v4 (linked, everything shared)", async () => {
     const id = await user();
     await saveConsent(id, "avasar", { scopes: {} as never });
-    expect(await autoProvision(id, "avasar")).toBe(false);
-    expect((await getConsent(id, "avasar"))!.linkedAt).toBeNull();
+    expect(await autoProvision(id, "avasar")).toBe(true);
+    const c = (await getConsent(id, "avasar"))!;
+    expect(c.linkedAt).not.toBeNull();
+    expect(c.scopes.eris).toBe(true);
+    expect(c.policyVersion).toBe(4);
+    expect(await autoProvision(id, "avasar")).toBe(false); // already on the policy
   });
 });
 
@@ -339,19 +337,20 @@ describe("admin summary", () => {
 });
 
 describe("backfill of existing users", () => {
-  it("Avsar backfill is off in the weekly job unless AVASAR_AUTO_PROVISION_BACKFILL=1", async () => {
+  it("the weekly job backfills both apps by default; AVASAR_AUTO_PROVISION_BACKFILL=0 pauses Avsar", async () => {
+    process.env.AVASAR_AUTO_PROVISION_BACKFILL = "0";
     const id = await user();
     await provisionPendingUsers(1000);
     expect(await getConsent(id, "avasar")).toBeNull();
-    expect(await getConsent(id, "collaborate")).not.toBeNull(); // Collaborate keeps its earlier behaviour
-    process.env.AVASAR_AUTO_PROVISION_BACKFILL = "1";
+    expect(await getConsent(id, "collaborate")).not.toBeNull();
+    delete process.env.AVASAR_AUTO_PROVISION_BACKFILL;
     await provisionPendingUsers(1000);
     const c = await getConsent(id, "avasar");
     expect(c?.source).toBe("backfill");
-    expect(c?.scopes.eris).toBe(false);
+    expect(c?.scopes.eris).toBe(true);
   });
 
-  it("candidates exclude deleted accounts and anyone who already chose; re-running is a no-op", async () => {
+  it("candidates: active accounts not on policy v4 (an older choice included), never deleted ones; re-running is a no-op", async () => {
     const fresh = await user();
     const deleted = await user({ deletedAt: new Date() });
     const chose = await user();
@@ -359,8 +358,7 @@ describe("backfill of existing users", () => {
     const pending = await pendingProvisionUsers("avasar", 10_000);
     expect(pending).toContain(fresh);
     expect(pending).not.toContain(deleted);
-    expect(pending).not.toContain(chose);
-    process.env.AVASAR_AUTO_PROVISION_BACKFILL = "1";
+    expect(pending).toContain(chose);
     await provisionPendingUsers(10_000);
     expect(await pendingProvisionUsers("avasar", 10_000)).not.toContain(fresh);
     const before = (await rows(fresh, "avasar")).length;

@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 
 import { approveIntegration, denyIntegration } from "@/app/integrations/authorize/actions";
 import { ScopeToggles } from "@/components/integrations/scope-toggles";
+import { scopesForApp } from "@/lib/integrations/scopes";
 import { Button } from "@/components/ui/button";
 import type { IntegrationClientId, IntegrationScope } from "@/db/schema";
 
@@ -46,16 +47,32 @@ export function AuthorizeForm({
             </li>
           ))}
         </ul>
-        <p className="mt-5 text-sm font-medium">Choose what else to share</p>
-        <p className="text-sm text-muted-foreground">Everything below is off until you turn it on.</p>
-        <ScopeToggles
-          scopes={scopes}
-          requested={requested}
-          appName={client.name}
-          appId={client.id}
-          onChange={(id, on) => setScopes((s) => ({ ...s, [id]: on }))}
-          disabled={pending}
-        />
+        {client.id === "collaborate" || client.id === "avasar" ? (
+          <>
+            <p className="mt-5 text-sm font-medium">{client.name} also receives</p>
+            <ul className="mt-2 space-y-1.5 text-sm">
+              {scopesForApp(client.id).map((s) => (
+                <li key={s.id} className="flex items-start gap-2">
+                  <Check aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                  {s.label.replace(/^Share /, "")}
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : (
+          <>
+            <p className="mt-5 text-sm font-medium">Choose what else to share</p>
+            <p className="text-sm text-muted-foreground">Everything below is off until you turn it on.</p>
+            <ScopeToggles
+              scopes={scopes}
+              requested={requested}
+              appName={client.name}
+              appId={client.id}
+              onChange={(id, on) => setScopes((s) => ({ ...s, [id]: on }))}
+              disabled={pending}
+            />
+          </>
+        )}
         <p className="mt-4 text-sm text-muted-foreground">
           You can change this or disconnect at any time in Settings → Integrations. Your phone number and resume file are never shared.
         </p>

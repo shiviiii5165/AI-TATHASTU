@@ -132,25 +132,24 @@ describe("member discovery opt-in (Show me in Collaborate discovery), peers: tru
     return new Set(rows.map((r) => r.id));
   };
 
-  it("a student sees opted-in students plus mentors, and only those", async () => {
+  it("open profiles: a student sees every active member, consent choices no longer matter", async () => {
     const seen = await visiblePeers({ id: P.viewerStudent, role: "student" });
-    expect(seen.has(Q.optedIn)).toBe(true);
-    expect(seen.has(P.faculty)).toBe(true);
-    for (const hidden of [Q.optedOff, Q.optedRevoked, Q.optedNoLink, Q.optedDeleted, P.missing, P.denied]) expect(seen.has(hidden)).toBe(false);
+    for (const shown of [Q.optedIn, Q.optedOff, Q.optedRevoked, Q.optedNoLink, P.faculty, P.missing, P.denied]) expect(seen.has(shown)).toBe(true);
+    expect(seen.has(Q.optedDeleted)).toBe(false);
+    expect(seen.has(P.deletedFaculty)).toBe(false);
   });
 
-  it("never the viewer themself, even when they opted in", async () => {
+  it("never the viewer themself", async () => {
     expect((await visiblePeers({ id: Q.viewerOptedIn, role: "student" })).has(Q.viewerOptedIn)).toBe(false);
   });
 
-  it("mentors see opted-in students in addition to mentor_discovery students", async () => {
+  it("mentors see every active member too", async () => {
     const seen = await visiblePeers({ id: P.viewerFaculty, role: "faculty" });
-    expect(seen.has(Q.optedIn)).toBe(true);
-    expect(seen.has(P.granted)).toBe(true);
-    expect(seen.has(Q.optedOff)).toBe(false);
+    expect(seen.has(Q.optedOff)).toBe(true);
+    expect(seen.has(P.denied)).toBe(true);
+    expect(seen.has(P.viewerFaculty)).toBe(false);
   });
-
-  it("without peers: true (search, Yora, the People page) nothing changes", async () => {
+  it("without peers: true (search, Yora) the mentor_discovery rules still apply", async () => {
     const seen = await visibleTo({ id: P.viewerStudent, role: "student" });
     expect(seen.has(Q.optedIn)).toBe(false);
   });

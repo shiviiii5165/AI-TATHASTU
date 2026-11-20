@@ -1,11 +1,11 @@
 import "server-only";
 
-import { and, eq, isNull, lt, notExists, or, sql } from "drizzle-orm";
+import { and, eq, isNotNull, isNull, lt, notExists, or, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { connections, integrationConsents, users, type ConsentSource, type IntegrationClientId } from "@/db/schema";
 import { queueConnectorSync } from "@/lib/connectors/connections";
-import { defaultScopesFor, getConsent, saveConsent } from "@/lib/integrations/consent";
+import { CONSENT_POLICY_VERSION, defaultScopesFor, getConsent, matchesPolicy, saveConsent } from "@/lib/integrations/consent";
 import { markSyncPending } from "@/lib/integrations/sync-state";
 import { enqueueProfileUpdated } from "@/lib/integrations/webhooks";
 import { wakeWorker } from "@/lib/worker-ping";
@@ -27,15 +27,19 @@ import { wakeWorker } from "@/lib/worker-ping";
 export const AUTO_PROVISION_CLIENTS = ["collaborate", "avasar"] as const satisfies readonly IntegrationClientId[];
 export type AutoProvisionClient = (typeof AUTO_PROVISION_CLIENTS)[number];
 
-const flag = (client: AutoProvisionClient, suffix = "") => process.env[`${client.toUpperCase()}_AUTO_PROVISION${suffix}`] === "1";
+// Consent policy v4: on unless switched off with <APP>_AUTO_PROVISION=0 (an operator kill switch, not a user choice).
+const flag = (client: AutoProvisionClient, suffix = "") => process.env[`${client.toUpperCase()}_AUTO_PROVISION${suffix}`] !== "0";
 export const autoProvisionEnabled = (client: AutoProvisionClient = "collaborate") => flag(client);
-export const backfillEnabled = (client: AutoProvisionClient) =>
-  client === "collaborate" ? flag(client) || flag(client, "_BACKFILL") : flag(client, "_BACKFILL");
+export const backfillEnabled = (client: AutoProvisionClient) => flag(client) && flag(client, "_BACKFILL");
 
-/** Links one user to one app if they have never made a choice there. Returns true if provisioned. */
+/**
+ * Links one user to one app under consent policy v4 (every applicable section shared, linked). Idempotent: an account
+ * already on the policy is left alone. Returns true if anything changed (and the app was told).
+ */
 export async function autoProvision(userId: string, client: AutoProvisionClient, source: ConsentSource = "auto_provision"): Promise<boolean> {
-  if (await getConsent(userId, client)) return false; // an explicit choice exists: respect it
-  await saveConsent(userId, client, { scopes: defaultScopesFor(client), link: true, source });
+  const current = await getConsent(userId, client);
+  if (matchesPolicy(current, client)) return false;
+  await saveConsent(userId, client, { scopes: defaultScopesFor(client), hiddenProjects: [], link: true, source });
   await enqueueProfileUpdated(userId, "auto_provision", client);
   await markSyncPending(userId, client, "profile.updated");
   return true;
@@ -73,7 +77,16 @@ export async function pendingProvisionUsers(client: AutoProvisionClient, limit =
           db
             .select({ one: sql`1` })
             .from(integrationConsents)
-            .where(and(eq(integrationConsents.userId, users.id), eq(integrationConsents.clientId, client))),
+            .where(
+              and(
+                eq(integrationConsents.userId, users.id),
+                eq(integrationConsents.clientId, client),
+                // Policy v4: only a linked, unrevoked row on the current policy counts as done.
+                isNotNull(integrationConsents.linkedAt),
+                isNull(integrationConsents.revokedAt),
+                eq(integrationConsents.policyVersion, CONSENT_POLICY_VERSION),
+              ),
+            ),
         ),
       ),
     )

@@ -3,17 +3,14 @@
 //   npx tsx --conditions=react-server scripts/integration-sync.ts report
 //   npx tsx --conditions=react-server scripts/integration-sync.ts backfill  --client avasar [--limit 3] [--users id,id] [--apply] [--send]
 //   npx tsx --conditions=react-server scripts/integration-sync.ts repair    --client collaborate [--limit 50] [--users id,id] [--apply] [--send]
-//   npx tsx --conditions=react-server scripts/integration-sync.ts policy-v2 --client collaborate [--apply]
 //
-// backfill   links users who never made a choice for the app (consent policy v2: profile on, Career Intelligence off,
-//            source "backfill") and queues auto_provision. Oldest accounts first. Resumable: re-running skips everyone
-//            who now has a choice, so an interrupted run just continues.
+// backfill   consent policy v4: links every active account not yet on policy v4 for the app (everything shared, source
+//            "backfill") and queues auto_provision, which creates the profile in the app or updates it. Oldest first.
+//            Resumable: accounts already on policy v4 are skipped, so an interrupted run just continues.
 // repair     re-sends linked users the app has no confirmed profile for (src/lib/integrations/repair.ts). No consent change.
-// policy-v2  turns Career Intelligence (eris, activity) OFF on consents created by the earlier automatic provisioning,
-//            which shared everything. Only rows the user never set themselves (no source recorded, an auto_provision
-//            event exists, and the user never changed the toggles). Reduces sharing only.
 // --send     after --apply, sends exactly the queued rows of the selected users now (claims them one by one; other
-//            users' rows are never touched). Without it they go out with the next scheduled dispatch.
+//            users' rows are never touched; onboarded users only). Without it they go out with the next scheduled dispatch.
+// --dispatch after --apply, sends every due row now, as the daily job does (all users, onboarded or not).
 //
 // DATABASE_URL comes from the environment only. A remote host needs AIT_APPROVED_WRITE_HOST=<that host> for this run,
 // even for a dry run (it lists users). Prints counts and masked ids only.
@@ -35,8 +32,8 @@ const users = opt("users")?.split(",").map((s) => s.trim()).filter(Boolean);
 const mask = (id: string) => `${id.slice(0, 8)}…`;
 
 async function main() {
-  if (!["report", "backfill", "repair", "policy-v2"].includes(command ?? "")) {
-    console.error("Usage: report | backfill | repair | policy-v2  (see the header of this file)");
+  if (!["report", "backfill", "repair"].includes(command ?? "")) {
+    console.error("Usage: report | backfill | repair  (see the header of this file)");
     process.exit(2);
   }
   if (command !== "report" && client !== "collaborate" && client !== "avasar") throw new Error("--client collaborate|avasar is required.");
@@ -45,15 +42,26 @@ async function main() {
   console.log(`target: ${hostOf(url)} · ${command} · ${apply ? "APPLY" : "dry run"}`);
 
   // Imported after the target check: these modules connect to DATABASE_URL on import.
-  const { sql } = await import("drizzle-orm");
-  const { db } = await import("@/db");
   const { autoProvision, pendingProvisionUsers } = await import("@/lib/integrations/auto-provision");
-  const { saveConsent, CAREER_INTELLIGENCE_SCOPES, effectiveScopes } = await import("@/lib/integrations/consent");
   const { repairMissingProfiles } = await import("@/lib/integrations/repair");
   const { appSyncSummaries } = await import("@/lib/integrations/sync-admin");
   const { dispatchSelectedProfileUpdates, SELECTED_DISPATCH_MAX } = await import("@/lib/integrations/webhooks");
 
   const sendNow = async (ids: string[]) => {
+    if (has("dispatch") && apply) {
+      // Everyone's due rows, as the daily job sends them (includes users who haven't finished onboarding).
+      const { dispatchWebhooks } = await import("@/lib/integrations/webhooks");
+      const total = { delivered: 0, retrying: 0, failed: 0 };
+      for (let i = 0; i < 20; i++) {
+        const r = await dispatchWebhooks(100);
+        total.delivered += r.delivered;
+        total.retrying += r.retrying;
+        total.failed += r.failed;
+        if (r.delivered + r.retrying + r.failed === 0) break;
+      }
+      console.log(`dispatched: ${JSON.stringify(total)}`);
+      return;
+    }
     if (!send || !apply || !ids.length) return;
     for (let i = 0; i < ids.length; i += SELECTED_DISPATCH_MAX) {
       const r = await dispatchSelectedProfileUpdates(client!, ids.slice(i, i + SELECTED_DISPATCH_MAX), { apply: true });
@@ -96,31 +104,6 @@ async function main() {
     await sendNow(r.candidates.map((c) => c.userId));
     return;
   }
-
-  // policy-v2
-  const { rows } = await db.execute(sql`
-    SELECT ic.user_id::text AS user_id, ic.scopes, ic.hidden_projects
-      FROM integration_consents ic JOIN users u ON u.id = ic.user_id AND u.deleted_at IS NULL
-     WHERE ic.client_id = ${client!} AND ic.source IS NULL
-       AND ic.linked_at IS NOT NULL AND ic.revoked_at IS NULL
-       AND (ic.scopes->>'eris' = 'true' OR ic.scopes->>'activity' = 'true')
-       AND EXISTS (SELECT 1 FROM webhook_outbox w WHERE w.user_id = ic.user_id AND w.client_id = ic.client_id AND w.reason = 'auto_provision')
-       AND NOT EXISTS (SELECT 1 FROM webhook_outbox w WHERE w.user_id = ic.user_id AND w.client_id = ic.client_id AND w.reason = 'consent_changed')
-     ORDER BY u.created_at`);
-  const list = rows as { user_id: string; scopes: Record<string, boolean>; hidden_projects: string[] }[];
-  console.log(`automatic consents still sharing Career Intelligence: ${list.length}`);
-  for (const r of list) console.log(`  ${apply ? "turn off" : "would turn off"} eris/activity for ${mask(r.user_id)}`);
-  if (!apply) return console.log("Dry run. Re-run with --apply.");
-  const { enqueueProfileUpdated } = await import("@/lib/integrations/webhooks");
-  for (const r of list) {
-    const scopes = effectiveScopes({ scopes: r.scopes });
-    for (const s of CAREER_INTELLIGENCE_SCOPES) scopes[s] = false;
-    await saveConsent(r.user_id, client!, { scopes, hiddenProjects: r.hidden_projects, source: "backfill" });
-    // The app hears the narrower consent and drops what it may no longer hold.
-    await enqueueProfileUpdated(r.user_id, "consent_changed", client!);
-  }
-  console.log(`updated: ${list.length}`);
-  await sendNow(list.map((r) => r.user_id));
 }
 
 main().then(

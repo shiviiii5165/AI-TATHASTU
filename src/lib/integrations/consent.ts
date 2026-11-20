@@ -24,17 +24,29 @@ export type ScopeMap = Record<IntegrationScope, boolean>;
  *    the user. Nothing here enables it on their behalf, including to fix a failed sync.
  *  v3 (2026-11-21, owner decision): new signups are also shown in Collaborate discovery by default ("discovery", which
  *    applies to Collaborate only). Existing users keep their choice (absent = off) until they turn it on.
- * Phone numbers, resume text and credentials are never part of any section (projection.ts).
+ *  v4 (2026-11-21, owner decision, supersedes v2/v3): one connected network. Every AI Tathastu account is always
+ *    linked to Collaborate and Avsar with every section shared, Career Intelligence included, and every Collaborate
+ *    profile is public. There are no per-app sharing toggles and no disconnect; account deletion removes the person
+ *    from all three apps. Applied to existing accounts by scripts/integration-sync.ts enforce-policy.
+ * Never shared, under any policy: phone numbers, resume files and text, passwords and tokens (projection.ts), and the
+ * email address is never shown publicly by Collaborate (contact visibility).
  */
-export const CONSENT_POLICY_VERSION = 3;
+export const CONSENT_POLICY_VERSION = 4;
 export const CAREER_INTELLIGENCE_SCOPES: IntegrationScope[] = ["eris", "activity"];
 
 /** A choice that doesn't apply to this app (e.g. discovery for Avsar) is always stored as off. */
 const appliesTo = (scope: IntegrationScope, clientId: IntegrationClientId) => scopesForApp(clientId).some((s) => s.id === scope);
 
-/** The starting choices for an app when the user hasn't chosen (signup and backfill). */
+/** What policy v4 shares with an app: every section that applies to it. */
 export function defaultScopesFor(clientId: IntegrationClientId): ScopeMap {
-  return Object.fromEntries(SCOPE_IDS.map((s) => [s, appliesTo(s, clientId) && !CAREER_INTELLIGENCE_SCOPES.includes(s)])) as ScopeMap;
+  return Object.fromEntries(SCOPE_IDS.map((s) => [s, appliesTo(s, clientId)])) as ScopeMap;
+}
+
+/** True when a consent row already matches policy v4 (linked, not revoked, every applicable section on). */
+export function matchesPolicy(row: IntegrationConsent | null, clientId: IntegrationClientId): boolean {
+  if (!row?.linkedAt || row.revokedAt || row.policyVersion !== CONSENT_POLICY_VERSION) return false;
+  const want = defaultScopesFor(clientId);
+  return SCOPE_IDS.every((s) => (row.scopes[s] === true) === want[s]);
 }
 /** @deprecated policy v2 defaults without discovery; use defaultScopesFor(clientId). */
 export const DEFAULT_SHARED_SCOPES = Object.fromEntries(

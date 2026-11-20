@@ -39,10 +39,11 @@ beforeAll(async () => {
 });
 
 describe("similarPeople on real Postgres", () => {
-  it("peers + includeUnmatched: ranked first, then people without an embedding; no private, deleted, self or duplicates", async () => {
+  it("peers + includeUnmatched (open profiles): every active member, ranked first, then people without an embedding; no deleted, self or duplicates", async () => {
     const got = await similarPeople({ id: ids.viewer, role: "student" }, 10, { peers: true, includeUnmatched: true });
     const names = got.map((p) => p.name);
-    expect(names).toEqual(["peerClose", "mentor", "peerNoEmb"]);
+    expect(names.slice(0, 3)).toEqual(["peerPrivate", "peerClose", "mentor"]); // ranked by similarity
+    expect(new Set(names.slice(3))).toEqual(new Set(["peerNoEmb", "viewerNoEmb"])); // no embedding yet: after
     expect(got.find((p) => p.name === "peerNoEmb")!.similarity).toBeNull();
     expect(new Set(names).size).toBe(names.length);
   });
@@ -52,7 +53,7 @@ describe("similarPeople on real Postgres", () => {
     expect(got.length).toBeGreaterThanOrEqual(3);
     expect(got.every((p) => p.similarity === null)).toBe(true);
     expect(["viewer", "mentor", "peerNoEmb"]).toContain(got[0].name); // all at LPU, ranked before peerClose
-    expect(got.at(-1)!.name).toBe("peerClose"); // the only one not at LPU comes last
+    expect(new Set(got.slice(-2).map((p) => p.name))).toEqual(new Set(["peerClose", "peerPrivate"])); // not at LPU: last
     expect(got.map((p) => p.name)).not.toContain("viewerNoEmb");
   });
 
