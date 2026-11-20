@@ -40,7 +40,7 @@ const { mintAccessToken } = await import("@/lib/integrations/tokens");
 const A = "00000000-0000-4000-8000-0000000000a1";
 const B = "00000000-0000-4000-8000-0000000000b2";
 const REDIRECT = "https://collaborate.aitathastu.com/auth/callback";
-const ALL_OFF = { education: false, skills: false, eris: false, projects: false, experience: false, achievements: false, activity: false };
+const ALL_OFF = { education: false, skills: false, eris: false, projects: false, experience: false, achievements: false, activity: false, discovery: false };
 
 async function seed(id: string, name: string) {
   await db.insert(schema.users).values({ id, name, email: `${name.toLowerCase()}@example.com`, city: "Pune", country: "India" });

@@ -50,7 +50,7 @@ const REDIRECT = "https://collaborate.aitathastu.com/api/auth/tathastu/callback"
 const SECRET = process.env.INTEGRATION_COLLABORATE_CLIENT_SECRET!;
 const VERIFIER = "w".repeat(64);
 const CHALLENGE = createHash("sha256").update(VERIFIER).digest("base64url");
-const ALL_OFF = { education: false, skills: false, eris: false, projects: false, experience: false, achievements: false, activity: false };
+const ALL_OFF = { education: false, skills: false, eris: false, projects: false, experience: false, achievements: false, activity: false, discovery: false };
 
 const setFlag = (key: string, enabled: boolean) => db.update(schema.featureFlags).set({ enabled }).where(eq(schema.featureFlags.key, key));
 

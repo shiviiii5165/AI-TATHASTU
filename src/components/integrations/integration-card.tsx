@@ -166,6 +166,7 @@ export function IntegrationCard({ card, projects }: { card: IntegrationCardView;
           scopes={scopes}
           requested={card.requested}
           appName={card.name}
+          appId={card.id}
           disabled={disconnecting}
           onChange={(id, on) => {
             const next = { ...scopes, [id]: on };

@@ -77,7 +77,7 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("signup provisions both apps", () => {
-  it("creates a linked consent for Collaborate AND Avsar with policy v2, logs it, and both apps get auto_provision", async () => {
+  it("creates a linked consent for Collaborate AND Avsar with policy v3, logs it, and both apps get auto_provision", async () => {
     const id = await user();
     answers[`collaborate:${id}`] = [{ outcome: "created" }];
     answers[`avasar:${id}`] = [{ outcome: "created" }];
@@ -92,11 +92,18 @@ describe("signup provisions both apps", () => {
     }
     const log = await db.select().from(schema.integrationConsentLog).where(eq(schema.integrationConsentLog.userId, id));
     expect(log.map((l) => [l.clientId, l.source, l.policyVersion, l.linked]).sort()).toEqual([
-      ["avasar", "auto_provision", 2, true],
-      ["collaborate", "auto_provision", 2, true],
+      ["avasar", "auto_provision", 3, true],
+      ["collaborate", "auto_provision", 3, true],
     ]);
+    // Owner decision: new users are discoverable on Collaborate by default; the choice doesn't exist for Avsar.
+    expect((await getConsent(id, "collaborate"))!.scopes.discovery).toBe(true);
+    expect((await getConsent(id, "avasar"))!.scopes.discovery).toBe(false);
     await dispatchWebhooks(100);
     expect(sent.filter((s) => s.userId === id).map((s) => `${s.app}:${s.reason}`).sort()).toEqual(["avasar:auto_provision", "collaborate:auto_provision"]);
+    // Collaborate receives the discovery choice; Avsar's copy says off.
+    const scopesSentTo = (app: string) => (sent.find((s) => s.userId === id && s.app === app)!.body.data as { profile: { privacy: { scopes: Record<string, boolean> } } }).profile.privacy.scopes;
+    expect(scopesSentTo("collaborate").discovery).toBe(true);
+    expect(scopesSentTo("avasar").discovery).toBe(false);
     expect((await state(id, "collaborate"))?.status).toBe("synced");
     expect((await state(id, "avasar"))?.status).toBe("synced");
     expect((await state(id, "avasar"))?.lastSuccessAt).toBeTruthy();
@@ -273,6 +280,20 @@ describe("consent", () => {
     const id = await user();
     await saveConsent(id, "avasar", { scopes: { skills: true } as never, link: true });
     await expect(db.update(schema.integrationConsentLog).set({ source: "user" }).where(eq(schema.integrationConsentLog.userId, id))).rejects.toThrow();
+  });
+
+  it("a choice that doesn't apply to an app is never stored (discovery for Avsar)", async () => {
+    const id = await user();
+    await saveConsent(id, "avasar", { scopes: { skills: true, discovery: true } as never, link: true });
+    expect((await getConsent(id, "avasar"))!.scopes.discovery).toBe(false);
+    await saveConsent(id, "collaborate", { scopes: { skills: true, discovery: true } as never, link: true });
+    expect((await getConsent(id, "collaborate"))!.scopes.discovery).toBe(true);
+  });
+
+  it("existing users (backfill) also start discoverable only under policy v3; earlier consents keep discovery off", async () => {
+    const old = await user();
+    await db.insert(schema.integrationConsents).values({ userId: old, clientId: "collaborate", scopes: { skills: true }, linkedAt: new Date() });
+    expect((await getConsent(old, "collaborate"))!.scopes.discovery).toBeUndefined(); // absent = off
   });
 
   it("auto-provisioning never overrides an explicit choice, even one that shares nothing", async () => {

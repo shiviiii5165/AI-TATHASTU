@@ -30,9 +30,11 @@ export async function GET() {
     const viewer = await viewerFor(session.user.id);
     if (!viewer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    // Only discoverable people (mentor_discovery consent), ranked by embedding similarity.
+    // Only discoverable people: mentors, students with mentor_discovery consent (for mentors), and members who turned on
+    // "Show me in Collaborate discovery". Ranked by embedding similarity; people the matcher can't rank yet (no
+    // embedding on either side) are still listed after them, so an incomplete profile never empties the card.
     const [people, [me]] = await Promise.all([
-      similarPeople(viewer, PREVIEW_LIMIT),
+      similarPeople(viewer, PREVIEW_LIMIT, { peers: true, includeUnmatched: true }),
       db
         .select({ summary: collaborationEmbeddings.profileSummary, institution: users.university })
         .from(users)
@@ -41,7 +43,6 @@ export async function GET() {
     ]);
     const mine = { skills: summarySkills(me?.summary), institution: me?.institution ?? null };
     const matches = people
-      .filter((p) => p.similarity !== null)
       .slice(0, PREVIEW_LIMIT)
       .map((p) => ({
         id: p.id,
@@ -50,7 +51,7 @@ export async function GET() {
         institution: p.institution,
         department: p.department,
         // One real reason, from what discoverable people agreed to share (skills, university). No percentages.
-        reason: relevanceReason(mine, { skills: summarySkills(p.summary), institution: p.institution }),
+        reason: relevanceReason(mine, { skills: summarySkills(p.summary), institution: p.institution }, { ranked: p.similarity !== null }),
         initials: (p.name || "AT")
           .split(/\s+/)
           .map((n) => n[0])

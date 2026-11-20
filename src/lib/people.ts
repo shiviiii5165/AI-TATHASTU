@@ -30,10 +30,15 @@ export type SimilarPerson = {
  * relaxed_order got 13/24), which needs a batch transaction to SET LOCAL and
  * pgvector >= 0.8 on Neon.
  */
-export async function similarPeople(viewer: Viewer, limit: number): Promise<SimilarPerson[]> {
+export async function similarPeople(
+  viewer: Viewer,
+  limit: number,
+  { peers = false, includeUnmatched = false }: { peers?: boolean; includeUnmatched?: boolean } = {},
+): Promise<SimilarPerson[]> {
   const viewerVec = sql`(select ${ce.embedding} from ${ce} where ${ce.userId} = ${viewer.id})`;
   const distance = sql<number | null>`(${ce.embedding} <=> ${viewerVec})::float`;
-  const rows = await db
+  const sameInstitution = sql`(lower(${users.university}) = (select lower(v.university) from ${users} v where v.id = ${viewer.id}))`;
+  const base = db
     .select({
       id: users.id,
       name: users.name,
@@ -43,10 +48,13 @@ export async function similarPeople(viewer: Viewer, limit: number): Promise<Simi
       summary: ce.profileSummary,
       distance,
     })
-    .from(ce)
-    .innerJoin(users, eq(users.id, ce.userId))
-    .where(and(discoverableBy(viewer), isNotNull(ce.embedding)))
-    .orderBy(sql`${distance} + 0 asc nulls last`)
+    .from(users)
+    // includeUnmatched: people without a collaboration embedding yet (new or incomplete profiles) are still listed,
+    // after everyone who can be ranked by similarity, same university first. Otherwise only ranked people.
+    [includeUnmatched ? "leftJoin" : "innerJoin"](ce, eq(ce.userId, users.id));
+  const rows = await base
+    .where(and(discoverableBy(viewer, { peers }), includeUnmatched ? undefined : isNotNull(ce.embedding)))
+    .orderBy(sql`${distance} + 0 asc nulls last`, sql`${sameInstitution} desc nulls last`, users.createdAt)
     .limit(limit);
   return rows.map(({ distance: d, ...r }) => ({
     ...r,

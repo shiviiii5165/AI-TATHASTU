@@ -501,7 +501,9 @@ export type IntegrationScope =
   | "projects"
   | "experience"
   | "achievements"
-  | "activity";
+  | "activity"
+  // Not a data section: "Show me in Collaborate discovery" (Collaborate only). Sent as privacy.scopes.discovery.
+  | "discovery";
 
 /**
  * What the user lets each app see, field group by field group. Identity

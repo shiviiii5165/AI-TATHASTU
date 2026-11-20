@@ -6,7 +6,7 @@ import { useState, useTransition } from "react";
 import { approveIntegration, denyIntegration } from "@/app/integrations/authorize/actions";
 import { ScopeToggles } from "@/components/integrations/scope-toggles";
 import { Button } from "@/components/ui/button";
-import type { IntegrationScope } from "@/db/schema";
+import type { IntegrationClientId, IntegrationScope } from "@/db/schema";
 
 export function AuthorizeForm({
   query,
@@ -16,7 +16,7 @@ export function AuthorizeForm({
   email,
 }: {
   query: string;
-  client: { id: string; name: string; description: string; host: string };
+  client: { id: IntegrationClientId; name: string; description: string; host: string };
   initialScopes: Record<IntegrationScope, boolean>;
   requested: IntegrationScope[];
   email: string | null;
@@ -52,6 +52,7 @@ export function AuthorizeForm({
           scopes={scopes}
           requested={requested}
           appName={client.name}
+          appId={client.id}
           onChange={(id, on) => setScopes((s) => ({ ...s, [id]: on }))}
           disabled={pending}
         />

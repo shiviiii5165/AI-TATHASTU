@@ -43,10 +43,10 @@ describe("Collaborate auto-provisioning", () => {
     const c = await getConsent(id, "collaborate");
     expect(c?.linkedAt).toBeTruthy();
     expect(c?.revokedAt).toBeNull();
-    // Consent policy v2: basic and professional profile shared by default; readiness/gaps and activity never.
-    expect(c!.scopes).toEqual({ skills: true, projects: true, experience: true, education: true, achievements: true, eris: false, activity: false });
+    // Consent policy v3: basic and professional profile shared and discoverable by default; readiness/gaps and activity never.
+    expect(c!.scopes).toEqual({ skills: true, projects: true, experience: true, education: true, achievements: true, eris: false, activity: false, discovery: true });
     expect(c!.source).toBe("auto_provision");
-    expect(c!.policyVersion).toBe(2);
+    expect(c!.policyVersion).toBe(3);
     const rows = await outbox(id);
     expect(rows.some((r) => r.event === "profile.updated" && r.reason === "auto_provision")).toBe(true);
   });

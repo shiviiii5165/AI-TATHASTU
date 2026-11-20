@@ -1,13 +1,14 @@
 "use client";
 
 import { Switch } from "@/components/ui/switch";
-import type { IntegrationScope } from "@/db/schema";
-import { SCOPE_COPY } from "@/lib/integrations/scopes";
+import type { IntegrationClientId, IntegrationScope } from "@/db/schema";
+import { scopesForApp } from "@/lib/integrations/scopes";
 
 export function ScopeToggles({
   scopes,
   requested = [],
   appName,
+  appId,
   onChange,
   disabled,
   idPrefix = "scope",
@@ -15,13 +16,15 @@ export function ScopeToggles({
   scopes: Record<IntegrationScope, boolean>;
   requested?: IntegrationScope[];
   appName?: string;
+  /** Show only the choices that apply to this app (e.g. discovery is Collaborate's). */
+  appId?: IntegrationClientId;
   onChange: (id: IntegrationScope, on: boolean) => void;
   disabled?: boolean;
   idPrefix?: string;
 }) {
   return (
     <ul className="mt-2 divide-y">
-      {SCOPE_COPY.map((s) => {
+      {scopesForApp(appId).map((s) => {
         const id = `${idPrefix}-${s.id}`;
         const blocked = s.id === "eris" && !scopes.skills;
         return (

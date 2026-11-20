@@ -5,7 +5,7 @@ import { and, eq, isNull, lt, notExists, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { connections, integrationConsents, users, type ConsentSource, type IntegrationClientId } from "@/db/schema";
 import { queueConnectorSync } from "@/lib/connectors/connections";
-import { getConsent, saveConsent, DEFAULT_SHARED_SCOPES } from "@/lib/integrations/consent";
+import { defaultScopesFor, getConsent, saveConsent } from "@/lib/integrations/consent";
 import { markSyncPending } from "@/lib/integrations/sync-state";
 import { enqueueProfileUpdated } from "@/lib/integrations/webhooks";
 import { wakeWorker } from "@/lib/worker-ping";
@@ -35,7 +35,7 @@ export const backfillEnabled = (client: AutoProvisionClient) =>
 /** Links one user to one app if they have never made a choice there. Returns true if provisioned. */
 export async function autoProvision(userId: string, client: AutoProvisionClient, source: ConsentSource = "auto_provision"): Promise<boolean> {
   if (await getConsent(userId, client)) return false; // an explicit choice exists: respect it
-  await saveConsent(userId, client, { scopes: DEFAULT_SHARED_SCOPES, link: true, source });
+  await saveConsent(userId, client, { scopes: defaultScopesFor(client), link: true, source });
   await enqueueProfileUpdated(userId, "auto_provision", client);
   await markSyncPending(userId, client, "profile.updated");
   return true;

@@ -21,10 +21,15 @@ const list = (xs: string[]) => (xs.length <= 1 ? (xs[0] ?? "") : `${xs.slice(0, 
  * One genuine reason, best first: skills you both list, then the same university, then the plain fact that the
  * matcher found your profiles close. Never a percentage or anything the person didn't agree to share.
  */
-export function relevanceReason(viewer: { skills: string[]; institution: string | null }, person: { skills: string[]; institution: string | null }): string {
+export function relevanceReason(
+  viewer: { skills: string[]; institution: string | null },
+  person: { skills: string[]; institution: string | null },
+  { ranked = true }: { ranked?: boolean } = {},
+): string {
   const mine = new Map(viewer.skills.map((s) => [s.toLowerCase(), s]));
   const shared = person.skills.filter((s) => mine.has(s.toLowerCase())).slice(0, 3);
   if (shared.length) return `You both work with ${list(shared)}`;
   if (viewer.institution && person.institution && viewer.institution.trim().toLowerCase() === person.institution.trim().toLowerCase()) return `Also at ${person.institution}`;
-  return "Similar skills and goals to yours";
+  // Only claim similarity when the matcher actually compared the two profiles.
+  return ranked ? "Similar skills and goals to yours" : "Open to connecting on AI Tathastu";
 }

@@ -39,7 +39,7 @@ const REDIRECT = "https://collaborate.aitathastu.com/auth/callback";
 const SECRET = process.env.INTEGRATION_COLLABORATE_CLIENT_SECRET!;
 const VERIFIER = "a".repeat(64);
 const CHALLENGE = createHash("sha256").update(VERIFIER).digest("base64url");
-const OFF = { education: false, skills: false, eris: false, projects: false, experience: false, achievements: false, activity: false };
+const OFF = { education: false, skills: false, eris: false, projects: false, experience: false, achievements: false, activity: false, discovery: false };
 let next = 1;
 let user: string;
 
