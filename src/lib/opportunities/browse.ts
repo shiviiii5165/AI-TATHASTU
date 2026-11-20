@@ -7,15 +7,17 @@
  * (viewed, opened the official destination, told us they applied); an external submission is never
  * claimed as verified.
  */
-import { and, desc, eq, gt, ilike, inArray, isNotNull, lte, ne, or, sql, type SQL } from "drizzle-orm";
+import { and, desc, eq, gt, ilike, isNotNull, lte, or, sql, type SQL } from "drizzle-orm";
 
 import { opportunities, opportunityInteractions, opportunitySaves, opportunitySources, profileViews, users, type OpportunityDetails } from "@/db/schema";
 
 import { explainFit, type FitExplanation, type FitState, type StudentSignals } from "./fit";
 import type { OppDb } from "./ingest";
-import { buildStudentSignals, recommendableWhere } from "./recommend";
+import type { ListingInsight, Position } from "./insight";
+import { buildStudentSignals, insightOf, recommendableWhere } from "./recommend";
 
 export const SECTIONS = {
+  all: "All opportunities",
   recommended: "Recommended for you",
   internships: "Research internships & programmes",
   assistant: "Research / Project Assistant",
@@ -26,7 +28,6 @@ export const SECTIONS = {
   government: "Government research",
   international: "International",
   saved: "Saved",
-  all: "All opportunities",
 } as const;
 export type Section = keyof typeof SECTIONS;
 
@@ -72,6 +73,8 @@ export interface OpportunityView {
   publishedAt: string | null;
   apply: ApplyMode;
   fit: FitExplanation;
+  /** Derived signals (insight.ts): position, fields, topics, typical stage, with what each was read from. */
+  insight: ListingInsight;
   saved: boolean;
   remind: boolean;
   /** What the student did here; never an externally verified submission. */
@@ -80,9 +83,6 @@ export interface OpportunityView {
 
 // Government programmes and funders as named by the source (title, organisation or extracted details).
 // PostgreSQL regex: \y is a word boundary (\b would mean backspace there).
-/** JRF / SRF positions (PostgreSQL \m and \M are word start and end). */
-const JRF_SRF_PG = "\\m(jrf|srf)\\M|junior research fellow|senior research fellow";
-const GOVERNMENT_PG = "\\y(csir|dst|anrf|serb|isro|drdo|icmr|icar|dbt|barc|meity|nqm|national quantum mission|government|ministry)\\y";
 const ORDER: Record<FitState, number> = { strong_fit: 0, potential_fit: 1, insufficient_information: 2, not_eligible: 3 };
 
 /** Where Apply may go, strictly from what the source published. No URL or address is ever constructed. */
@@ -97,7 +97,7 @@ export function applyModeOf(o: { applicationMethod: string; applicationUrl: stri
 /** The signed-in student's signals from the Intelligence Engine's stored output (same inputs as the dashboard). */
 export async function loadStudentSignals(db: OppDb, userId: string): Promise<StudentSignals> {
   const [row] = await db
-    .select({ view: profileViews.view, degree: users.degree })
+    .select({ view: profileViews.view, degree: users.degree, specialization: users.specialization })
     .from(users)
     .leftJoin(profileViews, eq(profileViews.userId, users.id))
     .where(eq(users.id, userId))
@@ -105,7 +105,7 @@ export async function loadStudentSignals(db: OppDb, userId: string): Promise<Stu
   const view = row?.view as { intelligence?: { skills?: { name: string; proficiency: number | null; level: string | null }[] }; skills?: { name: string }[] } | null;
   const intelligenceSkills = (view?.intelligence?.skills ?? []).filter((s) => s && typeof s.name === "string");
   const skills = (view?.skills ?? []).filter((s) => s && typeof s.name === "string").map((s) => ({ name: s.name }));
-  return buildStudentSignals({ skills, intelligenceSkills, degree: row?.degree ?? null });
+  return buildStudentSignals({ skills, intelligenceSkills, degree: row?.degree ?? null, specialization: row?.specialization ?? null });
 }
 
 function filterWhere(f: BrowseFilters, now: Date): SQL {
@@ -120,38 +120,33 @@ function filterWhere(f: BrowseFilters, now: Date): SQL {
   if (f.closingWithinDays) where.push(and(isNotNull(opportunities.deadlineAt), lte(opportunities.deadlineAt, new Date(now.getTime() + f.closingWithinDays * 86_400_000))));
   if (f.stipendPublished) where.push(sql`${opportunities.details} ? 'stipend'`);
   if (f.educationLevel) where.push(sql`${opportunities.details}->'educationLevels'->'value' ? ${f.educationLevel}`);
-  switch (f.section) {
-    case "internships":
-      where.push(or(eq(opportunities.kind, "research_internship"), sql`${opportunities.title} ~* '(summer|winter) (research|school|programme|program|internship)|visiting student|internship'`));
-      break;
-    case "assistant":
-      where.push(and(eq(opportunities.kind, "research_assistant"), sql`${opportunities.title} !~* ${JRF_SRF_PG}`));
-      break;
-    case "jrf_srf":
-      where.push(sql`${opportunities.title} ~* ${JRF_SRF_PG}`);
-      break;
-    case "fellowships":
-      where.push(and(eq(opportunities.kind, "fellowship"), sql`${opportunities.title} !~* 'post-?doc'`));
-      break;
-    case "phd":
-      where.push(eq(opportunities.kind, "phd_position"));
-      break;
-    case "postdoc":
-      where.push(sql`${opportunities.title} ~* 'post-?doc'`);
-      break;
-    case "government":
-      where.push(or(sql`${opportunities.organization} ~* ${GOVERNMENT_PG}`, sql`${opportunities.title} ~* ${GOVERNMENT_PG}`, sql`${opportunities.description} ~* ${GOVERNMENT_PG}`, sql`${opportunities.details}::text ~* ${GOVERNMENT_PG}`));
-      break;
-    case "international":
-      where.push(and(isNotNull(opportunities.country), ne(opportunities.country, "India")));
-      break;
-  }
+  // Sections are decided on the listing intelligence (inSection below), not on the source's own category, which is
+  // often missing or wrong (postdocs filed as fellowships, a PhD category for a postdoc fellowship).
   return and(...where)!;
+}
+
+const GOVERNMENT_RE = /\b(csir|dst|anrf|serb|isro|drdo|icmr|icar|dbt|barc|meity|nqm|national quantum mission|government|ministry)\b/i;
+const SECTION_POSITIONS: Partial<Record<Section, Position[]>> = {
+  internships: ["internship"],
+  assistant: ["project_assistant", "research_associate", "project_scientist", "scientist"],
+  jrf_srf: ["jrf", "srf"],
+  fellowships: ["fellowship"],
+  phd: ["phd"],
+  postdoc: ["postdoc"],
+};
+
+/** Whether a listing belongs in a section, from its derived position, country and the funders it names. */
+export function inSection(section: Section, v: OpportunityView, insight: ListingInsight): boolean {
+  const positions = SECTION_POSITIONS[section];
+  if (positions) return positions.includes(insight.position);
+  if (section === "government") return GOVERNMENT_RE.test([v.organization, v.title, v.description, JSON.stringify(v.details ?? {})].join(" "));
+  if (section === "international") return Boolean(v.country) && v.country !== "India";
+  return true; // all, recommended (filtered by fit), saved (filtered by saves)
 }
 
 type Row = typeof opportunities.$inferSelect;
 
-function toView(o: Row, sourceName: string, sourceUrl: string | null, student: StudentSignals, extra: { saved?: boolean; remind?: boolean; opened?: boolean; confirmed?: boolean } = {}): OpportunityView {
+function toView(o: Row, sourceName: string, sourceUrl: string | null, student: StudentSignals, extra: { saved?: boolean; remind?: boolean; opened?: boolean; confirmed?: boolean } = {}, insight: ListingInsight = insightOf(o)): OpportunityView {
   return {
     id: o.id,
     title: o.title,
@@ -175,7 +170,8 @@ function toView(o: Row, sourceName: string, sourceUrl: string | null, student: S
     lastVerifiedAt: o.lastVerifiedAt!.toISOString(),
     publishedAt: o.publishedAt ? o.publishedAt.toISOString() : null,
     apply: applyModeOf(o),
-    fit: explainFit({ requiredSkills: o.requiredSkills, eligibleLevels: o.eligibleLevels, eligibility: o.eligibility ?? o.details?.qualifications?.value ?? null, topicText: [o.title, o.details?.researchArea?.value, o.details?.qualifications?.value, o.description].filter(Boolean).join(" ") }, student),
+    fit: explainFit({ requiredSkills: o.requiredSkills, eligibleLevels: o.eligibleLevels, eligibility: o.eligibility ?? o.details?.qualifications?.value ?? null, topicText: [o.title, o.details?.researchArea?.value, o.details?.qualifications?.value, o.description].filter(Boolean).join(" "), insight }, student),
+    insight,
     saved: Boolean(extra.saved),
     remind: Boolean(extra.remind),
     interactions: { opened: Boolean(extra.opened), confirmedApplied: Boolean(extra.confirmed) },
@@ -183,13 +179,9 @@ function toView(o: Row, sourceName: string, sourceUrl: string | null, student: S
 }
 
 export async function browseOpportunities(db: OppDb, userId: string | null, student: StudentSignals, f: BrowseFilters = {}, now = new Date()) {
-  let where = filterWhere(f, now);
+  const where = filterWhere(f, now);
   let saves: { opportunityId: string; remind: boolean }[] = [];
   if (userId) saves = await db.select({ opportunityId: opportunitySaves.opportunityId, remind: opportunitySaves.remind }).from(opportunitySaves).where(eq(opportunitySaves.userId, userId));
-  if (f.section === "saved") {
-    if (!saves.length) return { items: [] as OpportunityView[], facets: { organizations: [] as string[], countries: [] as string[], workModes: [] as string[] } };
-    where = and(where, inArray(opportunities.id, saves.map((s) => s.opportunityId)))!;
-  }
   const rows = await db
     .select({ o: opportunities, sourceName: opportunitySources.name, sourceUrl: opportunitySources.url })
     .from(opportunities)
@@ -198,13 +190,27 @@ export async function browseOpportunities(db: OppDb, userId: string | null, stud
     .orderBy(sql`${opportunities.deadlineAt} asc nulls last`, desc(opportunities.lastVerifiedAt))
     .limit(200);
   const saveMap = new Map(saves.map((s) => [s.opportunityId, s.remind]));
-  let items = rows.map(({ o, sourceName, sourceUrl }) => toView(o, sourceName, sourceUrl, student, { saved: saveMap.has(o.id), remind: saveMap.get(o.id) ?? false }));
-  if (f.section === "recommended") items = items.filter((i) => i.fit.state === "strong_fit" || i.fit.state === "potential_fit");
+  // Every listing gets its intelligence once; non-research roles (an animal welfare officer on a research feed) are dropped.
+  const all = rows
+    .map(({ o, sourceName, sourceUrl }) => {
+      const insight = insightOf(o);
+      return { view: toView(o, sourceName, sourceUrl, student, { saved: saveMap.has(o.id), remind: saveMap.get(o.id) ?? false }, insight), insight };
+    })
+    .filter((x) => x.insight.position !== "non_research");
+  const recommended = (v: OpportunityView) => (v.fit.state === "strong_fit" || v.fit.state === "potential_fit") && v.fit.relevance?.stage !== "later";
+  // Counts per section over the same filters, so the tabs say how many each holds and empty ones can be told apart.
+  const counts = Object.fromEntries(
+    (Object.keys(SECTIONS) as Section[]).map((s) => [s, s === "saved" ? all.filter((x) => x.view.saved).length : all.filter((x) => (s === "recommended" ? recommended(x.view) : inSection(s, x.view, x.insight))).length]),
+  ) as Record<Section, number>;
+  const section = f.section ?? "all";
+  let items = all.filter((x) => (section === "saved" ? x.view.saved : inSection(section, x.view, x.insight))).map((x) => x.view);
+  if (section === "recommended") items = items.filter(recommended);
   items.sort((a, b) => ORDER[a.fit.state] - ORDER[b.fit.state]);
   // Facets from the verified catalogue itself (never a fixed list).
   const facetRows = await db.selectDistinct({ organization: opportunities.organization, country: opportunities.country, workMode: opportunities.workMode }).from(opportunities).where(and(recommendableWhere(now), eq(opportunities.type, "research")));
   return {
     items,
+    counts,
     facets: {
       organizations: [...new Set(facetRows.map((r) => r.organization))].sort(),
       countries: [...new Set(facetRows.map((r) => r.country).filter((c): c is string => Boolean(c)))].sort(),

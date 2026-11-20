@@ -12,6 +12,8 @@
  * on your profile", never "you lack it". This informs the student; it never decides for an employer
  * or institution.
  */
+import { type ListingInsight, stageFit } from "./insight";
+
 export type FitState = "strong_fit" | "potential_fit" | "not_eligible" | "insufficient_information";
 export type StudyLevel = "secondary" | "undergraduate" | "postgraduate" | "doctoral";
 
@@ -19,6 +21,8 @@ export interface StudentSignals {
   demonstrated: Map<string, string>; // lower-case name -> display name
   listed: Map<string, string>;
   level: StudyLevel | null;
+  /** Fields from the student's degree, specialisation and skills (insight.studentDisciplines). */
+  disciplines?: string[];
 }
 
 export interface FitExplanation {
@@ -29,6 +33,8 @@ export interface FitExplanation {
   /** Required skills not shown on the profile (unverified, not "lacking"). */
   notShown: string[];
   eligibility: { status: "met" | "not_met" | "not_stated" | "unknown"; detail: string };
+  /** From the listing intelligence layer (insight.ts) when the listing names no skills. Typical, never a published rule. */
+  relevance?: { disciplines: string[]; topics: string[]; stage: "suitable" | "next_step" | "later" | "unknown"; stageNote: string | null; position: string };
 }
 
 const LEVEL_PATTERNS: [StudyLevel, RegExp][] = [
@@ -48,7 +54,11 @@ export function studyLevel(degree: string | null | undefined): StudyLevel | null
 const norm = (s: string) => s.trim().toLowerCase();
 
 export function explainFit(
-  opp: { requiredSkills: string[]; eligibleLevels: string[]; eligibility: string | null; /** The project's own topic / qualifications text, for relevance when no skills are published. */ topicText?: string | null },
+  opp: {
+    requiredSkills: string[]; eligibleLevels: string[]; eligibility: string | null;
+    /** The project's own topic / qualifications text, for relevance when no skills are published. */ topicText?: string | null;
+    /** Derived signals for the listing (insight.deriveInsight); optional so older callers keep working. */ insight?: ListingInsight;
+  },
   student: StudentSignals,
 ): FitExplanation {
   // 1. Mandatory eligibility, separately, from a published structured restriction only.
@@ -96,6 +106,7 @@ export function explainFit(
     const demo = topic ? mentioned(student.demonstrated) : [];
     const list = topic ? mentioned(student.listed) : [];
     for (const s of demo) supportedBy.push({ skill: s, evidence: "topic" });
+    if (opp.insight) return { ...relevanceFit(opp.insight, student, demo, list, supportedBy), notShown, eligibility };
     if (demo.length) {
       state = "potential_fit";
       summary = `The project topic mentions ${demo.slice(0, 3).join(", ")}, which you have demonstrated. It doesn't publish required skills, so check the announcement.`;
@@ -117,4 +128,39 @@ export function explainFit(
     summary = "None of the skills it names are on your profile yet.";
   }
   return { state, summary, supportedBy, notShown, eligibility };
+}
+
+/**
+ * Fit for a listing that names no required skills, from the intelligence layer: the field (department / topic) against the
+ * student's field, the methods it names against the student's skills, and whether the role is a sensible next step for
+ * the student's stage. Strong needs all three; potential needs the field or a method; a role two stages ahead is "later".
+ */
+function relevanceFit(ins: ListingInsight, student: StudentSignals, demoInText: string[], listedInText: string[], supportedBy: FitExplanation["supportedBy"]): Omit<FitExplanation, "notShown" | "eligibility"> {
+  const has = (m: Map<string, string>, t: string) => m.has(t.toLowerCase());
+  const demoTopics = [...new Set([...ins.topics.filter((t) => has(student.demonstrated, t)), ...demoInText])];
+  const listedTopics = [...new Set([...ins.topics.filter((t) => has(student.listed, t)), ...listedInText])].filter((t) => !demoTopics.includes(t));
+  for (const t of demoTopics) if (!supportedBy.some((s) => s.skill === t)) supportedBy.push({ skill: t, evidence: "topic" });
+  const mine = new Set(student.disciplines ?? []);
+  const fields = ins.disciplines.filter((d) => mine.has(d));
+  const stage = stageFit(ins.typicalStage, student.level);
+  const relevance = { disciplines: fields, topics: [...demoTopics, ...listedTopics], stage, stageNote: ins.stageNote, position: ins.positionLabel };
+  const fieldText = fields.length ? `It's in your field (${fields.slice(0, 2).join(", ")})` : "";
+  const topicText = demoTopics.length ? `it names ${demoTopics.slice(0, 3).join(", ")}, which you have demonstrated` : listedTopics.length ? `it names ${listedTopics.slice(0, 3).join(", ")}, which you list` : "";
+  const why = [fieldText, topicText].filter(Boolean).join(" and ");
+
+  if (ins.position === "non_research") {
+    return { state: "insufficient_information", summary: "This isn't a research role.", supportedBy, relevance };
+  }
+  if (stage === "later") {
+    return { state: "insufficient_information", summary: `${ins.stageNote ?? "This role is usually for a later career stage."} It's a later step for you.`, supportedBy, relevance };
+  }
+  const stageText = stage === "suitable" ? "a typical next step at your stage" : stage === "next_step" ? `a step ahead (${ins.stageNote?.replace(/\.$/, "").toLowerCase()})` : "";
+  if (fields.length && demoTopics.length && stage !== "unknown") {
+    return { state: "strong_fit", summary: `${why}, and it's ${stageText}.`, supportedBy, relevance };
+  }
+  if (why) {
+    return { state: "potential_fit", summary: `${why}${stageText ? `; it's ${stageText}` : ""}. It doesn't publish required skills, so check the announcement.`, supportedBy, relevance };
+  }
+  const missing = !mine.size ? "Add your degree and specialisation so your field can be matched" : `It's outside the fields on your profile (${[...mine].slice(0, 2).join(", ")})`;
+  return { state: "insufficient_information", summary: `${missing}. It doesn't publish required skills.`, supportedBy, relevance };
 }

@@ -182,7 +182,8 @@ function fromResearch(o: OpportunityView): Listing {
     category: o.kind && COLLAB_KINDS.has(o.kind) ? "collaborations" : "research",
     title: o.title,
     organization: o.organization,
-    subtitle: [o.researchGroup, o.kind ? KIND_LABEL[o.kind] ?? null : null].filter(Boolean).join(" · ") || null,
+    // Role and field from the listing intelligence (insight.ts), not the source's own category, which is often wrong.
+    subtitle: [o.researchGroup, o.insight?.position && o.insight.position !== "other" ? o.insight.positionLabel : o.kind ? KIND_LABEL[o.kind] ?? null : null, o.insight?.disciplines[0]].filter(Boolean).join(" · ") || null,
     location: [o.location, o.country].filter(Boolean).join(", ") || null,
     workMode: o.workMode ? WORK_MODE[o.workMode.toLowerCase()] ?? o.workMode : null,
     duration: null,
@@ -203,7 +204,7 @@ async function OpportunitiesContent({ searchParams }: { searchParams: SP }) {
   const sp = await searchParams;
   const rawCat = one(sp.cat);
   const cat: Category = isAvsarCategory(rawCat) ? rawCat : "all";
-  const section = (one(sp.section) && one(sp.section)! in SECTIONS ? one(sp.section) : "recommended") as Section;
+  const section = (one(sp.section) && one(sp.section)! in SECTIONS ? one(sp.section) : "all") as Section;
   // Detailed research filters apply to the Research tab only; All and Collaborations browse the full verified catalogue.
   const filters: BrowseFilters =
     cat === "research"
@@ -297,7 +298,7 @@ async function OpportunitiesContent({ searchParams }: { searchParams: SP }) {
         </>
       )}
 
-      {cat === "research" && <ResearchControls section={section} qs={qs} filters={filters} closing={one(sp.closing)} facets={research?.facets} activeFilters={activeFilters} />}
+      {cat === "research" && <ResearchControls section={section} qs={qs} filters={filters} closing={one(sp.closing)} facets={research?.facets} counts={research?.counts} activeFilters={activeFilters} />}
 
       {!everyRequestedSourceFailed && avsarFailed && (
         <Notice tone="error" action={<RetryButton />}>
@@ -353,6 +354,7 @@ function ResearchControls({
   filters,
   closing,
   facets,
+  counts,
   activeFilters,
 }: {
   section: Section;
@@ -360,13 +362,15 @@ function ResearchControls({
   filters: BrowseFilters;
   closing?: string;
   facets?: { organizations: string[]; countries: string[]; workModes: string[] };
+  /** Listings per section, from the listing intelligence; empty position sections are hidden. */
+  counts?: Partial<Record<Section, number>>;
   activeFilters: number;
 }) {
   const select = "w-full min-h-10 rounded-lg border border-[#E7EAF3] bg-white px-2 py-2 text-sm focus-visible:outline-2 focus-visible:outline-[#0E7C66]";
   return (
     <div className="space-y-3">
       <nav aria-label="Research sections" className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:px-0">
-        {(Object.keys(SECTIONS) as Section[]).map((s) => (
+        {(Object.keys(SECTIONS) as Section[]).filter((s) => !counts || s === section || ["all", "recommended", "saved"].includes(s) || (counts[s] ?? 0) > 0).map((s) => (
           <Link
             key={s}
             href={qs({ section: s })}
@@ -375,6 +379,7 @@ function ResearchControls({
             className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 ${s === section ? "border-[#0E7C66]/30 bg-[#E8FAF4] text-[#0E7C66]" : "border-[#E7EAF3] bg-white text-[#475569] hover:text-[#11182B]"}`}
           >
             {SECTIONS[s]}
+            {counts && <span className="ml-1 tabular-nums opacity-70">{counts[s] ?? 0}</span>}
           </Link>
         ))}
       </nav>

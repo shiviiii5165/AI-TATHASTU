@@ -10,6 +10,7 @@ import { opportunities, opportunitySources } from "@/db/schema";
 
 import { explainFit, studyLevel, type FitExplanation, type FitState, type StudentSignals } from "./fit";
 import { VERIFICATION_TTL_DAYS, type OppDb } from "./ingest";
+import { deriveInsight, studentDisciplines } from "./insight";
 
 const STRONG = new Set(["proficient", "advanced"]);
 const LIMIT = 50;
@@ -19,6 +20,8 @@ export interface ProfileSignalsInput {
   skills: { name: string }[];
   intelligenceSkills: { name: string; proficiency: number | null; level: string | null }[];
   degree: string | null;
+  /** As entered on the profile, e.g. "Electrical Engineering". */
+  specialization?: string | null;
 }
 
 export function buildStudentSignals(p: ProfileSignalsInput): StudentSignals {
@@ -31,7 +34,9 @@ export function buildStudentSignals(p: ProfileSignalsInput): StudentSignals {
     const k = s.name.trim().toLowerCase();
     if (k && !demonstrated.has(k)) listed.set(k, s.name);
   }
-  return { demonstrated, listed, level: studyLevel(p.degree) };
+  // Fields from the degree and specialisation, and from the skills themselves (Machine Learning points to Computer Science & AI).
+  const disciplines = studentDisciplines(p.degree, p.specialization, [...demonstrated.values(), ...listed.values()].join(" "));
+  return { demonstrated, listed, level: studyLevel(p.degree), disciplines };
 }
 
 export interface ResearchCard {
@@ -89,7 +94,13 @@ export async function researchForStudent(db: OppDb, student: StudentSignals, now
       url: o.url!,
       sourceName,
       lastVerifiedAt: o.lastVerifiedAt!.toISOString(),
-      fit: explainFit({ requiredSkills: o.requiredSkills, eligibleLevels: o.eligibleLevels, eligibility: o.eligibility ?? o.details?.qualifications?.value ?? null, topicText: [o.title, o.details?.researchArea?.value, o.details?.qualifications?.value, o.description].filter(Boolean).join(" ") }, student),
+      fit: explainFit({ requiredSkills: o.requiredSkills, eligibleLevels: o.eligibleLevels, eligibility: o.eligibility ?? o.details?.qualifications?.value ?? null, topicText: [o.title, o.details?.researchArea?.value, o.details?.qualifications?.value, o.description].filter(Boolean).join(" "), insight: insightOf(o) }, student),
     }))
+    .filter((c) => c.fit.relevance?.position !== "Not a research role")
     .sort((a, b) => ORDER[a.fit.state] - ORDER[b.fit.state]);
+}
+
+/** The listing intelligence for one stored opportunity row. */
+export function insightOf(o: { title: string; kind: string | null; researchGroup: string | null; description: string | null; details?: { researchArea?: { value?: string | null }; qualifications?: { value?: string | null } } | null }) {
+  return deriveInsight({ title: o.title, kind: o.kind, researchGroup: o.researchGroup, description: o.description, researchArea: o.details?.researchArea?.value ?? null, qualifications: o.details?.qualifications?.value ?? null });
 }
