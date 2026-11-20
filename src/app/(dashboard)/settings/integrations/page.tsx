@@ -1,15 +1,16 @@
-import { and, desc, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { IntegrationCard, type IntegrationCardView } from "@/components/integrations/integration-card";
 import { db } from "@/db";
-import { unifiedProjects, webhookOutbox } from "@/db/schema";
+import { unifiedProjects } from "@/db/schema";
 import { requireOnboardedUser } from "@/lib/dal";
 import { isFeatureEnabled } from "@/lib/feature-flags";
 import { clientById, INTEGRATION_CLIENTS } from "@/lib/integrations/clients";
 import { effectiveScopes, getConsent, isLinked } from "@/lib/integrations/consent";
 import { projectKey } from "@/lib/integrations/projection";
+import { getSyncStates } from "@/lib/integrations/sync-state";
 import { isIntegrationKeyConfigured } from "@/lib/integrations/tokens";
 
 import { ArrowLeft, Plug } from "lucide-react";
@@ -32,7 +33,7 @@ export default function IntegrationsPage({ searchParams }: PageProps<"/settings/
           <div>
             <h1 className="editorial-title text-3xl sm:text-4xl text-[#11182B] tracking-tight">Apps You Sign In To</h1>
             <p className="mt-1 text-sm text-[#64748B] max-w-2xl">
-              Collaborate and Tathastu Meet use your AI Tathastu account. Manage permissions, data scopes, and active OAuth connections.
+              Collaborate, Avsar and Tathastu Meet use your AI Tathastu account. Your profile there starts private. Choose what each app can see; Career Intelligence stays off unless you turn it on.
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -75,20 +76,13 @@ async function Cards({ searchParams }: Pick<PageProps<"/settings/integrations">,
   );
 }
 
-function loadCards(userId: string): Promise<IntegrationCardView[]> {
+async function loadCards(userId: string): Promise<IntegrationCardView[]> {
+  const states = await getSyncStates(userId);
   return Promise.all(
     INTEGRATION_CLIENTS.map(async (def) => {
       const client = clientById(def.id)!;
-      const [consent, enabled, [lastDelivery]] = await Promise.all([
-        getConsent(userId, client.id),
-        isFeatureEnabled(client.flag),
-        db
-          .select({ status: webhookOutbox.status, deliveredAt: webhookOutbox.deliveredAt, createdAt: webhookOutbox.createdAt })
-          .from(webhookOutbox)
-          .where(and(eq(webhookOutbox.userId, userId), eq(webhookOutbox.clientId, client.id)))
-          .orderBy(desc(webhookOutbox.createdAt))
-          .limit(1),
-      ]);
+      const [consent, enabled] = await Promise.all([getConsent(userId, client.id), isFeatureEnabled(client.flag)]);
+      const state = states.get(client.id);
       return {
         id: client.id,
         name: client.name,
@@ -101,9 +95,7 @@ function loadCards(userId: string): Promise<IntegrationCardView[]> {
         scopes: effectiveScopes(consent),
         requested: client.requested,
         hiddenProjects: consent?.hiddenProjects ?? [],
-        lastSync: lastDelivery
-          ? { status: lastDelivery.status, at: (lastDelivery.deliveredAt ?? lastDelivery.createdAt).toISOString() }
-          : null,
+        sync: state ? { status: state.status, lastSuccessAt: state.lastSuccessAt?.toISOString() ?? null } : null,
       };
     }),
   );

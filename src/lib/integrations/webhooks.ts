@@ -329,7 +329,7 @@ export async function dispatchSelectedProfileUpdates(
   for (const p of plan) {
     const claimed = await db.execute(sql`
       UPDATE webhook_outbox w
-         SET status = 'sending', attempts = w.attempts + 1,
+         SET status = 'sending', attempts = w.attempts + 1, last_attempt_at = now(),
              locked_until = now() + make_interval(secs => ${LOCK_SECONDS})
         FROM users u, onboarding_state o, integration_consents ic
        WHERE w.id = ${p.id}::uuid AND w.status = 'pending'

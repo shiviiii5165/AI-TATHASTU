@@ -13,7 +13,7 @@ import { SaveStatusText } from "@/components/onboarding/save-status";
 import { ScopeToggles } from "@/components/integrations/scope-toggles";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import type { IntegrationClientId, IntegrationScope, WebhookStatus } from "@/db/schema";
+import type { IntegrationClientId, IntegrationScope, SyncStatus } from "@/db/schema";
 import { useAutosave } from "@/hooks/use-autosave";
 import { timeAgo } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -30,15 +30,38 @@ export type IntegrationCardView = {
   scopes: Record<IntegrationScope, boolean>;
   requested: IntegrationScope[];
   hiddenProjects: string[];
-  lastSync: { status: WebhookStatus; at: string } | null;
+  /** Confirmed by the app (integration_sync_state), never inferred from a delivery alone. */
+  sync: { status: SyncStatus; lastSuccessAt: string | null } | null;
 };
 
-const SYNC_TEXT: Record<WebhookStatus, string> = {
-  delivered: "Last synced",
-  pending: "Sync queued",
-  sending: "Syncing since",
-  failed: "Last sync failed",
+/** Short status after "Connected". Only "synced" says synced, and only because the app confirmed it. */
+const SYNC_TEXT: Partial<Record<SyncStatus, string>> = {
+  synced: "Synced",
+  pending: "Sync pending",
+  missing: "Setting up your profile there",
+  conflict: "Action needed",
+  review: "Being reviewed",
+  failed: "Sync failed",
+  declined: "Not syncing",
 };
+
+/** What the user can do about a state that needs them. No internal codes or errors are shown. */
+function syncGuidance(status: SyncStatus | undefined, name: string): string | null {
+  switch (status) {
+    case "conflict":
+      return `You already have a ${name} account with this email. To link it, open ${name}, choose "Continue with AI Tathastu" and confirm with your ${name} password. Nothing is merged until you do.`;
+    case "review":
+      return `A ${name} account with this email already exists and we couldn't confirm it's yours automatically. Our team is reviewing it; nothing is shared with that account meanwhile.`;
+    case "failed":
+      return `We couldn't update your ${name} profile. Try "Sync profile"; if it keeps failing, contact support.`;
+    case "declined":
+      return `You deleted or disconnected your account on ${name}, so we won't recreate it. Sign in to ${name} with AI Tathastu if you want it back.`;
+    case "missing":
+      return `Your private ${name} profile is being created. This usually takes a few minutes.`;
+    default:
+      return null;
+  }
+}
 
 export function IntegrationCard({ card, projects }: { card: IntegrationCardView; projects: { key: string; title: string }[] }) {
   const router = useRouter();
@@ -91,12 +114,25 @@ export function IntegrationCard({ card, projects }: { card: IntegrationCardView;
             ) : (
               <span className="text-muted-foreground">Not connected yet. Choose what to share, then sign in to it with AI Tathastu.</span>
             )}
-            {linked && card.lastSync && (
-              <span className={cn("ml-3 text-muted-foreground", card.lastSync.status === "failed" && "text-destructive")}>
-                · {SYNC_TEXT[card.lastSync.status]} {timeAgo(card.lastSync.at, new Date())}
+            {linked && card.sync && SYNC_TEXT[card.sync.status] && (
+              <span className={cn("ml-3 text-muted-foreground", (card.sync.status === "failed" || card.sync.status === "conflict") && "text-destructive")}>
+                · {SYNC_TEXT[card.sync.status]}
+                {card.sync.status === "synced" && card.sync.lastSuccessAt ? ` ${timeAgo(card.sync.lastSuccessAt, new Date())}` : ""}
               </span>
             )}
           </p>
+          {linked && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              Your {card.name} profile is private until you change its visibility in {card.name}.
+              {card.sync?.status === "synced" || !card.sync?.lastSuccessAt ? "" : ` Last successful sync ${timeAgo(card.sync.lastSuccessAt, new Date())}.`}
+            </p>
+          )}
+          {linked && syncGuidance(card.sync?.status, card.name) && (
+            <p role="status" className="mt-3 flex items-start gap-1.5 rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground">
+              <CircleAlert aria-hidden className="mt-0.5 size-4 shrink-0" />
+              {syncGuidance(card.sync?.status, card.name)}
+            </p>
+          )}
         </div>
         <a
           // Available: start the app's OAuth sign-in so the user arrives signed in. Otherwise just its home page.

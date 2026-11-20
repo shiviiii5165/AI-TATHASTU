@@ -301,6 +301,22 @@ describe("account deletion propagates", () => {
   });
 });
 
+describe("admin summary", () => {
+  it("counts confirmed states per app from the real tables", async () => {
+    const { appSyncSummaries } = await import("@/lib/integrations/sync-admin");
+    const id = await user();
+    answers[`avasar:${id}`] = [{ outcome: "conflict", action: "CONFLICT_NEEDS_REVIEW" }];
+    await autoProvisionNewUser(id);
+    await dispatchWebhooks(100);
+    const avsar = (await appSyncSummaries()).find((s) => s.clientId === "avasar")!;
+    expect(avsar.webhookConfigured).toBe(true);
+    expect(avsar.signupProvisioning).toBe(true);
+    expect(avsar.byStatus.review).toBeGreaterThanOrEqual(1);
+    expect(avsar.linked).toBeGreaterThanOrEqual(1);
+    expect(avsar.eligible).toBeGreaterThanOrEqual(avsar.linked);
+  });
+});
+
 describe("backfill of existing users", () => {
   it("Avsar backfill is off in the weekly job unless AVASAR_AUTO_PROVISION_BACKFILL=1", async () => {
     const id = await user();
