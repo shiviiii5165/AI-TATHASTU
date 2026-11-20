@@ -72,7 +72,7 @@ test("a current v3 assessment shows the documented score, the alignment separate
   const std = widget(page, "Skills to develop");
   const rows = std.getByRole("list", { name: "Skills to develop" }).getByRole("listitem");
   const open = analysis.open.filter((r: { state: string }) => r.state !== "met");
-  await expect(rows).toHaveCount(Math.min(7, open.length));
+  await expect(rows).toHaveCount(Math.min(6, open.length)); // the widget shows the first 6 (skill-gaps-widget MAX_ROWS)
   await expect(rows.first()).toContainText(open[0].skill);
   // "Start here" is the same skill as Where you stand's next action (the roadmap's next step).
   const nextSkill = ((await wys.getByTestId("next-action").getAttribute("href")) ?? "").split("skill=")[1];
@@ -80,12 +80,12 @@ test("a current v3 assessment shows the documented score, the alignment separate
   await expect(std.getByText("Start here")).toHaveCount(1);
   await expect(std.getByText("Supporting", { exact: false }).first()).toBeVisible();
   // "No work examples yet" only where the engine says missing.
-  for (const r of open.slice(0, 7)) {
+  for (const r of open.slice(0, 6)) {
     const row = std.locator(`[data-skill="${r.skill}"]`);
     if (r.state === "missing") await expect(row).toContainText("No work examples yet");
     else await expect(row).not.toContainText("No work examples yet");
   }
-  if (open.length > 7) await expect(std.getByRole("link", { name: `See all ${open.length} on Skills` })).toBeVisible();
+  if (open.length > 6) await expect(std.getByRole("link", { name: `See all ${open.length}, with the evidence behind each` })).toBeVisible();
 
   // Recent GitHub work: real repositories, owner shown, newest first, real URLs.
   const gh = widget(page, "Recent GitHub work");

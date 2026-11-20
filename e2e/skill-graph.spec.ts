@@ -128,8 +128,9 @@ test("the Skill Gaps card and the Skills to develop widget list the same skills,
   const { context, page } = await setUp(browser, "Same", 1280);
   await page.goto("/dashboard");
   const widget = page.getByRole("article", { name: "Skills to develop" });
-  await expect(widget.getByRole("link", { name: "Learn Kubernetes" })).toBeVisible();
-  const fromWidget = (await widget.getByRole("link", { name: /^Learn / }).evaluateAll((links) => links.map((a) => a.getAttribute("aria-label")))).map((l) => l!.replace("Learn ", ""));
+  const items = widget.getByRole("list", { name: "Skills to develop" }).locator("li[data-skill]");
+  await expect(items.first()).toBeVisible();
+  const fromWidget = await items.evaluateAll((lis) => lis.map((li) => li.getAttribute("data-skill")!));
   const card = page.getByRole("heading", { name: "Skill Gaps", level: 2 }).locator("xpath=ancestor::section[1]");
   for (const skill of fromWidget) await expect(card.getByText(skill, { exact: true })).toBeVisible();
   expect(fromWidget).toEqual(["Kubernetes", "Docker"]);
@@ -145,6 +146,10 @@ test("the dashboard, skills and learning pages show evidence states and nothing 
     for (const phrase of FABRICATED) expect(text, `${path} shows "${phrase}"`).not.toContain(phrase);
   }
   await page.goto("/dashboard");
-  await expect(page.getByText("Not assessed").first()).toBeVisible();
+  // v4: a skill's level ("Not assessed yet") sits in its expandable row in Skills to develop; open it to read it.
+  const notAssessed = page.getByText("Not assessed").first();
+  await expect(notAssessed).toBeAttached();
+  if (!(await notAssessed.isVisible())) await notAssessed.locator("xpath=ancestor::details[1]/summary").click();
+  await expect(notAssessed).toBeVisible();
   await context.close();
 });

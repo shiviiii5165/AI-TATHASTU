@@ -123,6 +123,9 @@ test("consent given once at the resume step is reused: no prompts and no new rec
   await sql.query("UPDATE onboarding_state SET current_step = 'done' WHERE user_id = $1", [user.id]);
   for (const path of ["/onboarding/resume", "/dashboard", "/settings/privacy", "/dashboard"]) {
     await page.goto(path);
+    // A finished user's onboarding URL redirects via /api/session/refresh to the dashboard. Let that chain settle
+    // before the next goto, or Chrome aborts the in-flight navigation (ERR_ABORTED).
+    if (path.startsWith("/onboarding")) await expect(page).toHaveURL(/\/dashboard/);
     await expect(page.getByTestId("consent-scope-notice")).toHaveCount(0);
   }
   expect(await rowsOf(user.id)).toEqual(once);

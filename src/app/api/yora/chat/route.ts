@@ -8,7 +8,7 @@ import { db } from "@/db";
 import { similarPeople } from "@/lib/people";
 import { hitRateLimit } from "@/lib/rate-limit";
 import {
-  learningResources,
+  learningResources,
   profileViews,
   roadmaps,
   skillEvidence,
@@ -16,6 +16,7 @@ import {
 } from "@/db/schema";
 
 export type YoraIntent =
+  | "connections"
   | "opportunities"
   | "people"
   | "roadmap"
@@ -27,13 +28,26 @@ export type YoraIntent =
 export function parseIntent(message: string): YoraIntent {
   const text = (message || "").toLowerCase().trim();
 
-  // 1. Opportunities: job, internship, opportunity, work, research, grant, opening
+  // 0. Connecting a source ("connect my GitHub") is a how-to, not a request for people to connect with.
   if (
-    /\b(job|jobs|internship|internships|opportunity|opportunities|work|hiring|opening|openings|grant|grants)\b/i.test(
-      text
-    )
+    /\b(connect|connecting|link|linking|sync|add|import)\b.{0,30}\b(github|linkedin|orcid|leetcode|kaggle|resume|cv|account|accounts|source|sources)\b/i.test(text) ||
+    /\b(github|linkedin|orcid|leetcode|kaggle)\b.{0,20}\b(connect|connection|link|sync)\b/i.test(text)
+  ) {
+    return "connections";
+  }
+
+  // 1. Opportunities: job, internship, opportunity, research, grant, opening. "Work" counts only as something
+  // to find ("looking for work", "work openings"), not as a verb ("work on my skills").
+  if (
+    /\b(job|jobs|internship|internships|opportunity|opportunities|hiring|opening|openings|grant|grants)\b/i.test(text) ||
+    /\b(find|finding|looking for|look for|need|get|seeking)\s+(some\s+|a\s+)?work\b/i.test(text)
   ) {
     return "opportunities";
+  }
+
+  // "What should I work on / focus on / do next?" asks for the next step on the roadmap.
+  if (/\bwhat (should|do|can) i (work on|focus on|do)( next)?\b/i.test(text)) {
+    return "roadmap";
   }
 
   // 2. People & Connections: match, network, connect, peer, mentor, collab
@@ -132,6 +146,12 @@ export async function POST(req: Request) {
     let reply = "";
 
     switch (intent) {
+      case "connections": {
+        reply =
+          "You can connect GitHub, LinkedIn or ORCID and upload your resume on the Connections page (/connections). Each one you add gives your profile more evidence to work with.";
+        break;
+      }
+
       case "opportunities": {
         // Fetch from opportunities table
         // Not ranked against the user's profile, so don't say it is.

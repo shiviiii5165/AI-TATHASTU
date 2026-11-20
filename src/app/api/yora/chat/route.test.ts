@@ -74,6 +74,21 @@ describe("Deterministic Yora Intent Router", () => {
       expect(parseIntent("good morning")).toBe("hello");
     });
 
+    it("connecting a source is a how-to, not a request for people matches", () => {
+      expect(parseIntent("How do I connect my GitHub?")).toBe("connections");
+      expect(parseIntent("connect linkedin")).toBe("connections");
+      expect(parseIntent("Can I add my resume?")).toBe("connections");
+      expect(parseIntent("my GitHub won't sync")).toBe("connections");
+      // Connecting with people is still people.
+      expect(parseIntent("Connect with peer researchers")).toBe("people");
+    });
+
+    it("'work' as a verb isn't a job search", () => {
+      expect(parseIntent("How can I work on my weak skills?")).toBe("skills");
+      expect(parseIntent("what should I work on next?")).toBe("roadmap");
+      expect(parseIntent("I'm looking for work")).toBe("opportunities");
+    });
+
     it("returns fallback for unknown queries", () => {
       expect(parseIntent("Tell me about the history of the roman empire")).toBe("fallback");
       expect(parseIntent("What is the weather today?")).toBe("fallback");

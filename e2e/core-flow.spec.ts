@@ -168,8 +168,13 @@ test("Phase 1–3 journey: onboarding to a personalized dashboard", async ({ pag
     const gaps = widget(page, "Skills to develop");
     await expect(gaps).toContainText("For ML Engineer:");
     await expect(gaps).toContainText("Start here");
-    await expect(gaps.getByRole("link", { name: "Learn Kubernetes" })).toBeVisible();
-    await expect(gaps.getByRole("link", { name: "Learn Docker" })).toBeVisible();
+    // v4: each skill is an expandable row (the first starts open) with a "Learning options for …" link inside.
+    for (const skill of ["Kubernetes", "Docker"]) {
+      const row = gaps.locator(`li[data-skill="${skill}"]`);
+      await expect(row).toBeVisible();
+      if (!(await row.locator("details").evaluate((d) => (d as HTMLDetailsElement).open))) await row.locator("summary").click();
+      await expect(row.getByRole("link", { name: `Learning options for ${skill}` })).toHaveAttribute("href", `/learn?skill=${skill}`);
+    }
 
     // Widgets with data come first. The Avasar jobs placeholder and the profile-complete widget aren't shown.
     const order = await page
