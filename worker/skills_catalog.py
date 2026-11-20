@@ -86,6 +86,7 @@ CATALOG: List[Entry] = [
     ("Statistics", "concept", ["statistical analysis", "hypothesis testing", "statistical inference", "a/b testing", "statsmodels"], False),
     ("Probability", "concept", [], False),
     ("Linear Algebra", "concept", [], False),
+    ("Calculus and Optimization", "concept", ["gradient descent", "stochastic gradient descent", "convex optimization", "numerical optimization", "multivariable calculus", "automatic differentiation"], False),
     ("Data Structures and Algorithms", "concept", ["dsa", "data structures", "algorithms"], False),
     ("Time Series Analysis", "concept", ["time series", "forecasting"], False),
     ("Recommender Systems", "concept", ["recommendation systems"], False),
@@ -109,11 +110,16 @@ CATALOG: List[Entry] = [
     ("Distributed Training", "mlops", ["deepspeed", "fsdp", "horovod", "distributed data parallel"], False),
     ("LLM Evaluation", "llm", ["llm evals", "llm eval", "ragas", "llm-as-a-judge", "deepeval", "lm-evaluation-harness"], False),
     ("AI Safety", "concept", ["ai alignment", "red teaming", "responsible ai"], False),
+    ("LLM Application Security", "concept", ["prompt injection", "llm security", "owasp llm", "llm guardrails", "nemo guardrails", "guardrails ai", "jailbreak detection"], False),
     ("AI Agents", "llm", ["agentic ai", "llm agents", "langgraph", "autogen", "crewai", "multi-agent systems"], False),
     ("Vision-Language Models", "llm", ["vlm", "vlms", "vision language models", "multimodal llms"], False),
     ("ROS", "robotics", ["robot operating system", "ros2"], False),
     ("Simulation", "robotics", ["gazebo", "mujoco", "isaac sim", "gymnasium", "openai gym"], False),
-    ("Control Systems", "robotics", ["control systems", "pid control", "pid controller", "model predictive control", "motion planning"], False),
+    # "motion planning" used to be a Control Systems alias; planning paths and controlling actuators are different
+    # competencies (framework 2026.11-draft.4), so it now counts as Motion Planning evidence only.
+    ("Control Systems", "robotics", ["control systems", "pid control", "pid controller", "model predictive control"], False),
+    ("Motion Planning", "robotics", ["motion planning", "path planning", "trajectory planning", "trajectory optimization", "moveit", "nav2 planner", "rrt*", "sampling-based planning"], False),
+    ("Robot Localization", "robotics", ["robot localization", "robot localisation", "slam", "amcl", "particle filter", "extended kalman filter", "sensor fusion", "visual odometry"], False),
     # Practical capabilities: what someone can do, shown by work rather than by naming a tool. Aliases are
     # multi-word phrases only, so ordinary prose doesn't trigger them.
     ("Model Evaluation", "concept", ["cross-validation", "cross validation", "confusion matrix", "roc auc", "roc curve", "precision and recall", "evaluation metrics", "error analysis", "model evaluation"], False),
@@ -136,6 +142,7 @@ CATALOG: List[Entry] = [
     ("Triton Inference Server", "mlops", ["triton"], True),
     ("vLLM", "mlops", [], False),
     ("CI/CD", "mlops", ["github actions", "jenkins", "continuous integration"], False),
+    ("Observability", "mlops", ["opentelemetry", "distributed tracing", "prometheus", "grafana"], False),
     ("Terraform", "mlops", ["hcl"], False),
     ("AWS", "cloud", ["amazon web services", "sagemaker", "ec2", "s3"], False),
     ("Google Cloud", "cloud", ["gcp", "google cloud platform", "vertex ai", "bigquery"], False),
@@ -164,7 +171,7 @@ CATALOG: List[Entry] = [
 CAPABILITIES = {
     "Model Evaluation", "Data Preparation", "Model Deployment", "Model Monitoring", "Software Testing", "Experimental Design",
     "Data Visualization", "Prompt Engineering", "Fine-tuning", "Retrieval-Augmented Generation", "Distributed Training",
-    "Model Quantization", "LLM Evaluation", "Time Series Analysis", "CI/CD", "Simulation",
+    "Model Quantization", "LLM Evaluation", "Time Series Analysis", "CI/CD", "Simulation", "Observability",
 }
 CONCEPT_CATEGORIES = {"concept"}
 PLATFORMS = {"AWS", "Google Cloud", "Azure", "Linux", "Kubernetes"}
@@ -188,7 +195,8 @@ def kind_of(canonical: str) -> str:
     if category in CONCEPT_CATEGORIES or canonical in {"Large Language Models", "Generative AI", "Vector Databases", "AI Agents", "Vision-Language Models",
                                                         "Graph Neural Networks", "Knowledge Graphs", "Federated Learning", "Differential Privacy", "On-device ML",
                                                         "Speech Recognition", "Text-to-Speech", "Audio Signal Processing", "Object Detection", "Image Segmentation",
-                                                        "Embeddings", "Control Systems", "AI Safety", "REST APIs", "Diffusion Models"}:
+                                                        "Embeddings", "Control Systems", "AI Safety", "REST APIs", "Diffusion Models",
+                                                        "LLM Application Security", "Motion Planning", "Robot Localization"}:
         return "concept"
     return "framework"
 

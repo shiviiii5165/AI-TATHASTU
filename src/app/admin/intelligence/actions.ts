@@ -191,3 +191,33 @@ export async function takeSnapshotAction(id: string, cohort: Record<string, stri
     return { ok: false, error: isMissingTable(err) ? MISSING : err instanceof Error ? err.message : "Snapshot failed." };
   }
 }
+
+/**
+ * Records a reviewer's decision on the current career-intelligence framework, one of its role profiles or an open
+ * research question (workstream D). Insert-only and audit-logged. It documents the review; publishing a reviewed
+ * framework (status, reviewedBy) remains a versioned code change, so assessments never change under a student silently.
+ */
+export async function recordFrameworkReviewAction(input: { role?: string | null; questionId?: string | null; decision: string; note: string }): Promise<Result> {
+  const ctx = await requireAdminPermission("intelligence.manage");
+  const { FRAMEWORK, isCurrentRole, openQuestionIds, recordReview } = await import("@/lib/intelligence/frameworks");
+  const decisions = ["approved", "changes_requested", "question_resolved", "question_deferred"] as const;
+  const decision = decisions.find((d) => d === input?.decision);
+  const note = String(input?.note ?? "").trim().slice(0, 2000);
+  const role = input?.role ? String(input.role) : null;
+  const questionId = input?.questionId ? String(input.questionId) : null;
+  if (!decision) return { ok: false, error: "Choose a decision." };
+  if (note.length < 10) return { ok: false, error: "Say what you checked (at least 10 characters). The note is the record of the review." };
+  if (role && !isCurrentRole(role)) return { ok: false, error: "Unknown role." };
+  if (questionId && !openQuestionIds().includes(questionId)) return { ok: false, error: "Unknown research question." };
+  if (decision.startsWith("question_") !== Boolean(questionId)) return { ok: false, error: "Question decisions need a question; role and framework decisions must not have one." };
+  const saved = await recordReview({
+    version: FRAMEWORK.frameworkVersion, role, questionId, decision, note, reviewerId: ctx.user.id, reviewerEmail: ctx.user.email ?? "unknown",
+  });
+  if (!saved.ok) return saved;
+  await recordAdminAudit({
+    actorId: ctx.user.id, actorEmail: ctx.user.email ?? "unknown", action: "framework.review", resource: "career_frameworks",
+    details: { version: FRAMEWORK.frameworkVersion, role, questionId, decision },
+  });
+  revalidatePath("/admin/intelligence/frameworks");
+  return { ok: true, message: "Review recorded." };
+}

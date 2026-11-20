@@ -58,8 +58,10 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Set,
 
 from intelligence import code_signals, learning, project_intent
 from intelligence.frameworks import (
-    COMPETENCIES, FRAMEWORKS, LEVEL_FLOOR, ROLE_LABELS, RoleFramework, framework_for, framework_meta, level_criteria, references_for,
+    CAREER_STAGES, COMPETENCIES, DOMAINS, FRAMEWORKS, LEVEL_FLOOR, ROLE_LABELS, RoleFramework, career_levels, domain_of, framework_for,
+    framework_meta, level_criteria, references_for,
 )
+from intelligence import reachability, role_comparison
 from intelligence.skill_graph import SKILL_ONTOLOGY, determine_relationship
 from skills_catalog import KIND
 
@@ -68,7 +70,10 @@ from skills_catalog import KIND
 # 4: code signals (dependency files, structure, README), evidence gates per level with written basis, framework v4
 #    (capabilities, specialisation tracks, rationale), project intent, one complete gap inventory, curated and
 #    link-checked learning catalogue, dependency-layered roadmap with completion criteria, data coverage report.
-ENGINE_VERSION = 4
+# 5: a required competency that no repository evidence can show (reachability.routes is empty: Linear Algebra, CNNs,
+#    Linux) is met on the student's described work instead of being permanently unmeetable, and is reported in
+#    alignment.requiredNotCodeVerifiable; new package routes for Probability, Transformers (architecture), Control Systems.
+ENGINE_VERSION = 5
 MAX_EVIDENCE_PER_SKILL = 8
 MAX_GRAPH_NODES = 18
 UNVERIFIED_CAP = 49
@@ -642,10 +647,11 @@ ALIGNMENT_LABELS = {
 
 ALIGNMENT_RULES = (
     "not_enough_evidence: nothing to read yet, or no competency in the framework has any evidence (even a claim). "
-    "requirements_demonstrated: every required competency is met (expected level, demonstrated evidence). "
+    "requirements_demonstrated: every required competency is met (expected level, demonstrated evidence; described work only "
+    "for the few no repository can show) and none rests only on evidence older than 24 months (that is strong until refreshed). "
     "strong: every required competency has an assessed level, at least half are met, and every required competency with no "
     "required prerequisite (the foundations) is met. "
-    "developing: at least one required competency is met, or at least half have an assessed level. "
+    "developing: at least one required competency is met on evidence we read ourselves, or at least half have a level from it. "
     "early: anything else with some evidence. Supporting and specialisation competencies never raise the state."
 )
 
@@ -657,7 +663,12 @@ def alignment(rows: List[Dict[str, Any]], has_evidence_base: bool) -> Dict[str, 
     met = [r for r in required if r["state"] == "met"]
     # Assessed from evidence of the student's own capability. A level resting only on their own descriptions, or on a
     # technology detected in a repository we can't attribute to them, doesn't move alignment.
-    assessed = [r for r in required if r["proficiency"] is not None and r.get("evidenceState", "demonstrated") == "demonstrated"]
+    # v5: a requirement no repository can show counts as assessed on described work (codeVerifiable False).
+    assessed = [r for r in required if r["proficiency"] is not None and (r.get("evidenceState", "demonstrated") == "demonstrated" or r.get("codeVerifiable") is False)]
+    # Leaving "early" needs evidence we read ourselves: a self-described requirement (allowed for the not-code-verifiable
+    # ones) counts towards the higher states but never lifts a profile built only on the student's own words.
+    met_demonstrated = [r for r in met if r.get("evidenceState", "demonstrated") == "demonstrated"]
+    assessed_demonstrated = [r for r in assessed if r.get("evidenceState", "demonstrated") == "demonstrated"]
     foundations = [r for r in required if not (set(PREREQUISITES.get(r["skill"], [])) & names)]
     any_evidence = any(r["hasEvidence"] for r in rows)
 
@@ -667,10 +678,14 @@ def alignment(rows: List[Dict[str, Any]], has_evidence_base: bool) -> Dict[str, 
         state = "requirements_demonstrated"
     elif len(assessed) == len(required) and 2 * len(met) >= len(required) and all(r["state"] == "met" for r in foundations):
         state = "strong"
-    elif met or 2 * len(assessed) >= len(required):
+    elif met_demonstrated or 2 * len(assessed_demonstrated) >= len(required):
         state = "developing"
     else:
         state = "early"
+    # v5: requirements met only on evidence older than STALE_MONTHS are real but need refreshing before "demonstrated".
+    stale = sorted(r["skill"] for r in met if r.get("stale"))
+    if state == "requirements_demonstrated" and stale:
+        state = "strong"
 
     critical = [r["skill"] for r in sorted(required, key=_priority_key) if r["state"] != "met" and r["proficiency"] is None]
     return {
@@ -685,6 +700,12 @@ def alignment(rows: List[Dict[str, Any]], has_evidence_base: bool) -> Dict[str, 
         "supporting": sum(1 for r in rows if r["tier"] == "supporting"),
         "criticalGaps": critical,
         "foundationsMet": all(r["state"] == "met" for r in foundations),
+        "requiredNotCodeVerifiable": sorted(r["skill"] for r in required if r.get("codeVerifiable") is False),
+        "notCodeVerifiableNote": ("No repository signal can show these yet, so your own described work counts for them; it is not independently "
+                                  "verified.") if any(r.get("codeVerifiable") is False for r in required) else None,
+        # Not code-verifiable and expected above Working: described work is capped at Working, so only an assessment can meet it.
+        "requiredNeedsAssessment": sorted(r["skill"] for r in required if r.get("codeVerifiable") is False and r["expected"] > LEVEL_FLOOR["Working"]),
+        "requiredStale": stale,
     }
 
 
@@ -765,7 +786,11 @@ def _evidence_state(skill: Dict[str, Any]) -> str:
 def _row(name: str, req_tier: str, weight: float, expected_level: str, evidence_requirement: str, skill: Optional[Dict[str, Any]],
          inferred: Dict[str, Any], has_evidence_base: bool) -> Dict[str, Any]:
     expected = LEVEL_FLOOR[expected_level]
-    state, gap_type = _state(skill, name, expected, evidence_requirement, inferred, has_evidence_base)
+    # v5: "independent" evidence is impossible for a competency no repository signal can show. Asking for it made the
+    # requirement unmeetable for every student, so such a row accepts the student's described work and says so.
+    code_verifiable = bool(reachability.routes(name))
+    effective_requirement = evidence_requirement if code_verifiable or evidence_requirement != "independent" else "described"
+    state, gap_type = _state(skill, name, expected, effective_requirement, inferred, has_evidence_base)
     competency = COMPETENCIES.get(name, {})
     kind = (skill or {}).get("kind") or KIND.get(name, "concept")
     criteria = level_criteria(name, kind if kind != "unknown" else "concept")
@@ -782,6 +807,7 @@ def _row(name: str, req_tier: str, weight: float, expected_level: str, evidence_
         "expectedCriterion": criteria.get(expected_level),
         "currentCriterion": criteria.get(level_for(score)) if score is not None else None,
         "evidenceRequirement": evidence_requirement,
+        "codeVerifiable": code_verifiable,
         "proficiency": score,
         "level": level_for(score),
         "confidence": skill["confidence"] if skill else 0.0,
@@ -816,7 +842,8 @@ def _link_rows(rows: List[Dict[str, Any]], rationale: Dict[str, str], fw: Option
             r["whyItMatters"] = _why_matters(fw, r["tier"], r["skill"], r["rationale"], r["prerequisiteFor"])
 
 
-def analyze_role(role: str, skills: Dict[str, Dict[str, Any]], inferred: Dict[str, Dict[str, Any]], has_evidence_base: bool, canonical: Callable[[str], Optional[str]]) -> Optional[Dict[str, Any]]:
+def analyze_role(role: str, skills: Dict[str, Dict[str, Any]], inferred: Dict[str, Dict[str, Any]], has_evidence_base: bool, canonical: Callable[[str], Optional[str]],
+                 now: Optional[datetime] = None) -> Optional[Dict[str, Any]]:
     fw = framework_for(role)
     if not fw:
         return None
@@ -826,7 +853,10 @@ def analyze_role(role: str, skills: Dict[str, Dict[str, Any]], inferred: Dict[st
     for req in fw.requirements:
         name = canonical(req.competency) or req.competency
         rationale[name] = req.rationale
-        rows.append(_row(name, req.tier, req.weight, req.expected_level, req.evidence_requirement, skills.get(name), inferred, has_evidence_base))
+        row = _row(name, req.tier, req.weight, req.expected_level, req.evidence_requirement, skills.get(name), inferred, has_evidence_base)
+        _annotate(row, req)
+        _freshness(row, skills.get(name), now)
+        rows.append(row)
     _link_rows(rows, rationale, fw)
 
     open_rows = sorted((r for r in rows if r["state"] != "met"), key=_priority_key)
@@ -873,7 +903,64 @@ def analyze_role(role: str, skills: Dict[str, Dict[str, Any]], inferred: Dict[st
         "specialisations": tracks,
         "counts": {state: sum(1 for r in rows if r["state"] == state) for state in ("met", "underdeveloped", "unverified", "inferred", "missing", "not_assessed")},
         "categoryCounts": {c: sum(1 for r in rows if r["category"] == c) for c in CATEGORY},
+        "domains": domain_breakdown(rows),
+        "careerStages": career_stage_counts(rows),
     }
+
+
+STALE_MONTHS = 24
+
+
+def _freshness(row: Dict[str, Any], skill: Optional[Dict[str, Any]], now: Optional[datetime]) -> None:
+    """v5: how old the newest evidence for a row is. A met requirement whose evidence is all older than STALE_MONTHS stays
+    met (the student did the work) but is flagged, and keeps the role out of 'requirements demonstrated' until refreshed."""
+    at = (skill or {}).get("lastEvidenceAt")
+    months = None
+    if at and now is not None:
+        when = at if isinstance(at, datetime) else datetime.fromisoformat(str(at).replace("Z", "+00:00"))
+        months = _months_ago(when, now)
+    row["evidenceAgeMonths"] = months
+    row["stale"] = row["state"] == "met" and months is not None and months > STALE_MONTHS
+
+
+def _annotate(row: Dict[str, Any], req: Any) -> None:
+    """Framework draft.4 fields, additive only: the row's domain, its junior/intermediate/senior targets (junior is the
+    expectedLevel the row was scored against) and, for a tool, the engineering capability it is evidence of."""
+    row["domain"] = domain_of(row["skill"]) or domain_of(req.competency)
+    row["careerLevels"] = career_levels(req)
+    row["realises"] = COMPETENCIES.get(row["skill"], {}).get("realises")
+
+
+def domain_breakdown(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Per domain, how many of the role's competencies are met, open, or without reliable evidence. Counts only: no
+    score is averaged across a domain, because a domain can hold one critical gap among many met skills."""
+    out = []
+    for key, meta in DOMAINS.items():
+        mine = [r for r in rows if r.get("domain") == key]
+        if not mine:
+            continue
+        out.append({
+            "domain": key, "label": meta["label"], "total": len(mine),
+            "required": sum(1 for r in mine if r["required"]),
+            "met": sum(1 for r in mine if r["state"] == "met"),
+            "requiredOpen": sorted(r["skill"] for r in mine if r["required"] and r["state"] != "met"),
+            "noReliableEvidence": sum(1 for r in mine if r["insufficientEvidence"] or r["state"] == "missing"),
+        })
+    return out
+
+
+def career_stage_counts(rows: List[Dict[str, Any]]) -> Dict[str, Dict[str, int]]:
+    """How many requirements meet each career stage's target, counting only rows that already meet their requirement
+    with the evidence it needs (so a claim never counts towards any stage). Junior equals counts['met']."""
+    out: Dict[str, Dict[str, int]] = {}
+    for stage in CAREER_STAGES:
+        met = 0
+        for r in rows:
+            target = (r.get("careerLevels") or {}).get(stage, r["expectedLevel"])
+            if r["state"] == "met" and r["proficiency"] is not None and r["proficiency"] >= LEVEL_FLOOR[target]:
+                met += 1
+        out[stage] = {"met": met, "total": len(rows)}
+    return out
 
 
 # ─── Project intent ─────────────────────────────────────────────────────────
@@ -1520,7 +1607,7 @@ def compute(
     # With nothing to read, every role skill would look "missing". That's not knowing, not a gap.
     has_evidence_base = bool(repos) or any(f["origin"] != "user_entered" or f["field_group"] in ("skills", "projects", "experience") for f in facts if f["field_group"] != "goals")
 
-    analyses = [a for a in (analyze_role(r, skills, inferred, has_evidence_base, canonical) for r in roles) if a]
+    analyses = [a for a in (analyze_role(r, skills, inferred, has_evidence_base, canonical, now) for r in roles) if a]
     primary = analyses[0] if analyses else None
     text, source = intent_from(facts, intent_text)
     intent = project_intent.analyse(text, lexicon_scan, lambda s: s in COMPETENCIES, source or "profile")
@@ -1543,6 +1630,8 @@ def compute(
         "skills": ordered,
         "inferred": sorted(inferred.values(), key=lambda s: s["name"]),
         "roles": analyses[:1] + [compact_analysis(a) for a in analyses[1:]],
+        # Workstream B: shared, transferable and new competencies between the selected goals (None for one goal).
+        "roleComparison": role_comparison.compare(analyses),
         "unsupportedRoles": [r for r in roles if framework_for(r) is None],
         "project": project,
         "gapInventory": inventory,
@@ -1563,7 +1652,9 @@ def compute(
 
 
 COMPACT_ROW_FIELDS = ("skill", "tier", "weight", "priority", "expected", "expectedLevel", "evidenceRequirement", "proficiency", "level", "confidence",
-                      "evidenceState", "hasEvidence", "state", "gapType", "insufficientEvidence", "category", "categoryLabel", "priorityRank")
+                      "evidenceState", "hasEvidence", "state", "gapType", "insufficientEvidence", "category", "categoryLabel", "priorityRank",
+                      # v5 / framework draft.4: needed to read a secondary role's rows correctly and to compare roles.
+                      "codeVerifiable", "domain", "stale")
 
 
 def compact_analysis(analysis: Dict[str, Any]) -> Dict[str, Any]:

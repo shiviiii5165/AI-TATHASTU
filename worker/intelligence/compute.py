@@ -28,7 +28,7 @@ from typing import Any, Dict, List, Optional
 import psycopg2.extras
 
 from db import EXTERNAL_AI_FULL_SCOPE_SINCE, enqueue_compute_matches, fetch_all, fetch_one, has_consent, jsonb
-from intelligence import career_engine, eris, projects, skills, widgets
+from intelligence import career_engine, eris, history, projects, skills, widgets
 import ai_budget
 from intelligence.collaboration import build_collaboration_embedding, embedding_fingerprint, save_collaboration_embedding
 from intelligence.config import persona_intents
@@ -96,6 +96,31 @@ def signals_column_exists(cur: Any) -> bool:
     row = fetch_one(cur, """SELECT EXISTS (SELECT 1 FROM information_schema.columns
                               WHERE table_schema = 'public' AND table_name = 'code_repositories' AND column_name = 'code_signals') AS present""")
     return bool(row) and row.get("present") is True
+
+
+def record_history(cur: Any, user_id: str, view: Dict[str, Any], now: datetime, trigger: Optional[str]) -> None:
+    """Workstream A. Inside the write transaction: when the assessment summary differs from the latest snapshot, insert a new
+    immutable snapshot with its change explanation; either way, the view carries the latest explanation. Skipped (no error)
+    until migration 0035 is applied, so the worker can be deployed first."""
+    cur.execute("SELECT to_regclass('public.intelligence_snapshots') IS NOT NULL")
+    row = cur.fetchone()
+    if not row or not row[0]:
+        return
+    summary = history.summarize(view["intelligence"], view.get("sources"))
+    fp = history.fingerprint(summary)
+    cur.execute("SELECT fingerprint, summary, changes, computed_at FROM intelligence_snapshots WHERE user_id = %s "
+                "ORDER BY computed_at DESC, created_at DESC LIMIT 1", (user_id,))
+    latest = cur.fetchone()
+    if latest and latest[0] == fp:
+        view["intelligence"]["history"] = {"changedAt": latest[3].isoformat() if hasattr(latest[3], "isoformat") else latest[3], **(latest[2] or {})}
+        return
+    explanation = history.explain(latest[1] if latest else None, summary)
+    cur.execute(
+        """INSERT INTO intelligence_snapshots (user_id, computed_at, engine_version, framework_version, fingerprint, trigger, summary, changes)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
+        (user_id, now, summary["engineVersion"] or 0, summary["frameworkVersion"], fp, trigger, jsonb(summary), jsonb(explanation)),
+    )
+    view["intelligence"]["history"] = {"changedAt": now.isoformat(), **explanation}
 
 
 def load_submissions(cur: Any, user_id: str) -> List[Dict[str, Any]]:
@@ -480,6 +505,7 @@ def process_compute_intelligence(conn: Any, job: Job) -> None:
         if embedding is not None:
             save_collaboration_embedding(cur, user_id, embedding, embedding_summary)
         save_scores(cur, user_id, repo_scores)
+        record_history(cur, user_id, view, now, job.payload.get("trigger"))
         cur.execute(
             """INSERT INTO profile_views (user_id, view, updated_at) VALUES (%s, %s, %s)
                ON CONFLICT (user_id) DO UPDATE SET view = EXCLUDED.view, updated_at = EXCLUDED.updated_at""",

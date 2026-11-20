@@ -92,6 +92,13 @@ TIER_DEFINITIONS: Dict[str, str] = _FRAMEWORKS.get("tiers", {})
 COMPETENCIES: Dict[str, Dict[str, Any]] = _FRAMEWORKS["competencies"]
 REFERENCES: Dict[str, Dict[str, Any]] = {r["id"]: r for r in FRAMEWORK_PROVENANCE.get("references", [])}
 
+# Framework 2026.11-draft.4: every competency sits in one domain; tools name the capability they realise; career-level
+# targets come from a written rule (careerLevels) rather than per-competency research; unresolved research is listed.
+DOMAINS: Dict[str, Dict[str, str]] = _FRAMEWORKS.get("domains", {})
+CAREER_LEVEL_RULE: Dict[str, Any] = _FRAMEWORKS.get("careerLevels", {})
+OPEN_QUESTIONS: List[Dict[str, Any]] = _FRAMEWORKS.get("openQuestions", [])
+CAREER_STAGES = ("junior", "intermediate", "senior")
+
 ROLE_LABELS: Dict[str, str] = {r["id"]: r["label"] for r in REGISTRY["roles"]}
 CURRENT_ROLES: Tuple[str, ...] = tuple(r["id"] for r in REGISTRY["roles"] if r["status"] == "current")
 RETIRED_ROLES: Tuple[str, ...] = tuple(r["id"] for r in REGISTRY["roles"] if r["status"] == "retired")
@@ -156,6 +163,14 @@ def validate() -> List[str]:
             if level not in LEVEL_FLOOR:
                 problems.append(f"{c_name}: unknown level {level} in levelCriteria")
     problems += [f"prerequisite cycle: {c}" for c in _cycles()]
+    for c_name, c in COMPETENCIES.items():
+        if DOMAINS and c.get("domain") not in DOMAINS:
+            problems.append(f"{c_name}: unknown or missing domain {c.get('domain')!r}")
+        if c.get("realises") and c["realises"] not in COMPETENCIES:
+            problems.append(f"{c_name}: realises unknown competency {c['realises']}")
+        for src in c.get("sources", []):
+            if src not in REFERENCES:
+                problems.append(f"{c_name}: unknown source {src}")
     for ref_id, ref in REFERENCES.items():
         if not str(ref.get("url", "")).startswith("https://") or not ref.get("checkedAt"):
             problems.append(f"reference {ref_id}: needs an https URL and a check date")
@@ -190,7 +205,12 @@ def validate() -> List[str]:
         names = [r.competency for r in f.requirements]
         if len(names) != len(set(names)):
             problems.append(f"{role}: duplicate competency")
+        # A competency can be both a core requirement and a specialisation entry, so key by tier and track too.
+        stored = {(c["competency"], c["tier"], c.get("track")): c.get("careerLevels") for c in _FRAMEWORKS["roles"][role]["competencies"]}
         for r in (*f.requirements, *f.specialisation_requirements):
+            kept = stored.get((r.competency, r.tier, r.track))
+            if kept is not None and kept != career_levels(r):
+                problems.append(f"{role}/{r.competency}: stored careerLevels differ from the rule (re-run scripts/framework_v4_upgrade.py)")
             if r.competency not in COMPETENCIES:
                 problems.append(f"{role}: unknown competency {r.competency}")
             if r.tier not in TIERS or r.expected_level not in LEVEL_FLOOR or r.evidence_requirement not in EVIDENCE_REQUIREMENTS:
@@ -198,9 +218,6 @@ def validate() -> List[str]:
     return problems
 
 
-_problems = validate()
-if _problems:
-    raise FrameworkError("; ".join(_problems))
 
 
 def framework_for(role: str) -> Optional[RoleFramework]:
@@ -219,6 +236,27 @@ def level_criteria(competency: str, kind: str) -> Dict[str, str]:
     return dict(LEVEL_RUBRICS.get(kind) or LEVEL_RUBRICS.get("concept") or LEVEL_DEFINITIONS)
 
 
+def domain_of(competency: str) -> Optional[str]:
+    return COMPETENCIES.get(competency, {}).get("domain")
+
+
+def _raise(level: str, steps: int, cap: str = "Advanced") -> str:
+    i = min(LEVEL_ORDER.index(level) + steps, LEVEL_ORDER.index(cap))
+    return LEVEL_ORDER[max(i, LEVEL_ORDER.index(level))]
+
+
+def career_levels(req: Requirement) -> Dict[str, str]:
+    """Junior / intermediate / senior targets for one requirement, by the written rule in role_frameworks.json
+    (careerLevels). Junior is always the requirement's expectedLevel, which is what assessments are scored against, so
+    adding career stages changes no existing result. Specialisation tracks are not raised."""
+    junior = req.expected_level
+    if req.tier == "specialisation":
+        return {"junior": junior, "intermediate": junior, "senior": junior}
+    if req.required:
+        return {"junior": junior, "intermediate": _raise(junior, 1), "senior": "Advanced"}
+    return {"junior": junior, "intermediate": _raise(junior, 1) if req.weight >= 0.6 else junior, "senior": _raise(junior, 1, cap="Proficient")}
+
+
 def references_for(role: str) -> List[Dict[str, Any]]:
     f = FRAMEWORKS.get(role)
     return [REFERENCES[r] for r in (f.references if f else ()) if r in REFERENCES]
@@ -230,4 +268,11 @@ def framework_meta() -> Dict[str, Any]:
         "version": FRAMEWORK_VERSION, "status": FRAMEWORK_STATUS, "basis": FRAMEWORK_PROVENANCE["basis"],
         "reviewed": FRAMEWORK_PROVENANCE["reviewedBy"] is not None, "draftedAt": FRAMEWORK_PROVENANCE.get("draftedAt"),
         "evidenceForLevel": EVIDENCE_FOR_LEVEL, "tiers": TIER_DEFINITIONS,
+        "careerLevels": {k: CAREER_LEVEL_RULE.get(k) for k in ("basis", "rule", "status")} if CAREER_LEVEL_RULE else None,
     }
+
+
+# Validated at import, after every helper above is defined (validate uses career_levels).
+_problems = validate()
+if _problems:
+    raise FrameworkError("; ".join(_problems))

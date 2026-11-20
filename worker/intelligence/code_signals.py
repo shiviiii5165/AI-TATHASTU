@@ -46,6 +46,11 @@ PACKAGE_SKILLS: Dict[str, Tuple[str, ...]] = {
     "xgboost": ("XGBoost", "Machine Learning"), "lightgbm": ("LightGBM", "Machine Learning"), "catboost": ("Machine Learning",),
     "statsmodels": ("Statistics",), "pingouin": ("Statistics",), "scipy": ("SciPy",), "prophet": ("Time Series Analysis",),
     "sktime": ("Time Series Analysis",), "darts": ("Time Series Analysis",), "surprise": ("Recommender Systems",), "implicit": ("Recommender Systems",),
+    # Engine v5: packages whose only purpose is the concept, so declaring one is code evidence of it (not of mastery: the
+    # level gates still decide depth). Probabilistic programming; attention/transformer implementations; control design.
+    "pymc": ("Probability",), "pyro-ppl": ("Probability", "PyTorch"), "numpyro": ("Probability", "JAX"), "tensorflow-probability": ("Probability",),
+    "x-transformers": ("Transformers (architecture)",), "flash-attn": ("Transformers (architecture)",), "xformers": ("Transformers (architecture)",),
+    "control": ("Control Systems",), "python-control": ("Control Systems",), "casadi": ("Control Systems",), "do-mpc": ("Control Systems",),
     # Data
     "pandas": ("Pandas",), "polars": ("Data Preparation",), "numpy": ("NumPy",), "pyspark": ("Apache Spark",),
     "matplotlib": ("Matplotlib", "Data Visualization"), "seaborn": ("Seaborn", "Data Visualization"), "plotly": ("Plotly", "Data Visualization"),

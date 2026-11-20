@@ -13,6 +13,7 @@ const TABS = [
   { href: "/admin/intelligence/benchmarks", label: "Benchmark Catalogue" },
   { href: "/admin/intelligence/integrations", label: "Ecosystem Sources" },
   { href: "/admin/intelligence/methodology", label: "Methodology & Fairness" },
+  { href: "/admin/intelligence/frameworks", label: "Career Frameworks" },
 ];
 
 export function IntelligenceSubnav() {

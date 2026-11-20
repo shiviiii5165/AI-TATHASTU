@@ -722,6 +722,15 @@
       "title": "MuJoCo documentation",
       "url": "https://mujoco.readthedocs.io/en/stable/overview.html"
     },
+    "nav2-docs": {
+      "checkedAt": "2026-11-20",
+      "finalUrl": null,
+      "httpStatus": 200,
+      "provider": "Open Navigation (ROS 2 Navigation)",
+      "status": "ok",
+      "title": "Nav2",
+      "url": "https://docs.nav2.org/rolling/index.html"
+    },
     "neo4j-graphacademy": {
       "checkedAt": "2026-11-12",
       "finalUrl": null,

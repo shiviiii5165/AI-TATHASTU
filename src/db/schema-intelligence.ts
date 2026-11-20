@@ -67,3 +67,43 @@ export const intelligenceRankingSnapshots = pgTable(
 
 export type IntelligenceRankingProfile = typeof intelligenceRankingProfiles.$inferSelect;
 export type IntelligenceRankingSnapshot = typeof intelligenceRankingSnapshots.$inferSelect;
+
+// ─── CAREER INTELLIGENCE HISTORY AND FRAMEWORK GOVERNANCE (migration 0035) ───
+// Both tables are insert-only (a database trigger refuses UPDATE).
+
+/** One row per changed career-intelligence assessment, written by the worker (worker/intelligence/compute.py). */
+export const intelligenceSnapshots = pgTable(
+  "intelligence_snapshots",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    computedAt: timestamp("computed_at", { withTimezone: true }).notNull(),
+    engineVersion: integer("engine_version").notNull(),
+    frameworkVersion: text("framework_version"),
+    fingerprint: text("fingerprint").notNull(),
+    trigger: text("trigger"),
+    summary: jsonb("summary").$type<Record<string, unknown>>().notNull(),
+    changes: jsonb("changes").$type<Record<string, unknown>>().notNull().default({}),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("intelligence_snapshots_user_idx").on(t.userId, t.computedAt)],
+);
+
+export type FrameworkReviewDecision = "approved" | "changes_requested" | "question_resolved" | "question_deferred";
+
+/** Reviewers' decisions on a framework version, a role profile or an open research question. */
+export const frameworkReviews = pgTable(
+  "framework_reviews",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    frameworkVersion: text("framework_version").notNull(),
+    role: text("role"),
+    questionId: text("question_id"),
+    decision: text("decision").$type<FrameworkReviewDecision>().notNull(),
+    note: text("note").notNull(),
+    reviewerId: uuid("reviewer_id"),
+    reviewerEmail: text("reviewer_email").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("framework_reviews_version_idx").on(t.frameworkVersion, t.role, t.createdAt)],
+);

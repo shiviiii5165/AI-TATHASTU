@@ -67,6 +67,7 @@ const ACTIONS: [string, Permission, () => Promise<unknown>][] = [
   ["duplicateRankingAction", "intelligence.manage", () => intel.duplicateRankingAction("not-a-uuid")],
   ["setRankingArchivedAction", "intelligence.manage", () => intel.setRankingArchivedAction("not-a-uuid", true)],
   ["takeSnapshotAction", "intelligence.manage", () => intel.takeSnapshotAction("not-a-uuid", {})],
+  ["recordFrameworkReviewAction", "intelligence.manage", () => intel.recordFrameworkReviewAction({ decision: "none", note: "" })],
   ["suspendCollaborationAction", "collaborations.moderate", () => collab.suspendCollaborationAction(new FormData())],
   ["restoreCollaborationAction", "collaborations.moderate", () => collab.restoreCollaborationAction(new FormData())],
   ["removeCollaborationAction", "collaborations.moderate", () => collab.removeCollaborationAction(new FormData())],
