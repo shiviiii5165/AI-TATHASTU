@@ -35,6 +35,7 @@ const inst = await import("@/app/admin/institutions/actions");
 const intel = await import("@/app/admin/intelligence/actions");
 const team = await import("@/app/admin/team/actions");
 const systemActions = await import("@/app/admin/system/actions");
+const integrationActions = await import("@/app/admin/intelligence/integrations/actions");
 const collab = await import("@/app/admin/collaborations/actions");
 
 const UUID = "00000000-0000-4000-8000-00000000abcd";
@@ -54,6 +55,7 @@ const ACTIONS: [string, Permission, () => Promise<unknown>][] = [
   ["triggerOutboxDeliveryAction", "email.delivery.retry", () => emails.triggerOutboxDeliveryAction()],
   ["retryFailedDeliveryAction", "email.delivery.retry", () => emails.retryFailedDeliveryAction(new FormData())],
   ["updateIncidentAction", "system.manage", () => systemActions.updateIncidentAction(new FormData())],
+  ["repairProfilesAction", "system.manage", () => integrationActions.repairProfilesAction(null, new FormData())],
   ["addTeamMemberAction", "team.manage", () => team.addTeamMemberAction(new FormData())],
   ["updateTeamMemberAction", "team.manage", () => team.updateTeamMemberAction(new FormData())],
   ["updateBudgetPolicyAction", "ai.budgets.manage", () => aiOps.updateBudgetPolicyAction(new FormData())],
