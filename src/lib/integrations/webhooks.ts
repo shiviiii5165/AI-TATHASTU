@@ -16,6 +16,7 @@ import { isFeatureEnabled } from "@/lib/feature-flags";
 import { clientById } from "@/lib/integrations/clients";
 import { getConsent, isLinked } from "@/lib/integrations/consent";
 import { toProfessionalProjectionV1 } from "@/lib/integrations/projection";
+import { isFinalOutcome, markSyncPending, parseOutcome, recordSyncResult } from "@/lib/integrations/sync-state";
 import { loadProfile } from "@/lib/profile/unified";
 
 /**
@@ -70,6 +71,7 @@ export async function enqueueProfileUpdated(userId: string, reason: string, only
       .insert(webhookOutbox)
       .values(targets.map((clientId) => ({ clientId, userId, event: "profile.updated" as const, reason })))
       .onConflictDoNothing();
+    for (const clientId of targets) await markSyncPending(userId, clientId, "profile.updated");
   }
   return targets;
 }
@@ -81,6 +83,7 @@ export async function enqueueRevoked(userId: string, clientId: IntegrationClient
     .insert(webhookOutbox)
     .values({ clientId, userId, event: "integration.revoked", reason })
     .onConflictDoNothing();
+  await markSyncPending(userId, clientId, "integration.revoked", { force: true });
   return true;
 }
 
@@ -101,7 +104,7 @@ async function claimDue(limit: number): Promise<WebhookOutboxRow[]> {
   // One statement, so it's atomic on neon-http too; SKIP LOCKED lets dispatchers overlap.
   const result = await db.execute(sql`
     UPDATE webhook_outbox
-       SET status = 'sending', attempts = attempts + 1,
+       SET status = 'sending', attempts = attempts + 1, last_attempt_at = now(),
            locked_until = now() + make_interval(secs => ${LOCK_SECONDS})
      WHERE id IN (
            SELECT id FROM webhook_outbox
@@ -123,7 +126,8 @@ async function claimDue(limit: number): Promise<WebhookOutboxRow[]> {
 
 async function payloadFor(row: WebhookOutboxRow) {
   const base = { id: row.id, type: row.event, createdAt: new Date().toISOString() };
-  if (row.event === "integration.revoked") return { ...base, data: { userId: row.userId } };
+  // The reason lets the app tell an account deletion (erase what it holds) from a disconnect (remove imports).
+  if (row.event === "integration.revoked") return { ...base, data: { userId: row.userId, reason: row.reason ?? "user_disconnected" } };
 
   const consent = await getConsent(row.userId, row.clientId);
   if (!isLinked(consent)) return null; // unlinked since it was queued
@@ -157,17 +161,32 @@ async function deliver(row: WebhookOutboxRow): Promise<"delivered" | "retrying" 
       redirect: "manual",
       signal: AbortSignal.timeout(SEND_TIMEOUT_MS),
     });
-    if (res.ok) {
-      await finish(row.id, "delivered", null);
+    // The app's answer, not just its status: a 200 can mean "ignored" or "conflict" (Collaborate wraps it in result).
+    const answer = await readAnswer(res);
+    const outcome = parseOutcome(answer.outcome);
+    if (outcome !== "unconfirmed" && isFinalOutcome(outcome)) {
+      const accepted = res.ok || outcome === "rejected" || outcome === "invalid_identity";
+      if (accepted) {
+        const failedForGood = outcome === "rejected" || outcome === "invalid_identity";
+        await finish(row.id, failedForGood ? "failed" : "delivered", failedForGood ? `${outcome}: ${answer.action ?? ""}`.trim() : null, outcome);
+        await recordSyncResult(row.userId, row.clientId, row.event, { outcome, reason: row.reason, action: answer.action });
+        return failedForGood ? "failed" : "delivered";
+      }
+    }
+    if (res.ok && outcome === "unconfirmed") {
+      // An older receiver that answers 2xx without an outcome: delivered, but never shown as synced.
+      await finish(row.id, "delivered", null, "unconfirmed");
+      await recordSyncResult(row.userId, row.clientId, row.event, { outcome, reason: row.reason });
       return "delivered";
     }
-    error = `HTTP ${res.status}`;
+    error = `HTTP ${res.status}${answer.action ? ` ${answer.action}` : ""}`;
   } catch (e) {
     error = e instanceof Error ? e.message : String(e);
   }
 
   if (row.attempts >= MAX_ATTEMPTS) {
-    await finish(row.id, "failed", error);
+    await finish(row.id, "failed", error, "delivery_failed");
+    await recordSyncResult(row.userId, row.clientId, row.event, { outcome: "delivery_failed", reason: row.reason });
     return "failed";
   }
   // A newer pending row for the same app/user/event already covers this one.
@@ -195,11 +214,22 @@ async function deliver(row: WebhookOutboxRow): Promise<"delivered" | "retrying" 
   return "retrying";
 }
 
-async function finish(id: string, status: "delivered" | "failed", lastError: string | null) {
+async function finish(id: string, status: "delivered" | "failed", lastError: string | null, outcome: string | null = null) {
   await db
     .update(webhookOutbox)
-    .set({ status, lastError, lockedUntil: null, deliveredAt: status === "delivered" ? new Date() : null })
+    .set({ status, lastError: lastError?.slice(0, 300) ?? null, lockedUntil: null, deliveredAt: status === "delivered" ? new Date() : null, outcome })
     .where(eq(webhookOutbox.id, id));
+}
+
+/** `{ outcome, action }` from the app's JSON answer (top level or under `result`); empty if absent or unreadable. */
+async function readAnswer(res: Response): Promise<{ outcome?: unknown; action: string | null }> {
+  try {
+    const body = (await res.json()) as Record<string, unknown> | null;
+    const answer = (body && typeof body.result === "object" && body.result ? body.result : body) as Record<string, unknown> | null;
+    return { outcome: answer?.outcome, action: typeof answer?.action === "string" ? answer.action.slice(0, 80) : null };
+  } catch {
+    return { action: null };
+  }
 }
 
 // ─── Operator: deliver profile.updated for explicitly selected users only ───────────────────────

@@ -7,7 +7,8 @@ import { dispatchWebhooks } from "@/lib/integrations/webhooks";
 /**
  * Weekly (vercel.json, Bearer CRON_SECRET; operators may use Bearer INTERNAL_API_SECRET):
  *  1. queue a re-sync of every connected source not synced in 6 days (activity stays current),
- *  2. provision Collaborate profiles for users who never made a choice (COLLABORATE_AUTO_PROVISION=1),
+ *  2. provision app profiles for existing users who never made a choice, per app whose backfill is on
+ *     (COLLABORATE_AUTO_PROVISION=1 as before; Avsar only with AVASAR_AUTO_PROVISION_BACKFILL=1),
  *  3. send the resulting webhooks.
  */
 async function handle(request: Request) {

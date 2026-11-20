@@ -253,6 +253,13 @@
       "when": 1794900000000,
       "tag": "0035_intelligence_history",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1795000000000,
+      "tag": "0036_integration_sync_state",
+      "breakpoints": true
     }
   ]
 }

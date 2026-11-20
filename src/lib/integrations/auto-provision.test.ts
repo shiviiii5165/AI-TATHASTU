@@ -37,13 +37,16 @@ describe("Collaborate auto-provisioning", () => {
     expect(await getConsent(id, "collaborate")).toBeNull();
   });
 
-  it("links a user with no prior choice (all sections) and queues a profile webhook", async () => {
+  it("links a user with no prior choice (profile on, Career Intelligence off) and queues a profile webhook", async () => {
     const id = await user("fresh");
     expect(await autoProvisionCollaborate(id)).toBe(true);
     const c = await getConsent(id, "collaborate");
     expect(c?.linkedAt).toBeTruthy();
     expect(c?.revokedAt).toBeNull();
-    expect(Object.values(c!.scopes).every(Boolean)).toBe(true);
+    // Consent policy v2: basic and professional profile shared by default; readiness/gaps and activity never.
+    expect(c!.scopes).toEqual({ skills: true, projects: true, experience: true, education: true, achievements: true, eris: false, activity: false });
+    expect(c!.source).toBe("auto_provision");
+    expect(c!.policyVersion).toBe(2);
     const rows = await outbox(id);
     expect(rows.some((r) => r.event === "profile.updated" && r.reason === "auto_provision")).toBe(true);
   });

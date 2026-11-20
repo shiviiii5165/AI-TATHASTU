@@ -522,11 +522,59 @@ export const integrationConsents = pgTable(
     linkedAt: timestamp("linked_at", { withTimezone: true }),
     revokedAt: timestamp("revoked_at", { withTimezone: true }),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    // Where the current choice came from and under which sharing policy (migration 0036). Null on older rows.
+    source: text("source").$type<ConsentSource>(),
+    policyVersion: integer("policy_version"),
   },
   (t) => [primaryKey({ columns: [t.userId, t.clientId] })],
 );
 
 export type IntegrationConsent = typeof integrationConsents.$inferSelect;
+export type ConsentSource = "user" | "auto_provision" | "backfill";
+
+/** Every consent change, insert-only (trigger in 0036). Deleted with the account. */
+export const integrationConsentLog = pgTable(
+  "integration_consent_log",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    clientId: text("client_id").$type<IntegrationClientId>().notNull(),
+    scopes: jsonb("scopes").$type<Partial<Record<IntegrationScope, boolean>>>().notNull(),
+    linked: boolean("linked").notNull(),
+    source: text("source").$type<ConsentSource | "user_revoked">().notNull(),
+    policyVersion: integer("policy_version").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("integration_consent_log_user_idx").on(t.userId, t.clientId, t.createdAt)],
+);
+
+/**
+ * Per user and app, what the user and admins see (migration 0036). Written only by the webhook dispatcher from the
+ * receiving app's answer, so "synced" always means the app confirmed it. No foreign key: a deletion's status
+ * outlives the account.
+ *   pending   queued, not confirmed yet            missing   the app has no profile; repair will provision
+ *   synced    the app confirmed the latest data     conflict  an existing account there must be linked by its owner
+ *   review    a conflict an admin must resolve      failed    retries exhausted or permanently rejected
+ *   declined  the user deleted/disconnected there   unlinked  consent revoked; the app removed imported data
+ *   deleted   account deletion confirmed by the app
+ */
+export type SyncStatus = "pending" | "synced" | "missing" | "conflict" | "review" | "failed" | "declined" | "unlinked" | "deleted";
+export const integrationSyncState = pgTable(
+  "integration_sync_state",
+  {
+    userId: uuid("user_id").notNull(),
+    clientId: text("client_id").$type<IntegrationClientId>().notNull(),
+    status: text("status").$type<SyncStatus>().notNull(),
+    lastOutcome: text("last_outcome"),
+    lastEvent: text("last_event"),
+    lastSuccessAt: timestamp("last_success_at", { withTimezone: true }),
+    lastAttemptAt: timestamp("last_attempt_at", { withTimezone: true }),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ name: "integration_sync_state_pk", columns: [t.userId, t.clientId] }), index("integration_sync_state_status_idx").on(t.clientId, t.status)],
+);
 
 /** One-time authorization codes (OAuth code flow). Only the SHA-256 of the code is stored. */
 export const integrationAuthCodes = pgTable("integration_auth_codes", {
@@ -570,6 +618,10 @@ export const webhookOutbox = pgTable(
     lastError: text("last_error"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     deliveredAt: timestamp("delivered_at", { withTimezone: true }),
+    // The receiving app's machine-readable answer (created, updated, conflict, ...): migration 0036.
+    outcome: text("outcome"),
+    lastAttemptAt: timestamp("last_attempt_at", { withTimezone: true }),
+    payloadVersion: integer("payload_version").notNull().default(1),
   },
   (t) => [
     uniqueIndex("webhook_outbox_pending_key")

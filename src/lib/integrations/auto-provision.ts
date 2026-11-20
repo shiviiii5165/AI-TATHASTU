@@ -3,42 +3,67 @@ import "server-only";
 import { and, eq, isNull, lt, notExists, or, sql } from "drizzle-orm";
 
 import { db } from "@/db";
-import { connections, integrationConsents, users } from "@/db/schema";
+import { connections, integrationConsents, users, type ConsentSource, type IntegrationClientId } from "@/db/schema";
 import { queueConnectorSync } from "@/lib/connectors/connections";
-import { SCOPE_IDS } from "@/lib/integrations/clients";
-import { getConsent, saveConsent, type ScopeMap } from "@/lib/integrations/consent";
+import { getConsent, saveConsent, DEFAULT_SHARED_SCOPES } from "@/lib/integrations/consent";
+import { markSyncPending } from "@/lib/integrations/sync-state";
 import { enqueueProfileUpdated } from "@/lib/integrations/webhooks";
 import { wakeWorker } from "@/lib/worker-ping";
 
 /**
- * Automatic Collaborate profiles (owner decision 2026-11-05).
+ * Automatic private profiles in the connected apps (Collaborate: owner decision 2026-11-05; Avsar: 2026-11-21).
  *
- * Every AI Tathastu user gets a Collaborate profile without a consent screen. Collaborate
- * keeps it PRIVATE (not in discovery, search or recommendations, and the profile page hidden)
- * until the user turns on visibility there. Rules:
- *  - Only users with NO saved Collaborate choice are provisioned. A user who declined,
- *    chose specific sections, or disconnected is never overridden.
- *  - Turned on with COLLABORATE_AUTO_PROVISION=1. Without it nothing happens.
- *  - The consent row is the normal one (linked, all sections), so the existing projection,
- *    webhook and revocation machinery applies unchanged. Disconnecting removes it as usual.
+ * Every AI Tathastu user gets a profile in each enabled app without a consent screen. The app keeps it PRIVATE
+ * (not discoverable, not published, contact details hidden) until the user changes that there. Rules:
+ *  - Only users with NO saved choice for that app are provisioned. A user who declined, chose specific sections
+ *    or disconnected is never overridden.
+ *  - Sharing starts from DEFAULT_SHARED_SCOPES (consent policy v2): basic and professional profile on, Career
+ *    Intelligence (readiness, gaps, activity) off until the user turns it on.
+ *  - New signups: <APP>_AUTO_PROVISION=1. Existing users (backfill): only with <APP>_AUTO_PROVISION_BACKFILL=1 for
+ *    the weekly job, or the operator script (scripts/integration-sync.ts), which has a dry run. Collaborate keeps
+ *    its earlier behaviour: its signup flag also enables its weekly backfill.
+ *  - The consent row is the normal one (linked), so projection, webhook and revocation machinery apply unchanged.
  */
-export const autoProvisionEnabled = () => process.env.COLLABORATE_AUTO_PROVISION === "1";
+export const AUTO_PROVISION_CLIENTS = ["collaborate", "avasar"] as const satisfies readonly IntegrationClientId[];
+export type AutoProvisionClient = (typeof AUTO_PROVISION_CLIENTS)[number];
 
-const ALL_SCOPES = Object.fromEntries(SCOPE_IDS.map((s) => [s, true])) as ScopeMap;
+const flag = (client: AutoProvisionClient, suffix = "") => process.env[`${client.toUpperCase()}_AUTO_PROVISION${suffix}`] === "1";
+export const autoProvisionEnabled = (client: AutoProvisionClient = "collaborate") => flag(client);
+export const backfillEnabled = (client: AutoProvisionClient) =>
+  client === "collaborate" ? flag(client) || flag(client, "_BACKFILL") : flag(client, "_BACKFILL");
 
-/** Links one user to Collaborate if they have never made a choice. Returns true if provisioned. */
-export async function autoProvisionCollaborate(userId: string): Promise<boolean> {
-  if (!autoProvisionEnabled()) return false;
-  if (await getConsent(userId, "collaborate")) return false; // an explicit choice exists: respect it
-  await saveConsent(userId, "collaborate", { scopes: ALL_SCOPES, link: true });
-  await enqueueProfileUpdated(userId, "auto_provision", "collaborate");
+/** Links one user to one app if they have never made a choice there. Returns true if provisioned. */
+export async function autoProvision(userId: string, client: AutoProvisionClient, source: ConsentSource = "auto_provision"): Promise<boolean> {
+  if (await getConsent(userId, client)) return false; // an explicit choice exists: respect it
+  await saveConsent(userId, client, { scopes: DEFAULT_SHARED_SCOPES, link: true, source });
+  await enqueueProfileUpdated(userId, "auto_provision", client);
+  await markSyncPending(userId, client, "profile.updated");
   return true;
 }
 
-/** Existing users who have never made a Collaborate choice. Bounded per run. */
-export async function provisionPendingUsers(limit = 200): Promise<number> {
-  if (!autoProvisionEnabled()) return 0;
-  const pending = await db
+/** Signup: every app switched on for new users. One app failing never stops the others (or the signup). */
+export async function autoProvisionNewUser(userId: string): Promise<AutoProvisionClient[]> {
+  const done: AutoProvisionClient[] = [];
+  for (const client of AUTO_PROVISION_CLIENTS) {
+    if (!autoProvisionEnabled(client)) continue;
+    try {
+      if (await autoProvision(userId, client)) done.push(client);
+    } catch (error) {
+      console.error(`${client} auto-provision failed`, error instanceof Error ? error.message : error);
+    }
+  }
+  return done;
+}
+
+/** @deprecated kept for existing callers and tests: Collaborate only, behind its flag. */
+export async function autoProvisionCollaborate(userId: string): Promise<boolean> {
+  if (!autoProvisionEnabled("collaborate")) return false;
+  return autoProvision(userId, "collaborate");
+}
+
+/** Active users with no saved choice for this app (the backfill candidates), oldest first. */
+export async function pendingProvisionUsers(client: AutoProvisionClient, limit = 200): Promise<string[]> {
+  const rows = await db
     .select({ id: users.id })
     .from(users)
     .where(
@@ -48,13 +73,22 @@ export async function provisionPendingUsers(limit = 200): Promise<number> {
           db
             .select({ one: sql`1` })
             .from(integrationConsents)
-            .where(and(eq(integrationConsents.userId, users.id), eq(integrationConsents.clientId, "collaborate"))),
+            .where(and(eq(integrationConsents.userId, users.id), eq(integrationConsents.clientId, client))),
         ),
       ),
     )
+    .orderBy(users.createdAt)
     .limit(limit);
+  return rows.map((r) => r.id);
+}
+
+/** Weekly job: existing users who have never made a choice, for apps whose backfill is switched on. Bounded per run. */
+export async function provisionPendingUsers(limit = 200): Promise<number> {
   let provisioned = 0;
-  for (const u of pending) if (await autoProvisionCollaborate(u.id)) provisioned++;
+  for (const client of AUTO_PROVISION_CLIENTS) {
+    if (!backfillEnabled(client)) continue;
+    for (const id of await pendingProvisionUsers(client, limit)) if (await autoProvision(id, client, "backfill")) provisioned++;
+  }
   return provisioned;
 }
 
