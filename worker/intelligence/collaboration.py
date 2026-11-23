@@ -40,20 +40,27 @@ def _reserve_embedding(provider: str, model: str, text: str) -> Optional[ai_budg
 
 
 def fetch_dense_api_embedding(text: str, target_dim: int = EMBEDDING_DIM) -> Optional[List[float]]:
-    """Calls Gemini text-embedding-004 or OpenRouter embedding API."""
-    gemini_keys = [k.strip() for k in os.environ.get("GEMINI_KEYS", "").split(",") if k.strip()]
+    """OpenRouter text-embedding-3-small; Gemini only if GEMINI_EMBEDDING_MODEL is set.
+
+    Vectors from different models live in different spaces and can't be compared, so one
+    model must produce all of them. Every stored vector so far came from OpenRouter
+    text-embedding-3-small (Gemini's text-embedding-004 was retired and 404'd on every call),
+    so that stays primary. Switching to Gemini means setting GEMINI_EMBEDDING_MODEL
+    (e.g. gemini-embedding-001) and re-embedding everything.
+    """
+    gemini_model = os.environ.get("GEMINI_EMBEDDING_MODEL", "").strip()
+    gemini_keys = [k.strip() for k in os.environ.get("GEMINI_KEYS", "").split(",") if k.strip()] if gemini_model else []
     openrouter_keys = [k.strip() for k in os.environ.get("OPENROUTER_KEYS", "").split(",") if k.strip()]
 
-    # 1. Try Gemini text-embedding-004
     for key in gemini_keys:
-        url = "https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{gemini_model}:embedContent"
         req = urllib.request.Request(
             url,
-            data=json.dumps({"content": {"parts": [{"text": text[:2000]}]}}).encode("utf-8"),
+            data=json.dumps({"content": {"parts": [{"text": text[:2000]}]}, "outputDimensionality": target_dim}).encode("utf-8"),
             headers={"Content-Type": "application/json", "x-goog-api-key": key},
             method="POST",
         )
-        reservation = _reserve_embedding("gemini", "text-embedding-004", text)
+        reservation = _reserve_embedding("gemini", gemini_model, text)
         if reservation is None:
             return None
         try:
@@ -64,13 +71,14 @@ def fetch_dense_api_embedding(text: str, target_dim: int = EMBEDDING_DIM) -> Opt
                 if vals and isinstance(vals, list) and len(vals) == target_dim:
                     return _normalize_vector(vals)
         except urllib.error.HTTPError as exc:
-            ai_budget.settle_rejected(reservation)
-            log.debug("Gemini embedding call failed on key (%s)", exc)
+            ai_budget.settle_rejected(reservation, "model_unavailable" if exc.code == 404 else "http_error")
+            log.warning("Gemini embedding %s failed (%s)", gemini_model, exc.code)
+            if exc.code == 404:
+                break  # the model is gone for every key; don't burn the rest
         except Exception as exc:
             ai_budget.settle_used(reservation)  # A second settle does nothing; a timeout may have been billed.
             log.debug("Gemini embedding call failed on key (%s)", exc)
 
-    # 2. Try OpenRouter Embeddings
     for key in openrouter_keys:
         url = "https://openrouter.ai/api/v1/embeddings"
         req = urllib.request.Request(
@@ -98,8 +106,8 @@ def fetch_dense_api_embedding(text: str, target_dim: int = EMBEDDING_DIM) -> Opt
                     if len(vals) == target_dim:
                         return _normalize_vector(vals)
         except urllib.error.HTTPError as exc:
-            ai_budget.settle_rejected(reservation)
-            log.debug("OpenRouter embedding call failed (%s)", exc)
+            ai_budget.settle_rejected(reservation, "rate_limited" if exc.code == 429 else "http_error")
+            log.warning("OpenRouter embedding call failed (%s)", exc.code)
         except Exception as exc:
             ai_budget.settle_used(reservation)
             log.debug("OpenRouter embedding call failed (%s)", exc)

@@ -70,6 +70,8 @@ LABELS = {"experience": "Experience (jobs, internships, volunteering, positions 
           "achievements": "Awards and achievements", "publications": "Publications"}
 MAX_TARGETED_TEXT_CHARS = 12000
 MAX_FULL_TEXT_CHARS = 15000
+# Whole-resume and page-image calls: thinking models routinely need 30-50 s; 25 s timed out.
+FULL_DOC_TIMEOUT = 60.0
 # Vision facts whose quote can't be found in any extracted text: kept for the
 # user to check, never trusted (validation 'unresolved', low confidence).
 CONF_VISION_MATCHED = 0.65
@@ -222,14 +224,14 @@ def extract_full(doc: Document, consent: bool, images: Sequence[str] = (), repor
     if images:
         result = provider_router.route_llm(
             system=FULL_SYSTEM, user=VISION_USER, schema=full_schema(), images=images,
-            consent_granted=consent, purpose="resume:full:vision", accept=_is_full_shape,
+            consent_granted=consent, purpose="resume:full:vision", accept=_is_full_shape, timeout=FULL_DOC_TIMEOUT,
         )
         method = f"llm:{result.provider}-vision"
     else:
         result = provider_router.route_llm(
             system=FULL_SYSTEM,
             user="Resume text:\n<<<\n" + _fenced(doc.text[:MAX_FULL_TEXT_CHARS]) + "\n>>>",
-            schema=full_schema(), consent_granted=consent, purpose="resume:full:text", accept=_is_full_shape,
+            schema=full_schema(), consent_granted=consent, purpose="resume:full:text", accept=_is_full_shape, timeout=FULL_DOC_TIMEOUT,
         )
         method = f"llm:{result.provider}"
 
@@ -296,7 +298,7 @@ def targeted(doc: Document, sections: List[Section], group: str, consent: bool, 
     if images:
         result = provider_router.route_llm(
             system=FULL_SYSTEM, user=TARGETED_VISION_USER.format(label=LABELS[group]), schema=schema_for(group),
-            images=images, consent_granted=consent, purpose=f"resume:retry:{group}:vision",
+            images=images, consent_granted=consent, purpose=f"resume:retry:{group}:vision", timeout=FULL_DOC_TIMEOUT,
             accept=lambda r: isinstance(r, dict) and isinstance(r.get("entries"), list),
         )
         method = f"llm:{result.provider}-vision"

@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
 from profile_urls import classify as classify_url
+from resume.fields import FIELD_GROUPS
 from skills_catalog import CATALOG
 
 # Regex-exact fields (email, URL) vs heuristics (name, institution).
@@ -81,7 +82,47 @@ HEADERS: Dict[str, str] = {
     "publications": "publications", "research": "publications", "papers": "publications",
     "languages": "languages", "spoken languages": "languages",
     "contact": "contact", "contact information": "contact",
+    # Common academic/CV headings. "other" isn't extracted; it only ends the section before it,
+    # so a References or Hobbies block can't be read as more publications or projects.
+    "research statement": "summary", "statement of purpose": "summary", "personal statement": "summary",
+    "distinctions": "achievements", "honors and awards": "achievements", "honours and awards": "achievements",
+    "awards and honors": "achievements", "awards and honours": "achievements", "recognition": "achievements",
+    "workshops": "certifications", "workshops attended": "certifications", "seminars": "certifications",
+    "conferences and workshops": "certifications", "workshops and seminars": "certifications",
+    "faculty development programmes": "certifications", "faculty development programs": "certifications",
+    "professional development": "certifications", "trainings and workshops": "certifications",
+    "book chapters": "publications", "conference papers": "publications", "journal papers": "publications",
+    "teaching experience": "experience", "academic experience": "experience", "research experience": "experience",
+    "references": "other", "referees": "other", "reference": "other", "declaration": "other",
+    "hobbies": "other", "interests": "other", "research interests": "other", "areas of interest": "other",
+    "professional membership": "other", "professional memberships": "other", "memberships": "other",
+    "personal details": "contact", "personal profile": "summary", "strengths": "other",
+    "languages known": "languages",
 }
+
+
+def header_group(line: str) -> Optional[str]:
+    """Section group for a heading line, or None. "Achievements and Distinctions" or
+    "Skills & Tools" fall back to their first part when the whole phrase isn't known."""
+    key = _header_key(line)
+    if not key:
+        return None
+    group = HEADERS.get(key)
+    if group is None and " and " in key and _looks_like_heading(line):
+        group = HEADERS.get(key.split(" and ", 1)[0])
+    return group
+
+
+_MINOR_WORDS = {"and", "of", "the", "in", "for", "to", "on", "with", "a", "an"}
+
+
+def _looks_like_heading(line: str) -> bool:
+    """ALL CAPS or Title Case with no sentence punctuation: "Achievements and Distinctions",
+    not "Research and development of a parser."""
+    if re.search(r"[.,;!?]\s*$|\d", line):
+        return False
+    words = re.findall(r"[A-Za-z]+", line)
+    return bool(words) and all(w[0].isupper() or w.lower() in _MINOR_WORDS for w in words)
 
 
 def _header_key(line: str) -> str:
@@ -101,7 +142,7 @@ def find_sections(text: str) -> List[Section]:
     pos = 0
     for line in text.split("\n"):
         stripped = line.strip().rstrip(":")
-        group = HEADERS.get(_header_key(stripped)) if 0 < len(stripped) <= 40 else None
+        group = header_group(stripped) if 0 < len(stripped) <= 50 and "|" not in stripped else None
         if group:
             found.append((group, stripped, pos, pos + len(line) + 1))
         else:
@@ -130,7 +171,8 @@ URL = re.compile(
     re.IGNORECASE,
 )
 MONTHS = r"(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)"
-DATE = rf"(?:{MONTHS}\.?\s+\d{{4}}|\d{{1,2}}/\d{{4}}|\d{{4}})"
+# "Jun 2023", "10 Jun 2023", "June, 2023", "06/2023", "2023".
+DATE = rf"(?:(?:\d{{1,2}}\s+)?{MONTHS}\.?,?\s+\d{{4}}|\d{{1,2}}/\d{{4}}|\d{{4}})"
 DATE_RANGE = re.compile(
     rf"(?P<start>{DATE})\s*(?:-|–|—|to|till)\s*(?P<end>{DATE}|present|current|now|ongoing)", re.IGNORECASE
 )
@@ -230,6 +272,13 @@ def extract_education(text: str, sections: List[Section]) -> List[Candidate]:
         for line in section.text(text).split("\n"):
             base = pos
             pos += len(line) + 1
+            if CELL_SEP in line:
+                if not _is_label_row(_cells(line)):
+                    out.extend(_education_row(line, base))
+                key, have = None, set()  # a table row is a whole entry; don't let later lines join it
+                continue
+            if NOTE_LINE.match(line):
+                continue  # "M.Tech Dissertation: ..." describes an entry, it isn't one
             inst, degree = INSTITUTION.search(line), DEGREE.search(line)
             if key is None or (inst and "institution" in have) or (degree and not inst and "degree" in have):
                 if not inst and not degree and key is None:
@@ -250,6 +299,56 @@ def extract_education(text: str, sections: List[Section]) -> List[Candidate]:
                     out.append(c)
                     have.add(c.field)
     return out
+
+
+NOTE_LINE = re.compile(r"^\s*[\w.() ]{0,30}?\b(?:dissertation|thesis|project|coursework|courses|minor|specialization)\s*:", re.IGNORECASE)
+PAREN = re.compile(r"\(([^()]{3,80})\)")
+
+
+def _education_row(line: str, base: int) -> List[Candidate]:
+    """
+    One education entry from a table row ("M.Tech (CSE) | LPU, Phagwara | 2024–2026 | CGPA 9.31").
+    The institution is its whole cell (a regex over free text would cut "University Grants
+    Commission" to "University"); the qualification is the first other cell, and a bracket after
+    it is the field of study. Dates and grade come from the remaining cells.
+    """
+    key = str(uuid.uuid4())
+    cells = _cells(line)
+    out: List[Candidate] = []
+    offsets, cursor = [], 0
+    for cell in cells:
+        idx = max(line.find(cell, cursor), 0)
+        offsets.append(base + idx)
+        cursor = idx + len(cell)
+
+    def add(field_name: str, value: str, start: int, conf: float) -> None:
+        out.append(Candidate("education", field_name, value, value, value, start, start + len(value), confidence=conf, record_key=key))
+
+    inst_i = next((i for i, c in enumerate(cells) if INSTITUTION.search(c)), None)
+    if inst_i is not None:
+        value = PAREN.sub("", cells[inst_i]).strip(" ,")
+        if value and value in cells[inst_i]:
+            add("institution", value, offsets[inst_i] + cells[inst_i].index(value), HEURISTIC)
+    qual_i = next((i for i, c in enumerate(cells) if i != inst_i and c and not _looks_like_date(c) and not GRADE.search(c)), None)
+    if qual_i is not None:
+        cell = cells[qual_i]
+        m = DEGREE.search(cell)
+        degree = m.group(1) if m else PAREN.sub("", cell).strip(" ,")
+        if degree and degree in cell:
+            add("degree", degree, offsets[qual_i] + cell.index(degree), 0.85 if m else HEURISTIC)
+        paren = PAREN.search(cell)
+        # "(Computer Science)" or a hyphenated stream like "(Non-Medical)"; not "(CBSE)" or "(2024)".
+        if paren and (len(paren.group(1).split()) >= 2 or "-" in paren.group(1)) and not re.search(r"\d", paren.group(1)):
+            study = " ".join(paren.group(1).split())
+            if study in cell:
+                add("field_of_study", study, offsets[qual_i] + cell.index(study), HEURISTIC)
+    for i, cell in enumerate(cells):
+        if i in (inst_i, qual_i):
+            continue
+        for c in _dates_and_grade(cell, offsets[i], key):
+            if c.field not in {x.field for x in out}:
+                out.append(c)
+    return out if any(c.field in ("institution", "degree") for c in out) else []
 
 
 def _dates_and_grade(chunk: str, base: int, key: str) -> List[Candidate]:
@@ -316,34 +415,199 @@ GENERIC_GROUPS = ("experience", "projects", "certifications", "achievements", "p
 GENERIC_CONFIDENCE = 0.5
 TITLE_FIELD = {"experience": "role", "projects": "title", "certifications": "name", "achievements": "title", "publications": "title"}
 BULLET = re.compile(r"^\s*[-•▪◦*●○·➢►]\s*")
+# Numbered list items: "[3] R. Singh, ...", "2. Built ...", "(4) ...". Not "2024 – 2026" or "3.5 CGPA".
+NUMBERED = re.compile(r"^\s*(?:\[\d{1,3}\]|\(\d{1,3}\)|\d{1,2}[.)](?!\d))\s+")
+# A line ending like this finished its sentence; anything else may wrap onto the next line.
+# Not ':' or ';': "Coordinator for CSE476:" and "crime scenarios;" wrap mid-sentence.
+ENDS_SENTENCE = re.compile(r"[.!?]['\"”’)]*\s*$")
+CELL_SEP = " | "  # resume/text.py writes table rows this way
+WRAP_RATIO = 0.75
+
+
+def _cells(line: str) -> List[str]:
+    return [c.strip() for c in line.split(CELL_SEP)]
+
+
+def _is_label_row(cells: List[str]) -> bool:
+    """A table's column-label row: short cells, no digits, no lists ("Year", "Institution / Board")."""
+    filled = [c for c in cells if c]
+    return len(filled) >= 2 and all(len(c.split()) <= 4 and not re.search(r"[\d,;()@]", c) for c in filled)
+
+
+# Which field a labelled column fills, per group: first pattern that matches the label wins.
+COLUMN_FIELDS: Dict[str, List[Tuple[str, str]]] = {
+    "certifications": [("date", r"date|year|when|duration|period"), ("issuer", r"issu|organi[sz]|\bby\b|provider|platform|institut|body|authority"),
+                       ("name", r"certif|course|program|name|title|training|workshop|credential")],
+    "achievements": [("date", r"date|year|when"), ("description", r"desc|detail|remark"), ("title", r"award|title|achiev|name|honou?r|position")],
+    "publications": [("date", r"date|year"), ("url", r"doi|link|url"), ("venue", r"venue|journal|conference|publish|proceed|book"),
+                     ("title", r"title|paper|article")],
+    "experience": [("dates", r"date|period|duration|year|tenure"), ("organization", r"organi[sz]|company|employer|institut|firm"),
+                   ("role", r"role|position|designation|title"), ("description", r"desc|responsib|work|detail")],
+    "projects": [("technologies", r"tech|stack|tools"), ("url", r"link|url|repo"), ("description", r"desc|detail"), ("title", r"project|title|name")],
+}
+DATE_CELL = re.compile(r"[\w\s.,/–—-]{1,32}")
+YEAR = re.compile(r"\b(?:19|20)\d{2}\b")
+
+
+def _looks_like_date(cell: str) -> bool:
+    return bool(DATE_CELL.fullmatch(cell) and YEAR.search(cell) and len(cell.split()) <= 6)
+
+
+def _is_marker(line: str) -> bool:
+    return bool(BULLET.match(line) or NUMBERED.match(line))
+
+
+# Groups whose list items are the entries themselves; a short label over such a list
+# ("Communicated", "International") groups entries and isn't one. In experience and
+# projects the same short line over bullets is the entry's title.
+ITEM_GROUPS = ("publications", "achievements", "certifications")
+
+
+def _logical_lines(section_text: str, base: int, group: str = "") -> List[Tuple[str, int, int, bool]]:
+    """
+    Joins visual lines back into the lines the author wrote: (text, start, end, is_marker).
+
+    PDF text wraps long bullets and titles onto several lines. A line continues the
+    previous one when it isn't a list marker or a table row, and either it starts in
+    lower case or the previous line ran to the text width (WRAP_RATIO of the longest
+    line) without ending its sentence. Table rows (" | ") and
+    date-only lines always stand alone. Short labels that introduce a list
+    ("Communicated", "Book Chapters") are dropped.
+    """
+    raw: List[Tuple[str, int]] = []
+    pos = base
+    for line in section_text.split("\n"):
+        if line.strip():
+            raw.append((line, pos))
+        pos += len(line) + 1
+    # A wrapped line ran out of width: it is nearly as long as the longest line around it.
+    # A short unpunctuated bullet ("Built dashboards for 4 teams") ended on its own.
+    width = max((len(l.strip()) for l, _ in raw if "|" not in l), default=0)
+
+    out: List[List] = []
+    for i, (line, start) in enumerate(raw):
+        stripped = line.strip()
+        marker = _is_marker(line)
+        nxt = raw[i + 1][0] if i + 1 < len(raw) else ""
+        if (group in ITEM_GROUPS and not marker and _is_marker(nxt) and len(stripped.split()) <= 4 and not ENDS_SENTENCE.search(stripped)
+                and not DATE_RANGE.search(stripped) and "|" not in stripped and not header_group(stripped)):
+            continue  # a sub-heading over a list ("Communicated"), not an entry
+        prev = out[-1] if out else None
+        continues = (
+            prev is not None and not marker and "|" not in stripped and "|" not in prev[0]
+            and not DATE_RANGE.fullmatch(stripped.strip(" ()"))
+            and (stripped[:1].islower()
+                 or (not ENDS_SENTENCE.search(prev[0]) and prev[4] >= WRAP_RATIO * width))
+        )
+        if continues:
+            prev[0] = prev[0].rstrip() + " " + stripped
+            prev[2] = start + len(line)
+            prev[4] = len(stripped)
+        else:
+            out.append([line, start, start + len(line), marker, len(stripped)])
+    return [(t, s, e, m) for t, s, e, m, _ in out]
+
+
+def _column_field(group: str, label: str) -> Optional[str]:
+    for field_name, pattern in COLUMN_FIELDS.get(group, []):
+        if re.search(pattern, label, re.IGNORECASE):
+            return field_name
+    return None
+
+
+def _row_candidates(group: str, line: str, start: int, labels: Optional[List[str]]) -> List[Candidate]:
+    """
+    One entry from a table row. Columns are mapped by their labels when the table
+    has a label row ("Certification | Issued by | Date"); otherwise the first cell
+    is the title, a cell that is only a date is the date, and a certificate's
+    second cell is its issuer. Unlabelled leftovers go to the description where
+    the group has one. All 'unresolved', 0.5, like every section_entries fact.
+    """
+    key = str(uuid.uuid4())
+    cells = _cells(line)
+    fields: Dict[str, Tuple[str, int]] = {}
+    offsets, cursor = [], 0
+    for cell in cells:
+        idx = line.find(cell, cursor)
+        offsets.append(start + max(idx, 0))
+        cursor = max(idx, 0) + len(cell)
+
+    def put(field_name: str, i: int) -> None:
+        if cells[i] and field_name not in fields:
+            fields[field_name] = (cells[i], offsets[i])
+
+    for i, cell in enumerate(cells):
+        mapped = _column_field(group, labels[i]) if labels and i < len(labels) else None
+        if mapped:
+            put(mapped, i)
+        elif i == 0:
+            put(TITLE_FIELD[group], i)
+        elif _looks_like_date(cell):
+            put("dates" if group == "experience" else "date", i)
+        elif group == "certifications" and i == 1:
+            put("issuer", i)
+        elif "description" in FIELD_GROUPS.get(group, []):
+            put("description", i)
+
+    out: List[Candidate] = []
+    for field_name, (value, off) in fields.items():
+        if field_name == "dates":
+            m = DATE_RANGE.search(value)
+            if m:
+                for part in ("start", "end"):
+                    out.append(Candidate(group, f"{part}_date", m.group(part), m.group(part), m.group(0), off + m.start(), off + m.end(),
+                                         confidence=GENERIC_CONFIDENCE, record_key=key, validation="unresolved"))
+            continue
+        if field_name not in FIELD_GROUPS.get(group, []):
+            continue
+        out.append(Candidate(group, field_name, value[:200], value, value, off, off + len(value),
+                             confidence=GENERIC_CONFIDENCE, record_key=key, validation="unresolved"))
+    return out
 
 
 def section_entries(text: str, sections: List[Section], groups: Tuple[str, ...] = GENERIC_GROUPS) -> List[Candidate]:
     """
-    Splits each section into entries: a new entry starts at a non-bullet line
-    after a bullet/description line, or at a line with a date range once the
-    current entry already has one. First line → title field, the rest →
-    description, a date range → start/end dates. All 'unresolved', 0.5.
+    Splits each section into entries over its logical (unwrapped) lines.
+
+    Flat lists, where the section opens with a list item (awards, publications,
+    certificates as bullets or [1] [2]), give one entry per item. Otherwise a
+    non-item line after an item or a long description line starts a new entry
+    ("Role, Company" then its bullets), as does a second date range. First line →
+    title field, the rest → description, a date range → start/end dates. All
+    'unresolved', 0.5.
     """
     out: List[Candidate] = []
     for section in (s for s in sections if s.group in groups):
+        logical = _logical_lines(section.text(text), section.start, section.group)
+        flat = bool(logical) and logical[0][3]
         entries: List[List[Tuple[str, int]]] = []
         current: List[Tuple[str, int]] = []
         saw_body = False
-        pos = section.start
-        for line in section.text(text).split("\n"):
-            start = pos
-            pos += len(line) + 1
-            if not line.strip():
+        labels: Optional[List[str]] = None
+        for line, start, end, is_item in logical:
+            if CELL_SEP in line:
+                # A table row is a whole entry by itself; a label row names the columns after it.
+                if current:
+                    entries.append(current)
+                    current, saw_body = [], False
+                cells = _cells(line)
+                if _is_label_row(cells):
+                    labels = cells
+                else:
+                    out.extend(_row_candidates(section.group, line, start, labels))
                 continue
-            is_bullet = bool(BULLET.match(line))
             has_dates = bool(DATE_RANGE.search(line))
-            new_entry = current and not is_bullet and (saw_body or (has_dates and any(DATE_RANGE.search(l) for l, _ in current)))
+            if flat:
+                # In a list of items, an unmarked line belongs to the item above it.
+                new_entry = bool(current) and is_item
+            else:
+                new_entry = bool(current) and not is_item and (
+                    saw_body or (has_dates and any(DATE_RANGE.search(l) for l, _ in current)))
             if new_entry:
                 entries.append(current)
                 current, saw_body = [], False
-            current.append((line, start))
-            saw_body = saw_body or is_bullet or len(line.split()) > 14
+            current.append((text[start:end], start))
+            saw_body = saw_body or (is_item and not flat) or len(line.split()) > 14
         if current:
             entries.append(current)
 
@@ -351,16 +615,19 @@ def section_entries(text: str, sections: List[Section], groups: Tuple[str, ...] 
             key = str(uuid.uuid4())
             group = section.group
             title_line, title_start = lines[0]
-            title = BULLET.sub("", title_line).strip()
-            t_off = title_start + title_line.index(title) if title in title_line else title_start
-            out.append(Candidate(group, TITLE_FIELD[group], title[:200], title, title, t_off, t_off + len(title),
+            lead = len(title_line) - len(NUMBERED.sub("", BULLET.sub("", title_line), count=1).lstrip())
+            raw_title = title_line[lead:].rstrip()  # may span wrapped lines; the value is unwrapped
+            title = " ".join(raw_title.split())
+            t_off = title_start + lead
+            out.append(Candidate(group, TITLE_FIELD[group], title[:200], raw_title, raw_title, t_off, t_off + len(raw_title),
                                  confidence=GENERIC_CONFIDENCE, record_key=key, validation="unresolved"))
-            body = [(l, s0) for l, s0 in lines[1:]]
+            # A line that is only a date range belongs to the dates, not the description.
+            body = [(l, s0) for l, s0 in lines[1:] if not DATE_RANGE.fullmatch(l.strip(" ()"))]
             if body and group in ("experience", "projects", "achievements"):
                 first_l, first_s = body[0]
                 last_l, last_s = body[-1]
                 evidence = text[first_s:last_s + len(last_l)]
-                desc = " ".join(BULLET.sub("", l).strip() for l, _ in body)
+                desc = " ".join(" ".join(BULLET.sub("", l).split()) for l, _ in body)
                 out.append(Candidate(group, "description", desc[:2000], evidence, evidence, first_s, last_s + len(last_l),
                                      confidence=GENERIC_CONFIDENCE, record_key=key, validation="unresolved"))
             for l, s0 in lines:

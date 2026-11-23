@@ -370,7 +370,9 @@ def _build_chain() -> List[Provider]:
         GroqPool(KeyPool("groq", "GROQ_KEYS"),
                  parse_models(env("GROQ_MODELS", "llama-3.3-70b-versatile:strict,llama-3.1-8b-instant:strict,openai/gpt-oss-120b:strict,openai/gpt-oss-20b:strict"))),
         GeminiPool(KeyPool("gemini", "GEMINI_KEYS"),
-                   parse_models(env("GEMINI_MODELS", "gemini-2.5-flash:strict,gemini-2.0-flash:strict,gemini-1.5-flash:strict,gemini-3.5-flash:strict,gemini-3.5-flash-lite:strict"), vision=True)),
+                   # Checked 2026-11-23 against every configured key: 1.5/2.0-flash are retired (404) and
+                   # 2.5-flash is refused to newer keys ("not available to new users"), so none are defaults.
+                   parse_models(env("GEMINI_MODELS", "gemini-3.5-flash:strict,gemini-3.5-flash-lite:strict,gemini-flash-lite-latest:strict"), vision=True)),
         OpenRouterPool(KeyPool("openrouter", "OPENROUTER_KEYS"),
                        parse_models(env("OPENROUTER_MODELS", "nvidia/nemotron-3.5-super-vl:free:strict,xingchen-agi/xing4.0-29b-a4b:free:strict"))
                        + parse_models(env("OPENROUTER_VISION_MODELS", "nvidia/nemotron-3.5-super-vl:free:strict"), vision=True)),
@@ -456,6 +458,11 @@ def route_llm(
                     continue
                 except ModelUnavailable as exc:
                     ai_budget.settle_rejected(reservation, "model_unavailable")
+                    if "new users" in str(exc).lower():
+                        # Gemini refuses some models to newer projects only: a property of this key,
+                        # not the model. Try the next key instead of dropping the model for everyone.
+                        log.warning("%s model %s refused for key %s: %s", provider.name, model.name, key.label, str(exc)[:120])
+                        continue
                     provider.dead_models.add(model.name)
                     log.error("%s model %s unavailable (404), skipping it until restart: %s", provider.name, model.name, str(exc)[:160])
                     break

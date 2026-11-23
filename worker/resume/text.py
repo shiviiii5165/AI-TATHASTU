@@ -7,6 +7,7 @@ mapped back to where it appeared (profile_facts.location).
 from __future__ import annotations
 
 import io
+import re
 import shutil
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
@@ -130,8 +131,13 @@ def _pdf(data: bytes, force_ocr: bool = False) -> Document:
             blank += len(text_blocks) - len(raw)
             if not force_ocr and sum(len(b[4].strip()) for b in raw) >= MIN_TEXT_CHARS:
                 pages.append(PageInfo(number, "text"))
-                for x0, y0, x1, y1, text, *_ in _reading_order(raw, page.rect.width):
+                tables = _tables(page)
+                raw = [b for b in raw if not any(_inside(b, t) for t in tables) and not PAGE_FOOTER.match(b[4].strip())]
+                for x0, y0, x1, y1, text, *_ in _reading_order(raw + tables, page.rect.width):
                     blocks.append(Block(_clean(text), number, (x0, y0, x1, y1)))
+                links = _hidden_links(page, " ".join(b[4] for b in raw))
+                if links:
+                    blocks.append(Block("Links: " + " ".join(u for u, _ in links), number, links[0][1]))
             elif index >= MAX_OCR_PAGES:
                 pages.append(PageInfo(number, "skipped"))
             else:
@@ -143,22 +149,130 @@ def _pdf(data: bytes, force_ocr: bool = False) -> Document:
     return Document(blocks, pages, blank_blocks=0 if force_ocr else blank)
 
 
+# "Page 2 of 4", "2 / 4", "- 3 -" or a bare page number, alone in its block.
+PAGE_FOOTER = re.compile(r"^[-–\s]*(?:page\s*)?\d{1,3}(?:\s*(?:of|/)\s*\d{1,3})?[-–\s]*$", re.IGNORECASE)
+
+
+def _inside(block: tuple, table: tuple) -> bool:
+    cx, cy = (block[0] + block[2]) / 2, (block[1] + block[3]) / 2
+    return table[0] - 1 <= cx <= table[2] + 1 and table[1] - 1 <= cy <= table[3] + 1
+
+
+TABLE_CELL_SEP = " | "
+
+
+def _cell_text(raw: str) -> str:
+    """One line per cell. A word hyphenated across the cell's lines ("Non-" / "Medical") is rejoined."""
+    return " ".join(re.sub(r"(?<=[A-Za-z])-\s*\n\s*(?=[A-Za-z])", "-", raw).split())
+
+
+def _tables(page) -> List[tuple]:
+    """Ruled tables as one pseudo-block each, one line per row: "cell | cell | cell".
+
+    Without this, PyMuPDF returns every cell as its own block (and wrapped cells
+    as several), in an order that mixes columns, so a row like
+    "M.Tech (CSE) | Lovely Professional University | 2024–2026 | CGPA 9.31"
+    reaches the parsers as seven unrelated lines. The column-label row is kept:
+    it tells the parsers (and the AI) what each column means.
+
+    Cell text is read from the page inside each cell's box: Table.extract()
+    rebuilds text from characters and drops the spaces in some PDFs.
+    """
+    import fitz
+
+    try:
+        found = page.find_tables().tables
+    except Exception:  # noqa: BLE001 - table detection is best effort; plain blocks still work
+        return []
+    out = []
+    for table in found:
+        rows: List[List[str]] = []
+        if table.header.external:
+            rows.append([" ".join((n or "").split()) for n in table.header.names])
+        for row in table.rows:
+            rows.append([_cell_text(page.get_textbox(fitz.Rect(c))) if c else "" for c in row.cells])
+        rows = [r for r in rows if any(r)]
+        if len(rows) < 2 or max(sum(1 for c in r if c) for r in rows) < 2:
+            continue  # a box around a paragraph, not a table
+        text = "\n".join(TABLE_CELL_SEP.join(c.replace("|", "/") for c in r if c) for r in rows)
+        out.append((*table.bbox, text, -1, 0))
+    return out
+
+
+MAX_LINKS_PER_PAGE = 20
+
+
+def _hidden_links(page, visible: str) -> List[Tuple[str, BBox]]:
+    """Web links whose target isn't written on the page ("LinkedIn" linking to
+    linkedin.com/in/...). Profile URLs are often only in the link, so they're added
+    as text. mailto/tel are skipped: the address is almost always visible."""
+    out: List[Tuple[str, BBox]] = []
+    seen = set()
+    try:
+        links = page.get_links()
+    except Exception:  # noqa: BLE001 - a malformed annotation shouldn't lose the page's text
+        return out
+    for link in links:
+        uri = (link.get("uri") or "").strip()
+        if not re.match(r"https?://", uri, re.IGNORECASE) or len(uri) > 300 or any(c.isspace() for c in uri):
+            continue
+        bare = re.sub(r"^https?://(www\.)?", "", uri, flags=re.IGNORECASE).rstrip("/")
+        if uri in seen or bare in visible:
+            continue
+        seen.add(uri)
+        r = link.get("from")
+        out.append((uri, (r.x0, r.y0, r.x1, r.y1) if r is not None else (0, 0, 0, 0)))
+        if len(out) >= MAX_LINKS_PER_PAGE:
+            break
+    return out
+
+
+def _same_line(a: tuple, b: tuple) -> bool:
+    overlap = min(a[3], b[3]) - max(a[1], b[1])
+    return overlap > 0.5 * min(a[3] - a[1], b[3] - b[1])
+
+
 def _reading_order(raw: list, width: float) -> list:
     """
-    Two-column layouts: read the full-width header, then the left column top
-    to bottom, then the right. Single-column pages keep PyMuPDF's sort.
+    Columns are decided per vertical run, not per page. Full-width blocks split
+    the page into runs; inside a run, left and right blocks are read as two
+    columns (left top to bottom, then right) only when most right-hand blocks
+    sit beside nothing on the left, as in a sidebar layout. Side-by-side bullet
+    grids and "title ... date" rows share lines, so they keep line order.
     """
-    mid = width / 2
-    left = [b for b in raw if b[2] <= mid + width * 0.05]
-    right = [b for b in raw if b[0] >= mid - width * 0.05 and b not in left]
-    if len(left) < 3 or len(right) < 3:
-        return raw
-    full = [b for b in raw if b not in left and b not in right]
-    top = min(b[1] for b in left + right)
-    header = [b for b in full if b[3] <= top]
-    rest = [b for b in full if b not in header]
-    by_y = lambda bs: sorted(bs, key=lambda b: (b[1], b[0]))  # noqa: E731
-    return by_y(header) + by_y(left) + by_y(right) + by_y(rest)
+    mid, gutter = width / 2, width * 0.05
+
+    def side(b: tuple) -> str:
+        if b[2] <= mid + gutter:
+            return "L"
+        return "R" if b[0] >= mid - gutter else "F"
+
+    by_y = lambda bs: sorted(bs, key=lambda b: (round(b[1] / 3), b[0]))  # noqa: E731
+
+    def order_run(run: list) -> list:
+        left = [b for b in run if side(b) == "L"]
+        right = [b for b in run if side(b) == "R"]
+        if len(left) < 3 or len(right) < 3:
+            return by_y(run)
+        beside = sum(1 for r in right if any(_same_line(r, l) for l in left))
+        if beside * 2 >= len(right):
+            return by_y(run)
+        # Left blocks above the whole right column (a heading over both) come first;
+        # the rest of the left column is read through before the right column.
+        top = min(r[1] for r in right)
+        before = [l for l in left if l[3] <= top]
+        column = [l for l in left if l not in before]
+        return by_y(before) + by_y(column) + by_y(right)
+
+    out: list = []
+    run: list = []
+    for b in by_y(raw):
+        if side(b) == "F":
+            out += order_run(run) + [b]
+            run = []
+        else:
+            run.append(b)
+    return out + order_run(run)
 
 
 def _clean(text: str) -> str:

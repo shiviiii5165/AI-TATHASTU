@@ -235,6 +235,16 @@ class RouterTests(unittest.TestCase):
         self.assertTrue(gone.breaker.allow())
         self.assertEqual(len(gone.breaker.calls), 1)  # only m2's success was counted
 
+    def test_model_refused_to_one_key_tries_the_next_key(self) -> None:
+        # Gemini: "This model ... is no longer available to new users" depends on the key's project.
+        refused = provider_router.ModelUnavailable("This model models/x is no longer available to new users.")
+        gemini = FakeProvider([refused, {"ok": 1}], keys=("new", "old"), name="gemini")
+        provider_router.set_chain_for_tests([gemini])
+        out = provider_router.route_llm(system="", user="", schema={}, consent_granted=True, purpose="t")
+        self.assertEqual((out.model, out.data), ("m", {"ok": 1}))
+        self.assertEqual(gemini.used_keys, ["gemini_0", "gemini_1"])
+        self.assertNotIn("m", gemini.dead_models)
+
     def test_model_spec_parsing_keeps_free_suffix(self) -> None:
         ms = provider_router.parse_models("nvidia/x:free:strict,gemini-2.5-flash,llama:json_object")
         self.assertEqual([(m.name, m.mode) for m in ms], [("nvidia/x:free", "strict"), ("gemini-2.5-flash", "json"), ("llama", "json")])

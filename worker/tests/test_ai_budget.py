@@ -290,9 +290,20 @@ class OtherPaidCalls(WithGate):
 
     def test_embedding_http_refusal_costs_nothing_and_usage_is_metered(self):
         error = urllib.error.HTTPError("u", 429, "slow down", {}, None)
-        with mock.patch.dict(os.environ, {"GEMINI_KEYS": "k", "OPENROUTER_KEYS": ""}), mock.patch.object(collaboration.urllib.request, "urlopen", side_effect=error):
+        with mock.patch.dict(os.environ, {"GEMINI_KEYS": "", "OPENROUTER_KEYS": "k"}), mock.patch.object(collaboration.urllib.request, "urlopen", side_effect=error):
             self.assertIsNone(collaboration.fetch_dense_api_embedding("text"))
         self.assertEqual(self.gate.settled[0][1], "released")
+
+    def test_gemini_embedding_is_opt_in_and_a_404_stops_after_one_key(self):
+        error = urllib.error.HTTPError("u", 404, "gone", {}, None)
+        env = {"GEMINI_KEYS": "k1,k2,k3", "OPENROUTER_KEYS": ""}
+        with mock.patch.dict(os.environ, env), mock.patch.object(collaboration.urllib.request, "urlopen", side_effect=error) as call:
+            os.environ.pop("GEMINI_EMBEDDING_MODEL", None)
+            self.assertIsNone(collaboration.fetch_dense_api_embedding("text"))
+            self.assertEqual(call.call_count, 0)  # no model configured: Gemini isn't tried at all
+            os.environ["GEMINI_EMBEDDING_MODEL"] = "gemini-embedding-001"
+            self.assertIsNone(collaboration.fetch_dense_api_embedding("text"))
+            self.assertEqual(call.call_count, 1)  # 404 is the model, not the key
 
 
 class Pricing(unittest.TestCase):

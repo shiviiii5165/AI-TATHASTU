@@ -24,8 +24,9 @@ PLATFORMS = (
      r"/users/\d+(?:/[^/]+)?/?"),
 )
 # Platform-ish hosts that are never someone's personal website (repo links,
-# coding sites without a connector).
-OTHER_PLATFORM_HOSTS = r"(?:codechef\.com|codeforces\.com|geeksforgeeks\.org|gist\.github\.com)"
+# coding sites without a connector, research-profile indexes).
+OTHER_PLATFORM_HOSTS = (r"(?:codechef\.com|codeforces\.com|geeksforgeeks\.org|gist\.github\.com|scholar\.google\.[a-z.]+|"
+                        r"scopus\.com|researchgate\.net|semanticscholar\.org|dblp\.org|webofscience\.com|academia\.edu)")
 
 URL_FIELDS = {"website", *(f for f, _h, _p in PLATFORMS)}
 
