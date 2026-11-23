@@ -3393,7 +3393,8 @@ input[type=range]::-moz-range-thumb {
 
 .story-chip-name {
   font: 700 0.82rem/1 var(--s);
-  color: var(--card-accent, #FF385C);
+  /* Per-story accents are mid-tone; darken for 4.5:1 on the pastel chip. */
+  color: color-mix(in srgb, var(--card-accent, #FF385C) 72%, #000);
 }
 
 .story-tag-badge {
@@ -3403,7 +3404,8 @@ input[type=range]::-moz-range-thumb {
   padding: 5px 13px;
   border-radius: 99px;
   background: var(--tag-bg, #DCFCE7);
-  color: var(--tag-color, #15803D);
+  /* Darkened for 4.5:1 against the pastel --tag-bg (e.g. #D97706 on #FEF3C7). */
+  color: color-mix(in srgb, var(--tag-color, #15803D) 72%, #000);
   font: 700 0.76rem/1 var(--s);
   border: 1px solid var(--tag-border, transparent);
 }
@@ -3493,37 +3495,51 @@ input[type=range]::-moz-range-thumb {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  margin: 28px auto 0;
+  gap: 0;
+  margin: 20px auto 0;
 }
 
+/* The button itself is a 24px target (WCAG 2.5.8; Lighthouse measures the box,
+   not pseudo-elements). The visible pill is drawn by ::before, same size as before. */
 .story-dot {
   position: relative;
-  height: 7px;
-  border-radius: 99px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
   border: 0;
+  border-radius: 99px;
+  background: transparent;
   cursor: pointer;
   padding: 0;
-  transition: all 0.32s var(--spring);
 }
-/* Invisible 24px-tall hit area; the visible dot is unchanged. */
+.story-dot:focus-visible {
+  outline: 2px solid #FF385C;
+  outline-offset: 1px;
+}
 .story-dot::before {
   content: "";
-  position: absolute;
-  inset: -9px -4px;
+  display: block;
+  height: 7px;
+  border-radius: 99px;
+  transition: all 0.32s var(--spring);
 }
 
-.story-dot.inactive {
+.story-dot.inactive::before {
   width: 7px;
   background: #CBD5E1;
 }
 
-.story-dot.inactive:hover {
+.story-dot.inactive:hover::before {
   background: #94A3B8;
   transform: scale(1.3);
 }
 
 .story-dot.active {
+  min-width: 34px;
+}
+.story-dot.active::before {
   width: 26px;
   background: #FF385C;
 }
@@ -4964,7 +4980,7 @@ input[type=range]::-moz-range-thumb {
 .val-blue { color: #2563EB; }
 .val-dark { color: #0F172A; }
 .val-red { color: #DC2626; }
-.val-green { color: #16A34A; }
+.val-green { color: #15803D; }
 
 /* Right Ecosystem Cards */
 .ref-dest-column {
@@ -5426,13 +5442,13 @@ input[type=range]::-moz-range-thumb {
   .bridge-sources .ref-bridge-badge {
     background: #FFF1F2;
     border: 1px solid rgba(244, 63, 94, 0.25);
-    color: #E11D48;
+    color: #BE123C;
     box-shadow: 0 2px 8px rgba(244, 63, 94, 0.10);
   }
   .bridge-dest .ref-bridge-badge {
     background: #ECFDF5;
     border: 1px solid rgba(16, 185, 129, 0.25);
-    color: #059669;
+    color: #047857;
     box-shadow: 0 2px 8px rgba(16, 185, 129, 0.10);
   }
 
@@ -5762,7 +5778,7 @@ input[type=range]::-moz-range-thumb {
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: #0284C7;
+  color: #0369A1;
   background: rgba(56, 189, 248, 0.1);
   border: 1px solid rgba(56, 189, 248, 0.25);
   padding: 4px 14px;
@@ -5950,7 +5966,7 @@ input[type=range]::-moz-range-thumb {
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: #059669;
+  color: #047857;
   background: rgba(16, 185, 129, 0.1);
   border: 1px solid rgba(16, 185, 129, 0.25);
   padding: 4px 14px;
@@ -5987,12 +6003,12 @@ input[type=range]::-moz-range-thumb {
   gap: 6px;
   font-weight: 700;
   font-size: 0.98rem;
-  color: #059669;
+  color: #047857;
   text-decoration: none;
   transition: gap 0.2s ease, color 0.2s ease;
 }
 .privacy-policy-link:hover {
-  color: #047857;
+  color: #065F46;
   gap: 10px;
 }
 .dark .privacy-policy-link,

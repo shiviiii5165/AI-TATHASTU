@@ -2123,7 +2123,7 @@ function initReviewShuffle() {
 
     if (dotsRow) {
       dotsRow.innerHTML = stories.map((_, i) =>
-        `<button type="button" class="story-dot ${i === currentIdx ? 'active' : 'inactive'}" data-idx="${i}" aria-label="Go to story ${i + 1}"></button>`
+        `<button type="button" role="tab" aria-selected="${i === currentIdx}" tabindex="${i === currentIdx ? 0 : -1}" class="story-dot ${i === currentIdx ? 'active' : 'inactive'}" data-idx="${i}" aria-label="Go to story ${i + 1}"></button>`
       ).join('');
 
       dotsRow.querySelectorAll('.story-dot').forEach(dot => {
@@ -2131,6 +2131,15 @@ function initReviewShuffle() {
           e.stopPropagation();
           goToIdx(+dot.getAttribute('data-idx'));
         });
+      });
+      // Tabs pattern: arrow keys move between dots (only the active one is tabbable).
+      dotsRow.addEventListener('keydown', (e) => {
+        const step = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+        if (!step) return;
+        e.preventDefault();
+        const next = (currentIdx + step + stories.length) % stories.length;
+        goToIdx(next);
+        dotsRow.querySelectorAll('.story-dot')[next]?.focus();
       });
     }
 
@@ -2177,6 +2186,8 @@ function initReviewShuffle() {
     if (dotsRow) {
       dotsRow.querySelectorAll('.story-dot').forEach((dot, i) => {
         dot.className = `story-dot ${i === currentIdx ? 'active' : 'inactive'}`;
+        dot.setAttribute('aria-selected', String(i === currentIdx));
+        dot.tabIndex = i === currentIdx ? 0 : -1;
       });
     }
   }

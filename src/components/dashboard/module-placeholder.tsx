@@ -1,40 +1,26 @@
 import { ArrowLeft, Construction } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { ComingSoon } from "@/components/coming-soon/coming-soon";
 import { requireOnboardedUser } from "@/lib/dal";
-import { EXTRA_MODULES, NAV_ITEMS, PLACEHOLDER_SLUGS } from "@/lib/dashboard/nav";
+import { EXTRA_MODULES, NAV_ITEMS } from "@/lib/dashboard/nav";
 
-// Placeholder for module pages that don't exist yet. Known slugs are
-// prerendered; anything else is a 404.
-export function generateStaticParams() {
-  return PLACEHOLDER_SLUGS.map((module) => ({ module }));
+// Shared body for module pages that don't exist yet. Each placeholder slug has
+// its own explicit route folder under src/app/(dashboard)/ (no catch-all), so
+// unknown root paths such as /robots.txt or /foo never match the dashboard group
+// and get the plain root 404 instead of the dashboard shell.
+export function placeholderMetadata(slug: string): Metadata {
+  return { title: labelOf(slug) };
 }
 
-const labelOf = (slug: string) =>
-  PLACEHOLDER_SLUGS.includes(slug) ? [...NAV_ITEMS, ...EXTRA_MODULES].find((m) => m.slug === slug)?.label : undefined;
+const labelOf = (slug: string) => [...NAV_ITEMS, ...EXTRA_MODULES].find((m) => m.slug === slug)?.label ?? slug;
 
-export async function generateMetadata({ params }: PageProps<"/[module]">): Promise<Metadata> {
-  return { title: labelOf((await params).module) ?? "Not found" };
-}
-
-// Blocking on purpose (see below): the shell can't render before we know the
-// slug is real, or unknown paths would stream with status 200.
-export const instant = false;
-
-// params are awaited before any Suspense boundary so notFound() runs before
-// streaming starts and the response is a real 404 (inside a boundary it would
-// stream with status 200). Known slugs come from generateStaticParams.
-export default async function ModulePage({ params }: PageProps<"/[module]">) {
-  const { module } = await params;
-  const label = labelOf(module);
-  if (!label) notFound();
+export function ModulePlaceholderPage({ module }: { module: string }) {
   return (
     <Suspense fallback={null}>
-      <ModulePlaceholder label={label} module={module} />
+      <ModulePlaceholder label={labelOf(module)} module={module} />
     </Suspense>
   );
 }

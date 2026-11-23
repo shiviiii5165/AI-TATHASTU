@@ -116,9 +116,11 @@ test.describe("Landing page responsive layout", () => {
     const sizes = await page.evaluate(() =>
       [...document.querySelectorAll<HTMLElement>(".story-dot, .footer-legal-btn")].map((el) => {
         const b = el.getBoundingClientRect();
+        // Story dots are real 24px boxes; other controls may extend with an absolute ::before.
         const before = getComputedStyle(el, "::before");
-        const extra = before.content !== "none" ? -2 * parseFloat(before.top || "0") : 0;
-        return b.height + extra;
+        const top = parseFloat(before.top);
+        const extra = before.content !== "none" && before.position === "absolute" && !Number.isNaN(top) ? -2 * top : 0;
+        return Math.min(b.height + extra, el.classList.contains("story-dot") ? b.width : Infinity);
       }),
     );
     expect(sizes.length).toBeGreaterThan(0);

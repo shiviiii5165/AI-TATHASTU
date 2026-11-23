@@ -1,5 +1,6 @@
 // Persistent dashboard navigation (plan §3.5). Modules without a page yet
-// render the shared placeholder at src/app/(dashboard)/[module]/page.tsx.
+// render the shared placeholder (components/dashboard/module-placeholder.tsx)
+// from an explicit folder per slug. A test keeps the folders and this list in sync.
 
 export const NAV_ITEMS = [
   { slug: "profile", label: "My Profile" },
@@ -26,8 +27,8 @@ export const EXTRA_MODULES = [{ slug: "avasar", label: "Avasar" }] as const;
 
 export const MODULE_SLUGS: string[] = [...NAV_ITEMS, ...EXTRA_MODULES].map((m) => m.slug);
 
-// Modules with their own route under src/app/(dashboard)/; the [module]
-// placeholder must not also claim these paths.
+// Modules with their own real route under src/app/(dashboard)/. Every other slug
+// has an explicit placeholder folder using components/dashboard/module-placeholder.
 export const BUILT_MODULES = [
   "connections",
   "profile",

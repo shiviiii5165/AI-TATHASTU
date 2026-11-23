@@ -1,0 +1,22 @@
+# AI Tathastu
+
+> AI Tathastu is a career intelligence platform for students, faculty, alumni and professionals in India. Users connect their resume, GitHub, LinkedIn, LeetCode and other profiles. AI Tathastu shows the skills they have, what is missing for the roles they want, and what to learn next. It also matches people for mentorship and project collaboration.
+
+Signing up is free. Signed-in areas (dashboard, settings, admin) and the API need an account and are not meant for crawling.
+
+## Product
+
+- [Home](https://www.aitathastu.com/): what AI Tathastu does and how it works
+- [About](https://www.aitathastu.com/about): mission and team
+- [Collaborations](https://www.aitathastu.com/collaborations): open student, faculty and alumni projects, hackathon teams and research groups
+- [Contact](https://www.aitathastu.com/contact): support and partnership enquiries
+
+## Related products
+
+- [Avsar](https://avsar.aitathastu.com/): internships and opportunities
+
+## Policies
+
+- [Privacy policy](https://www.aitathastu.com/privacy)
+- [Terms of service](https://www.aitathastu.com/terms)
+- [Cookie policy](https://www.aitathastu.com/cookie-policy)
