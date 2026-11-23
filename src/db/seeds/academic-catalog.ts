@@ -3,7 +3,7 @@
 // upsert). Pure data: imported by the seed builder, the matcher and tests.
 
 import type { DegreeLevel, InstitutionType } from "@/db/schema";
-import { DIRECTORY_ROWS } from "./institutions-directory";
+import { DIRECTORY_ALIASES, DIRECTORY_ROWS } from "./institutions-directory";
 
 export type SeedInstitution = {
   name: string;
@@ -214,7 +214,7 @@ function directoryInstitutions(core: SeedInstitution[]): SeedInstitution[] {
     seen.add(key);
     const type = code === "N" ? nationalImportanceType(name) : DIRECTORY_TYPE[code];
     if (!type) throw new Error(`institutions-directory: bad type code "${code}" for ${name}`);
-    out.push({ name, aliases: [], type, city, state: state || null, country, website: null });
+    out.push({ name, aliases: DIRECTORY_ALIASES[name] ?? [], type, city, state: state || null, country, website: null });
   }
   return out;
 }

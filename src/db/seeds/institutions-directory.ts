@@ -873,4 +873,10 @@ University of the West Indies, St. Augustine|St. Augustine||F|TT
 University of the West Indies, Cave Hill|Cave Hill||F|BB
 University of Puerto Rico, Río Piedras|San Juan||F|PR
 University of the Andes, Venezuela|Mérida||F|VE
+Newton School of Technology|Sonipat|Haryana|O
 `;
+
+// Short names for directory rows, so "NST" etc. also match.
+export const DIRECTORY_ALIASES: Record<string, string[]> = {
+  "Newton School of Technology": ["NST", "Newton School", "Newton"],
+};

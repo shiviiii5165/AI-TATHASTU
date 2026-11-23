@@ -267,6 +267,13 @@
       "when": 1795100000000,
       "tag": "0037_institution_directory",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1795200000000,
+      "tag": "0038_newton_school",
+      "breakpoints": true
     }
   ]
 }
