@@ -1,6 +1,6 @@
 // Builds idempotent upsert SQL for the academic catalogue. Used to generate
 // migration 0010 and by `npm run db:seed:academic` to apply later edits.
-import { DEGREES, INSTITUTIONS, SPECIALIZATIONS } from "./academic-catalog";
+import { DEGREES, INSTITUTIONS, SPECIALIZATIONS, type SeedInstitution } from "./academic-catalog";
 
 const lit = (v: string | null) => (v === null ? "NULL" : `'${v.replace(/'/g, "''")}'`);
 const arr = (values: string[]) => (values.length ? `ARRAY[${values.map(lit).join(", ")}]::text[]` : `'{}'::text[]`);
@@ -18,12 +18,15 @@ VALUES (${lit(s.name)}, ${arr(s.aliases)}, ARRAY(SELECT "id" FROM "degrees" WHER
 ON CONFLICT ("canonical_name") DO UPDATE SET "aliases" = EXCLUDED."aliases",
   "applicable_degree_ids" = EXCLUDED."applicable_degree_ids", "sort_order" = EXCLUDED."sort_order";`,
   );
-  const institutions = INSTITUTIONS.map(
+  return [...degrees, ...specializations, ...institutionSeedStatements(INSTITUTIONS)];
+}
+
+export function institutionSeedStatements(list: SeedInstitution[]): string[] {
+  return list.map(
     (x) => `INSERT INTO "institutions" ("canonical_name", "aliases", "institution_type", "city", "state", "country_code", "website", "verification_status", "source")
 VALUES (${lit(x.name)}, ${arr(x.aliases)}, ${lit(x.type)}, ${lit(x.city)}, ${lit(x.state)}, ${lit(x.country)}, ${lit(x.website)}, 'verified', 'seed')
 ON CONFLICT (lower("canonical_name")) WHERE "verification_status" = 'verified' DO UPDATE SET "aliases" = EXCLUDED."aliases",
   "institution_type" = EXCLUDED."institution_type", "city" = EXCLUDED."city", "state" = EXCLUDED."state",
-  "country_code" = EXCLUDED."country_code", "website" = EXCLUDED."website";`,
+  "country_code" = EXCLUDED."country_code", "website" = COALESCE(EXCLUDED."website", "institutions"."website");`,
   );
-  return [...degrees, ...specializations, ...institutions];
 }

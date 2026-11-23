@@ -3,6 +3,7 @@
 // upsert). Pure data: imported by the seed builder, the matcher and tests.
 
 import type { DegreeLevel, InstitutionType } from "@/db/schema";
+import { DIRECTORY_ROWS } from "./institutions-directory";
 
 export type SeedInstitution = {
   name: string;
@@ -11,7 +12,7 @@ export type SeedInstitution = {
   city: string;
   state: string | null;
   country: string; // ISO 3166-1 alpha-2
-  website: string;
+  website: string | null;
 };
 
 export type SeedDegree = { name: string; aliases: string[]; level: DegreeLevel; duration: number | null };
@@ -80,7 +81,7 @@ const inst = (
   name: string, aliases: string[], type: InstitutionType, city: string, state: string | null, country: string, website: string,
 ): SeedInstitution => ({ name, aliases, type, city, state, country, website });
 
-export const INSTITUTIONS: SeedInstitution[] = [
+export const CORE_INSTITUTIONS: SeedInstitution[] = [
   // ── IITs ──
   iit("Indian Institute of Technology Bombay", ["IIT Bombay", "IITB", "IIT Mumbai", "IIT-B"], "Mumbai", "Maharashtra", "https://www.iitb.ac.in"),
   iit("Indian Institute of Technology Delhi", ["IIT Delhi", "IITD", "IIT-D"], "New Delhi", "Delhi", "https://home.iitd.ac.in"),
@@ -185,3 +186,38 @@ export const INSTITUTIONS: SeedInstitution[] = [
   inst("University of California, Berkeley", ["UC Berkeley", "UCB", "Berkeley", "University of California Berkeley"], "foreign_university", "Berkeley", "California", "US", "https://www.berkeley.edu"),
   inst("University at Buffalo", ["UB", "SUNY Buffalo", "University at Buffalo SUNY", "State University of New York at Buffalo"], "foreign_university", "Buffalo", "New York", "US", "https://www.buffalo.edu"),
 ];
+
+// ── Extended directory (institutions-directory.ts) ──
+// Rows already in CORE_INSTITUTIONS (by canonical name or alias) or repeated
+// within the directory are skipped, so the core entries keep their aliases.
+const normName = (s: string) =>
+  s.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9]+/g, " ").replace(/^the /, "").trim();
+
+const DIRECTORY_TYPE: Record<string, InstitutionType> = {
+  C: "central_university", S: "state_university", D: "deemed_university", P: "private_university", O: "other", F: "foreign_university",
+};
+const nationalImportanceType = (name: string): InstitutionType =>
+  /^Indian Institute of Technology /.test(name) ? "iit"
+  : /National Institute of Technology/.test(name) ? "nit"
+  : /^(Indian Institute of Information Technology|Atal Bihari Vajpayee Indian Institute of Information)/.test(name) ? "iiit"
+  : "research_institute";
+
+function directoryInstitutions(core: SeedInstitution[]): SeedInstitution[] {
+  const seen = new Set<string>();
+  for (const c of core) for (const n of [c.name, ...c.aliases]) seen.add(normName(n));
+  const out: SeedInstitution[] = [];
+  for (const line of DIRECTORY_ROWS.split("\n")) {
+    if (!line.trim()) continue;
+    const [name, city, state, code, country = "IN"] = line.split("|").map((s) => s.trim());
+    const key = normName(name);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const type = code === "N" ? nationalImportanceType(name) : DIRECTORY_TYPE[code];
+    if (!type) throw new Error(`institutions-directory: bad type code "${code}" for ${name}`);
+    out.push({ name, aliases: [], type, city, state: state || null, country, website: null });
+  }
+  return out;
+}
+
+export const DIRECTORY_INSTITUTIONS: SeedInstitution[] = directoryInstitutions(CORE_INSTITUTIONS);
+export const INSTITUTIONS: SeedInstitution[] = [...CORE_INSTITUTIONS, ...DIRECTORY_INSTITUTIONS];
