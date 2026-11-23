@@ -38,7 +38,16 @@ async function Content() {
   const enrollment = await getMfaEnrollment(user.id);
   const session = await auth();
 
-  if (enrollment?.confirmed && isAdminSessionFresh(session?.authTime)) return <MfaCodeForm confirmed />;
+  // Same element tree as the setup branch below: confirming re-renders this page as "confirmed",
+  // and a remount would drop the form state that carries the one-time recovery codes.
+  if (enrollment?.confirmed && isAdminSessionFresh(session?.authTime)) {
+    return (
+      <div className="space-y-5">
+        {null}
+        <MfaCodeForm key="mfa-code" confirmed />
+      </div>
+    );
+  }
 
   // Admin sessions are daily, and setting up claims the account's second factor,
   // so that secret only appears after a sign-in this fresh.
@@ -73,7 +82,7 @@ async function Content() {
           Open in authenticator app
         </a>
       </div>
-      <MfaCodeForm confirmed={false} />
+      <MfaCodeForm key="mfa-code" confirmed={false} />
     </div>
   );
 }

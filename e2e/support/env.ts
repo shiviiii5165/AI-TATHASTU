@@ -38,6 +38,9 @@ export const E2E_ENV = {
   LINKEDIN_CLIENT_SECRET: "",
   // Admin access in the E2E stack (never the real admin address).
   ADMIN_EMAILS: "admin@e2e.test",
+  // Throwaway key so admin MFA (enrollment, replay, brute-force limit) runs for real in E2E.
+  // ADMIN_MFA_REQUIRED stays unset, so other admin tests are unaffected.
+  ADMIN_MFA_SECRET: "e2e-admin-mfa-secret-not-used-anywhere-else-0123",
   ORCID_CLIENT_ID: "",
   ORCID_CLIENT_SECRET: "",
   GITHUB_CLIENT_ID: "",

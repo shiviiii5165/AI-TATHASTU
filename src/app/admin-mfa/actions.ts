@@ -23,6 +23,7 @@ import { hitRateLimit } from "@/lib/rate-limit";
 export type MfaFormState = { error?: string; recoveryCodes?: string[] };
 
 const REAUTH_PATH = "/login?callbackUrl=%2Fadmin-mfa";
+const MFA_DAILY_LIMIT = 20;
 
 async function requireOperator() {
   const user = await getCurrentUser();
@@ -47,9 +48,13 @@ export async function reauthenticate() {
 
 export async function submitCode(_previous: MfaFormState, formData: FormData): Promise<MfaFormState> {
   const user = await requireOperator();
-  // A million codes and three valid at a time: this keeps guessing hopeless. No database, no attempt.
+  // A million codes and three valid at a time. 5 per 15 minutes alone still allows 480 guesses a day
+  // (~0.14%/day, ~40%/year against a held session), so a daily cap bounds the long game too (~2%/year).
+  // No database, no attempt.
   const limited = await hitRateLimit(`admin_mfa:${user.id}`, { limit: 5, windowSeconds: 900, onDbError: "deny" });
   if (!limited.ok) return { error: "Too many attempts. Try again in 15 minutes." };
+  const daily = await hitRateLimit(`admin_mfa_day:${user.id}`, { limit: MFA_DAILY_LIMIT, windowSeconds: 86_400, onDbError: "deny" });
+  if (!daily.ok) return { error: "Too many attempts today. Try again tomorrow." };
   if (!isMfaKeyConfigured()) return { error: "Admin verification isn't configured on this server." };
 
   const input = String(formData.get("code") ?? "").trim();
