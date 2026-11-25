@@ -59,6 +59,16 @@ Secrets go through each host's secret store, never chat, email or git.
    Then set `AVASAR_AUTO_PROVISION=1` so new signups get Avsar too.
 10. **Full Avsar backfill** (separate approval): `backfill --client avasar --limit 10 --apply --send`, repeated until the
     dry run shows 0 candidates. It resumes where it stopped. Then turn on `COLLABORATE_AUTO_REPAIR` and `AVASAR_AUTO_REPAIR`.
+11. **Reconcile** (read-only): `reconcile --client avasar`. Prints counts only, every account in one bucket:
+    `deleted` (skipped), `eligible` (backfill would provision), `alreadySynced`, `inFlight`, `onboardingIncomplete`
+    (`--send` skips these; the daily dispatch sends them), `failed`, `conflict`, `unconfirmed`. The buckets sum to
+    `total`. `backfill` prints the same report as its preview and again at the end. Retry `failed` and `unconfirmed`
+    with `repair --client avasar --apply --send` (dry run first). Done when `eligible`, `failed` and `unconfirmed` are 0.
+
+Avsar needs its migration `0013_ait_unlinked_at` (one nullable column, `candidate_profiles.ait_unlinked_at`) before
+the build that writes it is deployed. It is the disconnect tombstone: after `integration.revoked`, a delayed or retried
+`profile.updated` built before the disconnect is ignored (`IGNORED_BEFORE_UNLINK`); a fresh one after a relink is imported.
+Rollback: `ALTER TABLE candidate_profiles DROP COLUMN ait_unlinked_at;` (old builds ignore it).
 
 ## Rollback
 

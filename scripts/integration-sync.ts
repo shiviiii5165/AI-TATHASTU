@@ -3,7 +3,11 @@
 //   npx tsx --conditions=react-server scripts/integration-sync.ts report
 //   npx tsx --conditions=react-server scripts/integration-sync.ts backfill  --client avasar [--limit 3] [--users id,id] [--apply] [--send]
 //   npx tsx --conditions=react-server scripts/integration-sync.ts repair    --client collaborate [--limit 50] [--users id,id] [--apply] [--send]
+//   npx tsx --conditions=react-server scripts/integration-sync.ts reconcile --client avasar
 //
+// reconcile  read-only: every account in one bucket (deleted, eligible, already synced, in flight, onboarding
+//            incomplete, failed, conflict, unconfirmed). Counts only. Also printed before and after every backfill.
+//            Retry failed / unconfirmed users with `repair`.
 // backfill   consent policy v4: links every active account not yet on policy v4 for the app (everything shared, source
 //            "backfill") and queues auto_provision, which creates the profile in the app or updates it. Oldest first.
 //            Resumable: accounts already on policy v4 are skipped, so an interrupted run just continues.
@@ -32,8 +36,8 @@ const users = opt("users")?.split(",").map((s) => s.trim()).filter(Boolean);
 const mask = (id: string) => `${id.slice(0, 8)}…`;
 
 async function main() {
-  if (!["report", "backfill", "repair"].includes(command ?? "")) {
-    console.error("Usage: report | backfill | repair  (see the header of this file)");
+  if (!["report", "backfill", "repair", "reconcile"].includes(command ?? "")) {
+    console.error("Usage: report | backfill | repair | reconcile  (see the header of this file)");
     process.exit(2);
   }
   if (command !== "report" && client !== "collaborate" && client !== "avasar") throw new Error("--client collaborate|avasar is required.");
@@ -46,6 +50,10 @@ async function main() {
   const { repairMissingProfiles } = await import("@/lib/integrations/repair");
   const { appSyncSummaries } = await import("@/lib/integrations/sync-admin");
   const { dispatchSelectedProfileUpdates, SELECTED_DISPATCH_MAX } = await import("@/lib/integrations/webhooks");
+  const { backfillReport } = await import("@/lib/integrations/backfill-report");
+  const printReport = async (label: string) => console.log(`${label}: ${JSON.stringify(await backfillReport(client!))}`);
+
+  if (command === "reconcile") return printReport("reconciliation");
 
   const sendNow = async (ids: string[]) => {
     if (has("dispatch") && apply) {
@@ -83,6 +91,7 @@ async function main() {
   }
 
   if (command === "backfill") {
+    await printReport("preview");
     const all = await pendingProvisionUsers(client!, users ? 100_000 : limit);
     const ids = users ? all.filter((id) => users.includes(id)) : all;
     if (users) for (const u of users.filter((x) => !all.includes(x))) console.log(`  skip ${mask(u)}: already has a choice, deleted, or unknown`);
@@ -93,6 +102,7 @@ async function main() {
     for (const id of ids) if (await autoProvision(id, client!, "backfill")) done.push(id);
     console.log(`provisioned: ${done.length}`);
     await sendNow(done);
+    await printReport("reconciliation");
     return;
   }
 
