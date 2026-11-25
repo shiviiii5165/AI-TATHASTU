@@ -32,6 +32,11 @@ const adapter: Adapter = {
   ...drizzleAdapter,
   createUser: (user) => drizzleAdapter.createUser!({ ...user, email: user.email.toLowerCase().trim() }),
   getUserByEmail: (email) => drizzleAdapter.getUserByEmail!(email.toLowerCase().trim()),
+  // Sign-in only needs the provider link (provider + providerAccountId). Provider tokens are never
+  // read (GitHub data uses the separately AES-GCM-encrypted connector credential), so they are not
+  // stored: a database leak must not hand out live Google/GitHub/LinkedIn tokens.
+  linkAccount: (account) =>
+    drizzleAdapter.linkAccount!({ ...account, access_token: undefined, refresh_token: undefined, id_token: undefined, expires_at: undefined, session_state: undefined }),
   updateUser: (user) =>
     drizzleAdapter.updateUser!({
       ...user,
