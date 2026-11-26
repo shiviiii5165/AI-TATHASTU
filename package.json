@@ -74,6 +74,7 @@
     "node": "24.x"
   },
   "overrides": {
+    "@mapbox/node-pre-gyp": "^2.0.3",
     "next-auth": {
       "nodemailer": "$nodemailer"
     }
