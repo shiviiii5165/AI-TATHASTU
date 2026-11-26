@@ -45,7 +45,17 @@ test("mobile menu: same boundary, Collaborate once, no Yora banner", async ({ br
   const { context, page } = await setUp(browser, "Structure mobile", 390);
   await page.getByRole("button", { name: "Open full menu and modules" }).click();
   const drawer = page.getByRole("dialog");
-  await expect(drawer.getByRole("link", { name: /Dashboard Overview/ })).toBeVisible();
+  // The drawer is the desktop sidebar itself: same items, same labels, same order (no separate mobile menu).
+  const labels = await drawer.getByRole("navigation", { name: "Main" }).getByRole("link").allTextContents();
+  expect(labels.slice(0, 6)).toEqual(["Home", "My Profile", "Skills", "Projects", "Achievements", "AVSAR"]);
+  for (const kept of ["Privacy", "Integrations"]) await expect(drawer.getByRole("link", { name: kept, exact: true })).toBeVisible();
+  await expect(drawer.getByRole("button", { name: "Sign out" })).toBeVisible();
+  for (const old of ["Dashboard Overview", "Skills & Inferred Graph", "Privacy & AI Consent", "Connected Sources"]) await expect(drawer.getByText(old)).toHaveCount(0);
+  // Navigating from the drawer closes it.
+  await drawer.getByRole("link", { name: "Skills", exact: true }).click();
+  await expect(page).toHaveURL(/\/skills$/);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page.getByRole("button", { name: "Open full menu and modules" }).click();
   for (const gone of ["People & Network", "Communities", "Internships", "Open Collaborate"]) await expect(drawer.getByRole("link", { name: gone, exact: true })).toHaveCount(0);
   await expect(drawer.getByText("Ask Yora Assistant")).toHaveCount(0);
   const collaborate = drawer.getByRole("link", { name: /^Collaborate/ });

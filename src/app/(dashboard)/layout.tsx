@@ -1,12 +1,8 @@
-import { ArrowUpRight, LogOut, Plug, Share2, ShieldCheck } from "lucide-react";
-import Link from "next/link";
-
-import { signOut } from "@/auth";
-import { AppNav } from "@/components/dashboard/app-nav";
-import { MobileNav } from "@/components/dashboard/mobile-nav";
-
 import { Suspense } from "react";
+
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
+import { MobileNav } from "@/components/dashboard/mobile-nav";
+import { SidebarContent } from "@/components/dashboard/sidebar";
 import { getSession } from "@/lib/dal";
 
 // Shell for the dashboard and every module page.
@@ -27,37 +23,9 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
 
       {/* Body: Left Sidebar (Desktop) + Main Content + Mobile Bottom Navigation */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-[16rem_minmax(0,1fr)]">
-        {/* Desktop Sidebar (hidden on mobile, persistent on desktop) */}
+        {/* Desktop Sidebar (hidden on small screens, where the same SidebarContent opens in the drawer) */}
         <aside className="hidden lg:flex flex-col gap-4 border-r border-border bg-card px-4 py-5 lg:sticky lg:top-16 lg:h-[calc(100dvh-4rem)] shadow-[1px_0_4px_rgba(15,23,42,0.02)] overflow-y-auto [scrollbar-width:none]">
-          <AppNav />
-          <div className="flex flex-col items-stretch gap-1 border-t border-border pt-3">
-            {/* Plain <a>: a server redirect into Collaborate's own sign-in (OAuth), never prefetched. */}
-            {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- route handler that redirects off-site; needs a full navigation */}
-            <a
-              href="/integrations/launch/collaborate"
-              className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-[#FF5A5F]/20 focus-visible:outline-none"
-            >
-              <Share2 aria-hidden className="size-4 text-muted-foreground" />
-              <span className="flex-1">Collaborate</span>
-              <ArrowUpRight aria-hidden className="size-3.5 text-muted-foreground" />
-              <span className="sr-only">(opens Collaborate)</span>
-            </a>
-            <Link
-              href="/settings/privacy"
-              className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-[#FF5A5F]/20 focus-visible:outline-none"
-            >
-              <ShieldCheck aria-hidden className="size-4 text-muted-foreground" />
-              Privacy
-            </Link>
-            <Link
-              href="/settings/integrations"
-              className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-[#FF5A5F]/20 focus-visible:outline-none"
-            >
-              <Plug aria-hidden className="size-4 text-muted-foreground" />
-              Integrations
-            </Link>
-            <SignOut />
-          </div>
+          <SidebarContent />
         </aside>
 
         {/* Main Content Area: pb-28 accounts for mobile bottom bar */}
@@ -69,10 +37,10 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
         </main>
       </div>
 
-      {/* Mobile Primary Bottom Navigation & Drawer */}
-      <Suspense fallback={null}>
-        <MobileNavWithSession />
-      </Suspense>
+      {/* Small screens: bottom bar + a drawer holding the very same sidebar as desktop */}
+      <MobileNav>
+        <SidebarContent />
+      </MobileNav>
     </div>
   );
 }
@@ -80,38 +48,4 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
 async function HeaderWithSession() {
   const session = await getSession();
   return <DashboardHeader user={session?.user} />;
-}
-
-async function MobileNavWithSession() {
-  const session = await getSession();
-  return (
-    <MobileNav
-      user={session?.user}
-      onSignOut={async () => {
-        "use server";
-        await signOut({ redirectTo: "/login" });
-      }}
-    />
-  );
-}
-
-
-function SignOut({ className }: { className?: string }) {
-  return (
-    <form
-      className={className}
-      action={async () => {
-        "use server";
-        await signOut({ redirectTo: "/login" });
-      }}
-    >
-      <button
-        type="submit"
-        className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-slate-500 transition-colors duration-150 hover:bg-rose-50 hover:text-rose-600 focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:outline-none cursor-pointer"
-      >
-        <LogOut aria-hidden className="size-4" />
-        Sign out
-      </button>
-    </form>
-  );
 }
