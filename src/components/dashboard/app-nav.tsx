@@ -61,7 +61,7 @@ export function AppNav() {
   return (
     <>
       <nav aria-label="Main" className="flex flex-col">
-        <ul className="-mx-6 flex gap-1 overflow-x-auto px-6 pb-1 [scrollbar-width:none] lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0 lg:space-y-0.5">
+        <ul className="flex flex-col space-y-0.5">
           {ITEMS.map((item) => {
             const href = item.slug === "dashboard" ? "/dashboard" : `/${item.slug}`;
             const active =
@@ -71,7 +71,7 @@ export function AppNav() {
             const Icon = ICONS[item.slug] ?? LayoutGrid;
 
             return (
-              <li key={item.slug} className="shrink-0">
+              <li key={item.slug}>
                 <Link
                   href={href}
                   aria-current={active ? "page" : undefined}

@@ -67,7 +67,7 @@ export function MobileNav({ children }: { children: ReactNode }) {
       </nav>
 
       <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <SheetContent side="left" className="flex w-[85vw] max-w-[18rem] flex-col gap-0 overflow-hidden bg-card p-0">
+        <SheetContent side="left" className="flex w-64 max-w-[85vw] flex-col gap-0 overflow-hidden bg-card p-0">
           <SheetHeader className="border-b border-border px-4 py-4 text-left">
             <SheetTitle className="sr-only">Menu</SheetTitle>
             <BrandLogo size="sm" />

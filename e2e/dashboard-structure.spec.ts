@@ -51,6 +51,15 @@ test("mobile menu: same boundary, Collaborate once, no Yora banner", async ({ br
   for (const kept of ["Privacy", "Integrations"]) await expect(drawer.getByRole("link", { name: kept, exact: true })).toBeVisible();
   await expect(drawer.getByRole("button", { name: "Sign out" })).toBeVisible();
   for (const old of ["Dashboard Overview", "Skills & Inferred Graph", "Privacy & AI Consent", "Connected Sources"]) await expect(drawer.getByText(old)).toHaveCount(0);
+  // Laid out like the desktop sidebar: one vertical list (same left edge, top to bottom), nothing scrolling sideways,
+  // in a drawer as wide as the desktop sidebar.
+  const boxes = await drawer.getByRole("navigation", { name: "Main" }).getByRole("link").evaluateAll((els) => els.map((el) => el.getBoundingClientRect()).map((r) => ({ x: Math.round(r.x), y: Math.round(r.y), right: Math.round(r.right) })));
+  expect(new Set(boxes.map((b) => b.x)).size).toBe(1);
+  for (let i = 1; i < boxes.length; i++) expect(boxes[i].y).toBeGreaterThan(boxes[i - 1].y);
+  const panel = (await drawer.boundingBox())!;
+  for (const b of boxes) expect(b.right).toBeLessThanOrEqual(Math.round(panel.x + panel.width));
+  expect(await drawer.getByRole("navigation", { name: "Main" }).locator("ul").evaluate((ul) => ul.scrollWidth - ul.clientWidth)).toBeLessThanOrEqual(0);
+  expect(Math.round(panel.width)).toBe(256);
   // Navigating from the drawer closes it.
   await drawer.getByRole("link", { name: "Skills", exact: true }).click();
   await expect(page).toHaveURL(/\/skills$/);
