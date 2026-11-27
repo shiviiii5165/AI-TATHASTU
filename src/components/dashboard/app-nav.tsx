@@ -51,7 +51,8 @@ const ITEMS = [
   { slug: "dashboard", label: "Home" },
   // People & Network and Communities belong to Collaborate (one link in the sidebar's lower area); Internships
   // are a category of Opportunities. Their pages and data stay; they just aren't primary navigation.
-  ...NAV_ITEMS.filter((i) => !["eris", "meet", "cv-builder", "people", "collaborate", "internships"].includes(i.slug)),
+  // AVSAR ("opportunities") is linked from the sidebar's lower area, directly below Collaborate (sidebar.tsx).
+  ...NAV_ITEMS.filter((i) => !["eris", "meet", "cv-builder", "people", "collaborate", "internships", "opportunities"].includes(i.slug)),
 ];
 
 export function AppNav() {

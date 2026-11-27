@@ -14,7 +14,7 @@ import { opportunities, opportunityInteractions, opportunitySaves, opportunitySo
 import { explainFit, type FitExplanation, type FitState, type StudentSignals } from "./fit";
 import type { OppDb } from "./ingest";
 import type { ListingInsight, Position } from "./insight";
-import { buildStudentSignals, insightOf, recommendableWhere } from "./recommend";
+import { ACTIVE_RESEARCH_CAP, buildStudentSignals, insightOf, recommendableWhere } from "./recommend";
 
 export const SECTIONS = {
   all: "All opportunities",
@@ -188,7 +188,8 @@ export async function browseOpportunities(db: OppDb, userId: string | null, stud
     .innerJoin(opportunitySources, eq(opportunities.sourceId, opportunitySources.id))
     .where(where)
     .orderBy(sql`${opportunities.deadlineAt} asc nulls last`, desc(opportunities.lastVerifiedAt))
-    .limit(200);
+    .limit(ACTIVE_RESEARCH_CAP);
+  if (rows.length === ACTIVE_RESEARCH_CAP) console.warn(`[research] browse reached the ${ACTIVE_RESEARCH_CAP}-row read cap; counts and Saved may be incomplete`);
   const saveMap = new Map(saves.map((s) => [s.opportunityId, s.remind]));
   // Every listing gets its intelligence once; non-research roles (an animal welfare officer on a research feed) are dropped.
   const all = rows

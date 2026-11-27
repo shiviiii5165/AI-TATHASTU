@@ -4,7 +4,7 @@
  * the dashboard keeps a short people preview that hands off to Collaborate, and drops the Avasar jobs placeholder
  * and the profile-complete widget, while everything that works stays.
  */
-import { expect, test, type Browser } from "@playwright/test";
+import { expect, test, type Browser, type Locator } from "@playwright/test";
 
 import { createUser, seedComputedProfile, signIn } from "./support/fixtures";
 
@@ -16,6 +16,23 @@ async function setUp(browser: Browser, name: string, width: number) {
   const page = await context.newPage();
   await page.goto("/dashboard");
   return { context, page };
+}
+
+/** Lower area runs Collaborate → AVSAR → Privacy → Integrations → Sign out; AVSAR opens the in-app AVSAR section. */
+async function expectLowerOrder(scope: Locator) {
+  const avsar = scope.getByRole("link", { name: "AVSAR", exact: true });
+  await expect(avsar).toHaveCount(1);
+  await expect(avsar).toHaveAttribute("href", "/opportunities");
+  const items = [
+    scope.getByRole("link", { name: /^Collaborate/ }),
+    avsar,
+    scope.getByRole("link", { name: "Privacy", exact: true }),
+    scope.getByRole("link", { name: "Integrations", exact: true }),
+    scope.getByRole("button", { name: "Sign out" }),
+  ];
+  const ys: number[] = [];
+  for (const item of items) ys.push((await item.boundingBox())!.y);
+  for (let i = 1; i < ys.length; i++) expect(ys[i]).toBeGreaterThan(ys[i - 1]);
 }
 
 test("desktop sidebar: removed entries gone, Collaborate exactly once via the authorised launch, no Yora card", async ({ browser }) => {
@@ -31,9 +48,11 @@ test("desktop sidebar: removed entries gone, Collaborate exactly once via the au
   await expect(collaborate).toHaveAttribute("href", "/integrations/launch/collaborate");
   // Unaffected items keep their order; Privacy, Integrations and Sign out stay.
   const labels = await sidebar.getByRole("navigation", { name: "Main" }).getByRole("link").allTextContents();
-  expect(labels.slice(0, 6)).toEqual(["Home", "My Profile", "Skills", "Projects", "Achievements", "AVSAR"]);
+  expect(labels.slice(0, 5)).toEqual(["Home", "My Profile", "Skills", "Projects", "Achievements"]);
+  expect(labels).not.toContain("AVSAR");
   for (const kept of ["Privacy", "Integrations"]) await expect(sidebar.getByRole("link", { name: kept })).toBeVisible();
   await expect(sidebar.getByRole("button", { name: "Sign out" })).toBeVisible();
+  await expectLowerOrder(sidebar);
 
   // The underlying People page still works for existing links and bookmarks.
   const res = await page.request.get("/people");
@@ -47,9 +66,11 @@ test("mobile menu: same boundary, Collaborate once, no Yora banner", async ({ br
   const drawer = page.getByRole("dialog");
   // The drawer is the desktop sidebar itself: same items, same labels, same order (no separate mobile menu).
   const labels = await drawer.getByRole("navigation", { name: "Main" }).getByRole("link").allTextContents();
-  expect(labels.slice(0, 6)).toEqual(["Home", "My Profile", "Skills", "Projects", "Achievements", "AVSAR"]);
+  expect(labels.slice(0, 5)).toEqual(["Home", "My Profile", "Skills", "Projects", "Achievements"]);
+  expect(labels).not.toContain("AVSAR");
   for (const kept of ["Privacy", "Integrations"]) await expect(drawer.getByRole("link", { name: kept, exact: true })).toBeVisible();
   await expect(drawer.getByRole("button", { name: "Sign out" })).toBeVisible();
+  await expectLowerOrder(drawer);
   for (const old of ["Dashboard Overview", "Skills & Inferred Graph", "Privacy & AI Consent", "Connected Sources"]) await expect(drawer.getByText(old)).toHaveCount(0);
   // Laid out like the desktop sidebar: one vertical list (same left edge, top to bottom), nothing scrolling sideways,
   // in a drawer as wide as the desktop sidebar.

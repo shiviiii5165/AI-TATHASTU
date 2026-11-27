@@ -26,7 +26,8 @@ const CACHE_TTL_MS = 10 * 60_000;
 const STALE_MAX_MS = 24 * 3600_000;
 const TIMEOUT_MS = 8_000;
 const PAGE_SIZE = 50;
-const MAX_PAGES = 4; // at most 200 internships per refresh
+// At most 500 internships per refresh (10 requests per 10-minute refresh; Avsar allows 120/min per partner).
+const MAX_PAGES = 10;
 
 const nullableStr = z.string().nullable();
 const ItemSchema = z.object({
@@ -172,6 +173,8 @@ export async function fetchAvsarInternships(opts: AvsarClientOptions): Promise<A
       byId.set(it.data.id, it.data); // duplicates across pages collapse onto one id
     }
     if (!parsed.data.hasMore) break;
+    // Never silent: if Avsar still has more after the page budget, say so (the browse link on Avsar shows all).
+    if (page === MAX_PAGES) console.warn(`[avsar-internships] ${parsed.data.total} published, only the first ${MAX_PAGES * PAGE_SIZE} fetched`);
   }
   return [...byId.values()];
 }

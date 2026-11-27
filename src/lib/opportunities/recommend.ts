@@ -4,7 +4,7 @@
  * (profile_views.view.intelligence) and the profile the engine already processes; nothing new is
  * collected, nothing leaves AI Tathastu, and no provider ever sees who viewed a listing.
  */
-import { and, desc, eq, gte, isNull, or, gt } from "drizzle-orm";
+import { and, desc, eq, gte, isNull, or, gt, sql } from "drizzle-orm";
 
 import { opportunities, opportunitySources } from "@/db/schema";
 
@@ -13,7 +13,12 @@ import { VERIFICATION_TTL_DAYS, type OppDb } from "./ingest";
 import { deriveInsight, studentDisciplines } from "./insight";
 
 const STRONG = new Set(["proficient", "advanced"]);
-const LIMIT = 50;
+/**
+ * Upper bound on active research rows read per request, shared by the dashboard and /opportunities so both see the
+ * same catalogue. Fit ranking happens after the read, so this cap must sit well above the active catalogue size:
+ * a lower one (the old 50 newest-verified) silently hid strong matches and capped the dashboard's "N more" count.
+ */
+export const ACTIVE_RESEARCH_CAP = 500;
 
 /** Minimal slice of ProfileData this needs (kept structural for tests). */
 export interface ProfileSignalsInput {
@@ -77,8 +82,9 @@ export async function researchForStudent(db: OppDb, student: StudentSignals, now
     .from(opportunities)
     .innerJoin(opportunitySources, eq(opportunities.sourceId, opportunitySources.id))
     .where(and(eq(opportunities.type, "research"), recommendableWhere(now)))
-    .orderBy(desc(opportunities.lastVerifiedAt))
-    .limit(LIMIT);
+    .orderBy(sql`${opportunities.deadlineAt} asc nulls last`, desc(opportunities.lastVerifiedAt))
+    .limit(ACTIVE_RESEARCH_CAP);
+  if (rows.length === ACTIVE_RESEARCH_CAP) console.warn(`[research] active catalogue reached the ${ACTIVE_RESEARCH_CAP}-row read cap; raise ACTIVE_RESEARCH_CAP`);
 
   return rows
     .map(({ o, sourceName }) => ({

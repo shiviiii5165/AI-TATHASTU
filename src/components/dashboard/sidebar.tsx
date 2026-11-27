@@ -1,11 +1,11 @@
-import { ArrowUpRight, LogOut, Plug, Share2, ShieldCheck } from "lucide-react";
+import { ArrowUpRight, Briefcase, LogOut, Plug, Share2, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
 import { signOut } from "@/auth";
 import { AppNav } from "@/components/dashboard/app-nav";
 
 /**
- * THE dashboard sidebar: the main navigation (AppNav) and the lower area (Collaborate, Privacy, Integrations,
+ * THE dashboard sidebar: the main navigation (AppNav) and the lower area (Collaborate, AVSAR, Privacy, Integrations,
  * Sign out). Rendered by the desktop sidebar AND inside the mobile drawer, so a phone, a tablet and a zoomed-in
  * laptop all show the same menu with the same labels and order. Change navigation here (or in lib/dashboard/nav.ts),
  * never in a second copy.
@@ -26,6 +26,14 @@ export function SidebarContent() {
           <ArrowUpRight aria-hidden className="size-3.5 text-muted-foreground" />
           <span className="sr-only">(opens Collaborate)</span>
         </a>
+        {/* AVSAR: the existing in-app AVSAR section (route stays /opportunities); its cards hand off to Avsar. */}
+        <Link
+          href="/opportunities"
+          className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-[#FF5A5F]/20 focus-visible:outline-none"
+        >
+          <Briefcase aria-hidden className="size-4 text-muted-foreground" />
+          AVSAR
+        </Link>
         <Link
           href="/settings/privacy"
           className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-[#FF5A5F]/20 focus-visible:outline-none"

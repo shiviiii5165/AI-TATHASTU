@@ -419,11 +419,18 @@ function AvsarSection({ research, internships }: { research?: ResearchFeed; inte
               <StateBox title="No verified collaboration calls right now" body="Collaboration calls appear here once confirmed at their official source." />
             )
           ) : (
+            <>
+            {pool > shown.length && (
+              <p className="mb-1.5 text-center text-[11px] text-[#475569]" data-testid="avsar-preview-count">
+                Showing your top {shown.length} of {pool} open {cat === "all" ? "opportunities" : AVSAR_CATEGORIES[cat].label.toLowerCase()}
+              </p>
+            )}
             <ul className="space-y-2" aria-label={`${AVSAR_CATEGORIES[cat].label} opportunity previews`}>
               {shown.map((p) => (
                 <PreviewRow key={p.key} p={p} />
               ))}
             </ul>
+            </>
           )}
         </div>
 
@@ -454,7 +461,7 @@ function AvsarSection({ research, internships }: { research?: ResearchFeed; inte
               href={cat === "all" ? "/opportunities" : `/opportunities?cat=${cat}${cat === "research" ? "&section=all" : ""}`}
               className="text-[11px] font-semibold text-[#475569] hover:text-[#11182B] hover:underline"
             >
-              {pool - shown.length} more {cat === "all" ? "" : `${AVSAR_CATEGORIES[cat].label.toLowerCase()} `}in AVSAR
+              View all {pool} {cat === "all" ? "" : `${AVSAR_CATEGORIES[cat].label.toLowerCase()} `}in AVSAR
             </Link>
           )}
         </div>
